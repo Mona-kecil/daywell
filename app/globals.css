@@ -522,10 +522,21 @@ section:not(.card) > .section-heading {
   min-height: 60px;
   font-size: 10px;
 }
+.tabbar button {
+  position: relative;
+  isolation: isolate;
+}
 .tabbar button.active {
-  background: var(--green-soft);
   color: var(--green);
   font-weight: 700;
+}
+.tab-pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 14px;
+  background: var(--green-soft);
+  view-transition-name: tab-pill;
 }
 label,
 legend {
@@ -1608,4 +1619,52 @@ h1,
   outline: 2px solid var(--green);
   outline-offset: 4px;
   border-radius: 6px;
+}
+.screen {
+  view-transition-name: screen;
+}
+::view-transition-group(tab-pill) {
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(screen),
+::view-transition-new(screen) {
+  animation-duration: 0.26s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root[data-nav="forward"]::view-transition-old(screen) {
+  animation-name: screen-out-left;
+}
+:root[data-nav="forward"]::view-transition-new(screen) {
+  animation-name: screen-in-right;
+}
+:root[data-nav="back"]::view-transition-old(screen) {
+  animation-name: screen-out-right;
+}
+:root[data-nav="back"]::view-transition-new(screen) {
+  animation-name: screen-in-left;
+}
+@keyframes screen-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+@keyframes screen-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes screen-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes screen-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   Authenticated,
   Unauthenticated,
@@ -134,8 +135,24 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
       .map((m) => mealTotals(m.items)),
   );
   const changeTab = (next: Tab) => {
-    setTab(next);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    const swap = () => {
+      flushSync(() => setTab(next));
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    const order = tabs.map((t) => t.id);
+    const root = document.documentElement;
+    if (
+      next === tab ||
+      !document.startViewTransition ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return swap();
+    // Slide in the direction of travel along the tab bar.
+    root.dataset.nav =
+      order.indexOf(next) > order.indexOf(tab) ? "forward" : "back";
+    document
+      .startViewTransition(swap)
+      .finished.finally(() => delete root.dataset.nav);
   };
   return (
     <div className="app-shell">
@@ -216,6 +233,7 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
             aria-current={tab === id ? "page" : undefined}
             onClick={() => changeTab(id)}
           >
+            {tab === id && <span className="tab-pill" aria-hidden />}
             <Icon size={22} strokeWidth={1.7} />
             <span>{label}</span>
           </button>
