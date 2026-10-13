@@ -2719,3 +2719,166 @@ h1,
 .barcode-result .form-actions > * {
   flex: 1;
 }
+/* Weekly review */
+.week-days {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0 16px;
+}
+.week-days i {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--track);
+}
+.week-days i.on {
+  background: var(--frequency);
+}
+.week-days span {
+  margin-left: 8px;
+  color: var(--muted);
+}
+.week-days strong {
+  color: var(--text);
+}
+.week-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.week-stats div {
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: var(--bg);
+  text-align: center;
+}
+.week-stats dt {
+  font-size: 10px;
+  color: var(--muted);
+}
+.week-stats dd {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.week-stats dd small {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.week-water .row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.week-water-track {
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: var(--track);
+  overflow: hidden;
+}
+.week-water-track span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--blue);
+}
+/* Achievements */
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 4px;
+  margin-top: 4px;
+}
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border-radius: 14px;
+  color: var(--muted);
+}
+.badge[aria-pressed="true"] {
+  background: var(--bg);
+}
+.badge-medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+}
+.badge-ring {
+  position: absolute;
+  inset: 0;
+}
+.badge-track {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 3;
+}
+.badge-arc {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.badge.earned .badge-track {
+  fill: var(--tone-soft);
+  stroke: var(--tone);
+}
+.badge.earned .badge-medal {
+  color: var(--tone);
+}
+.badge.green {
+  --tone: var(--green);
+  --tone-soft: var(--green-soft);
+}
+.badge.blue {
+  --tone: var(--blue);
+  --tone-soft: color-mix(in srgb, var(--blue) 14%, var(--surface));
+}
+.badge.amber {
+  --tone: var(--amber);
+  --tone-soft: color-mix(in srgb, var(--amber) 16%, var(--surface));
+}
+.badge-check {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  background: var(--tone);
+  color: var(--surface);
+  border: 2px solid var(--surface);
+}
+.badge-title {
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: center;
+}
+.badge.earned .badge-title {
+  color: var(--text);
+  font-weight: 600;
+}
+.badge-detail {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--bg);
+}
+.badge-detail p {
+  margin: 4px 0 0;
+}
+.badge-icon {
+  position: relative;
+}

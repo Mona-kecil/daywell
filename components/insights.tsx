@@ -4,6 +4,7 @@ import {
   useState,
   type KeyboardEvent,
   type PointerEvent,
+  type ReactNode,
 } from "react";
 import { useQuery } from "convex/react";
 import {
@@ -34,6 +35,7 @@ import {
 import { SectionTitle } from "./ui";
 import { LineChart } from "./line-chart";
 import { ConsistencyCalendar } from "./consistency";
+import { Achievements, WeeklyReview } from "./review";
 import {
   BodyModel,
   mix,
@@ -65,7 +67,14 @@ export function Insights({ now }: { now: number }) {
         Loading insights…
       </div>
     );
-  return <InsightsView data={data} period={period} checkins={checkins} />;
+  return (
+    <>
+      <InsightsView data={data} period={period} checkins={checkins}>
+        <WeeklyReview now={now} />
+      </InsightsView>
+      <Achievements now={now} />
+    </>
+  );
 }
 
 const litres = (ml: number) =>
@@ -504,10 +513,12 @@ export function InsightsView({
   data,
   period,
   checkins = [],
+  children,
 }: {
   data: InsightsInput;
   period: ReturnType<typeof dayWindow>;
   checkins?: BodyCheckin[];
+  children?: ReactNode;
 }) {
   const [range, setRange] = useState<RangeId>("7d");
   const [table, setTable] = useState(false);
@@ -561,6 +572,7 @@ export function InsightsView({
           How your water, meals, training, and body add up.
         </p>
       </section>
+      {children}
       <div className="insights-filters">
         <div className="segmented" role="group" aria-label="Date range">
           {(Object.keys(RANGES) as RangeId[]).map((id) => (
