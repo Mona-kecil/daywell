@@ -10,6 +10,7 @@ import {
 } from "convex/react";
 import {
   CalendarDays,
+  ChartColumn,
   Dumbbell,
   Droplets,
   Utensils,
@@ -26,12 +27,14 @@ import { Today } from "./today";
 import { Train } from "./train";
 import { Water } from "./water";
 import { Meals } from "./meals";
-export type Tab = "today" | "train" | "water" | "meals";
+import { Insights } from "./insights";
+export type Tab = "today" | "train" | "water" | "meals" | "insights";
 const tabs = [
   { id: "today", label: "Today", Icon: CalendarDays },
   { id: "train", label: "Train", Icon: Dumbbell },
   { id: "water", label: "Water", Icon: Droplets },
   { id: "meals", label: "Meals", Icon: Utensils },
+  { id: "insights", label: "Insights", Icon: ChartColumn },
 ] satisfies { id: Tab; label: string; Icon: typeof CalendarDays }[];
 export function ThemeToggle() {
   const [dark, setDark] = useState<boolean | null>(null);
@@ -201,6 +204,7 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
             {tab === "meals" && (
               <Meals meals={meals} totals={totals} now={now} />
             )}
+            {tab === "insights" && <Insights now={now} />}
           </div>
         )}
       </main>

@@ -4,7 +4,8 @@ import { Droplets, Trash2, SlidersHorizontal } from "lucide-react";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
-import { Empty, Progress, SectionTitle, timeLabel, useTask } from "./ui";
+import { Empty, SectionTitle, timeLabel, useTask } from "./ui";
+import { WaterVessel } from "./water-vessel";
 export function Water({
   entries,
   goal,
@@ -39,17 +40,23 @@ export function Water({
             Daily goal
           </button>
         </div>
-        <div className="metric">
-          <strong>{total.toLocaleString()}</strong>
-          <span> ml today</span>
+        <div className="water-hero-body">
+          <WaterVessel value={total / goal} label="Today's hydration" />
+          <div>
+            <div className="metric">
+              <strong>{total.toLocaleString()}</strong>
+              <span> ml today</span>
+            </div>
+            <p className="muted small">
+              {total >= goal
+                ? "Daily goal reached."
+                : `${Math.max(0, goal - total).toLocaleString()} ml to go`}
+            </p>
+            <p className="muted small">
+              {Math.round((total / goal) * 100)}% of {goal.toLocaleString()} ml
+            </p>
+          </div>
         </div>
-        <Progress value={total / goal} label="Today's hydration" tone="blue" />
-        <p className="muted small">
-          {total >= goal
-            ? "Daily goal reached."
-            : `${Math.max(0, goal - total).toLocaleString()} ml to go`}{" "}
-          · Goal {goal.toLocaleString()} ml
-        </p>
         {editing && (
           <form
             className="inline-form goal-form"
