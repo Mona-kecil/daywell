@@ -19,7 +19,7 @@ export const PALETTE = {
 
 const channels = (hex: string) =>
   [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-function mix(a: string, b: string, t: number) {
+export function mix(a: string, b: string, t: number) {
   const [x, y] = [channels(a), channels(b)];
   return `#${x
     .map((v, i) =>

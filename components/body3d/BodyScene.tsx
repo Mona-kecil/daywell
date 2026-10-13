@@ -7,10 +7,10 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import {
   CapsuleGeometry,
-  Color,
   MathUtils,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
@@ -41,11 +41,10 @@ export type BodyModelProps = {
   height?: number;
   // A small turntable preview: no toolbar, legend, or muscle picking.
   compact?: boolean;
+  // Overrides the recovery colouring, e.g. for frequency maps.
+  colorOf?: (key: MuscleKey, dark: boolean) => string;
+  legend?: ReactNode;
 };
-
-export function recoveryColor(state: MuscleState | undefined, dark: boolean) {
-  return new Color(recoveryHex(state, dark));
-}
 
 const SPHERE = new SphereGeometry(1, 40, 28);
 const TURN = Math.PI;
@@ -96,18 +95,16 @@ function ShapeMesh({
 
 function Muscle({
   name,
-  state,
   selected,
   hovered,
-  dark,
+  color,
   onHover,
   onToggle,
 }: {
   name: MuscleKey;
-  state: MuscleState | undefined;
   selected: boolean;
   hovered: boolean;
-  dark: boolean;
+  color: string;
   onHover: (key: MuscleKey | null) => void;
   onToggle?: (key: MuscleKey) => void;
 }) {
@@ -123,10 +120,9 @@ function Muscle({
   );
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
-    const color = recoveryColor(state, dark);
-    material.color.copy(color);
-    material.emissive.copy(color);
-  }, [material, state, dark]);
+    material.color.set(color);
+    material.emissive.set(color);
+  }, [material, color]);
   useFrame(({ clock }) => {
     const pulse = 0.5 + 0.5 * Math.sin(clock.elapsedTime * 4);
     const target = selected ? 0.28 + 0.3 * pulse : hovered ? 0.22 : 0;
@@ -171,6 +167,7 @@ function Figure({
   yaw,
   idle,
   spin,
+  colorOf,
   onHover,
   onToggle,
 }: {
@@ -181,6 +178,7 @@ function Figure({
   yaw: React.RefObject<number>;
   idle: React.RefObject<number>;
   spin: boolean;
+  colorOf: BodyModelProps["colorOf"];
   onHover: (key: MuscleKey | null) => void;
   onToggle?: (key: MuscleKey) => void;
 }) {
@@ -227,10 +225,9 @@ function Figure({
         <Muscle
           key={key}
           name={key}
-          state={states[key]}
+          color={colorOf?.(key, dark) ?? recoveryHex(states[key], dark)}
           selected={selected.includes(key)}
           hovered={hovered === key}
-          dark={dark}
           onHover={onHover}
           onToggle={onToggle}
         />
@@ -261,6 +258,8 @@ export default function BodyScene({
   onToggle,
   height = 400,
   compact = false,
+  colorOf,
+  legend,
 }: BodyModelProps) {
   const dark = useIsDark();
   const reduceMotion = useReducedMotion();
@@ -353,6 +352,7 @@ export default function BodyScene({
             yaw={yaw}
             idle={idle}
             spin={compact && !reduceMotion}
+            colorOf={colorOf}
             onHover={compact ? () => {} : setHovered}
             onToggle={
               compact
@@ -404,9 +404,13 @@ export default function BodyScene({
             </p>
           </div>
           <div className="body3d-legend" aria-hidden>
-            <span>Sore</span>
-            <i />
-            <span>Ready</span>
+            {legend ?? (
+              <>
+                <span>Sore</span>
+                <i />
+                <span>Ready</span>
+              </>
+            )}
           </div>
         </>
       )}

@@ -21,6 +21,17 @@ import {
   type RangeId,
 } from "@/lib/insights";
 import { SectionTitle } from "./ui";
+import {
+  BodyModel,
+  mix,
+  muscleKey,
+  PALETTE,
+  type MuscleKey,
+  type MuscleState,
+} from "./body3d";
+
+// The validated protein series colour; one hue, light → dark by frequency.
+const FREQUENCY_HUE = { light: "#2a7a50", dark: "#4fa574" };
 
 export function Insights({ now }: { now: number }) {
   const today = dayKey(new Date(now));
@@ -322,6 +333,67 @@ function TrainingMap({
   );
 }
 
+function TrainingBody({
+  bins,
+  muscles,
+}: {
+  bins: Bin[];
+  muscles: InsightsInput["muscles"];
+}) {
+  const counts = new Map<MuscleKey, number>();
+  for (const m of muscles) {
+    const key = muscleKey(m.name);
+    if (key)
+      counts.set(
+        key,
+        bins.reduce((sum, b) => sum + (b.trained.get(m._id) ?? 0), 0),
+      );
+  }
+  const max = Math.max(1, ...counts.values());
+  const states = Object.fromEntries(
+    [...counts].map(([key, n]): [MuscleKey, MuscleState] => [
+      key,
+      {
+        kind: "ready",
+        fraction: 1,
+        label: `${n} ${n === 1 ? "day" : "days"} trained`,
+      },
+    ]),
+  );
+  return (
+    <section className="card chart">
+      <div className="chart-head">
+        <h3>Where you trained</h3>
+        <p className="chart-readout">Days each muscle was trained</p>
+      </div>
+      <BodyModel
+        states={states}
+        height={360}
+        colorOf={(key, dark) => {
+          const n = counts.get(key) ?? 0;
+          const base = dark ? PALETTE.dark.never : PALETTE.light.never;
+          return n
+            ? mix(
+                base,
+                FREQUENCY_HUE[dark ? "dark" : "light"],
+                0.3 + (0.7 * n) / max,
+              )
+            : base;
+        }}
+        legend={
+          <>
+            <span>0</span>
+            <i className="frequency-ramp" />
+            <span>
+              {max} {max === 1 ? "day" : "days"}
+            </span>
+          </>
+        }
+      />
+    </section>
+  );
+}
+
 function DataTable({
   bins,
   muscles,
@@ -553,6 +625,7 @@ export function InsightsView({
             }
             format={(v) => `${whole(v)}g`}
           />
+          <TrainingBody bins={bins} muscles={data.muscles} />
           <TrainingMap bins={bins} muscles={data.muscles} />
         </>
       )}
