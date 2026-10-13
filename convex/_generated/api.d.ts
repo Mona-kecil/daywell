@@ -16,6 +16,7 @@ import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as demoSeed from "../demoSeed.js";
 import type * as exerciseModel from "../exerciseModel.js";
+import type * as exportData from "../exportData.js";
 import type * as insights from "../insights.js";
 import type * as mealActions from "../mealActions.js";
 import type * as mealVision_fake from "../mealVision/fake.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   demo: typeof demo;
   demoSeed: typeof demoSeed;
   exerciseModel: typeof exerciseModel;
+  exportData: typeof exportData;
   insights: typeof insights;
   mealActions: typeof mealActions;
   "mealVision/fake": typeof mealVision_fake;

@@ -69,7 +69,7 @@ The seed uses fixture nutrients so it stays repeatable even if live mode is enab
 
 ### Verified local deployment signal
 
-On the running local Convex 1.46 backend, temporary internal query and action probes each returned `CONVEX_CLOUD_URL=http://127.0.0.1:3210` and `CONVEX_SITE_URL=http://127.0.0.1:3211`. A temporary top-level assertion in `auth.config.ts` required these exact values; `convex run --push` succeeded with the assertion active, proving both values were present during auth configuration evaluation. The probes and assertion were removed. A subsequent push and demo seed verified the guarded config. No cloud deployment was changed or probed; non-local behavior is covered by tests.
+On the running local Convex 1.46 backend, temporary internal query and action probes each returned `CONVEX_CLOUD_URL=http://127.0.0.1:3210` and `CONVEX_SITE_URL=http://127.0.0.1:3211`. A temporary top-level assertion in `auth.config.ts` required these exact values; `convex run --push` succeeded with the assertion active, proving both values were present during auth configuration evaluation. The probes and assertion were removed. A subsequent push and demo seed verified the guarded config. A signed RS256 dev token (without CLI impersonation) also read 25 exercises, 11 workouts, and 81 check-ins from the local backend after the guard was installed; an unauthenticated export request was rejected. No cloud deployment was changed or probed; non-local behavior is covered by tests.
 
 Convex documents these [system environment variables](https://docs.convex.dev/production/environment-variables) and supports [canonical URL overrides](https://docs.convex.dev/production/custom-domains). The guard assumes deployment administrators keep those URLs accurate; it does not protect against an administrator deliberately setting both production URLs to loopback.
 
@@ -148,6 +148,10 @@ Push defaults to a fake sender that records calls. For delivery, set `PUSH_PROVI
 ## Strength and body check-in APIs
 
 The backend supports an exercise library, custom exercises, ordered sets, session history, estimated strength PRs, weekly muscle set counts, and daily weight/sleep/mood/energy check-ins. The UI contract is in [Wave D API](docs/wave-d-api.md). Strength sessions create the same workout and recovery links as muscle-only tracking. Deleting a workout also removes its strength sets.
+
+## Data export
+
+`api.exportData.all({})` returns a versioned JSON snapshot of the signed-in user's settings, muscles, workouts and sets, custom exercises, drinks, meals with nutrition totals, and body check-ins. Photos, push subscriptions, and internal bookkeeping are excluded. The exact shape and download flow are in [Wave D API](docs/wave-d-api.md).
 
 ## Use the tracker
 

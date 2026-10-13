@@ -95,3 +95,59 @@ Weight accepts finite numbers from 20–400 kg. Sleep accepts finite numbers fro
 Ranges include both endpoints, sort ascending by day, and permit at most 400 calendar days including both endpoints. Reversed or longer ranges fail. Missing days produce no placeholder rows. `get` returns null when the caller has no record for that day. Coach reminder `settings.checkIns` times remain a separate feature.
 
 For a form, query `get` for the selected local day, render absent fields blank, then send only changed fields. Send null when the user clears an existing value. Await `upsert` before closing; Convex refreshes subscribed queries. The seed passes 90 date strings computed in the CLI's local timezone, omits nine days, and replaces only the dev user's check-ins. Its optional `checkinDays` argument preserves older demo callers; callers without it use UTC date strings derived from the supplied first day timestamp.
+
+## Data export
+
+```ts
+api.exportData.all({}) // query → {
+//   version: 1;
+//   exportedAt: number;
+//   settings: null | {
+//     waterGoal: number;
+//     kcalTarget?: number;
+//     proteinTarget?: number;
+//     timeZone?: string;
+//     checkIns?: string[];
+//     remindersEnabled?: boolean;
+//   };
+//   muscles: Array<{ id: Id<"muscles">; name: string; cooldownHours: number }>;
+//   workouts: Array<{
+//     id: Id<"workouts">; muscleIds: Id<"muscles">[]; trainedAt: number; note: string;
+//     sets: Array<{
+//       id: Id<"strengthSets">; exerciseId: Id<"exercises">; exerciseName: string;
+//       muscleIds: Id<"muscles">[]; reps: number; weightKg: number; order: number
+//     }>;
+//   }>;
+//   exercises: Array<{ id: Id<"exercises">; name: string; muscleIds: Id<"muscles">[] }>;
+//   water: Array<{ id: Id<"water">; amountMl: number; at: number }>;
+//   meals: Array<{
+//     id: Id<"meals">; description: string; at: number; items: MealItem[];
+//     totals: { kcal: number; protein: number; carbs: number; fat: number };
+//     status: "analyzing" | "ready" | "error"; error?: string
+//   }>;
+//   checkins: Array<{
+//     id: Id<"bodyCheckins">; day: string;
+//     weightKg?: number; sleepHours?: number; mood?: number; energy?: number; note?: string
+//   }>;
+// }
+
+type Macros = { kcal: number; protein: number; carbs: number; fat: number };
+type MealItem = {
+  id: string; name: string; grams: number; searchQuery: string;
+} & (
+  { status: "unmatched" } |
+  { status: "matched"; fdcId: number; foodDescription: string; per100g: Macros }
+);
+```
+
+Export reads a single consistent Convex query snapshot of all caller-owned records. It needs no date range or initialization. An uninitialized account returns `settings: null` and empty arrays. Optional settings reflect stored values; absent fields are omitted, rather than filled with coach defaults. `exportedAt` is the query's execution time, so request a fresh query when the user clicks Download (for example, `convex.query(api.exportData.all, {})`), then serialize with `JSON.stringify(result, null, 2)` and download as `daywell-YYYY-MM-DD.json`. It is a snapshot, not an import format; there is no import API.
+
+Workouts, drinks, and meals sort oldest first; check-ins sort ascending by day; sets sort by global order. Muscles and custom exercises use database insertion order. `exercises` contains custom exercises only. Built-in exercise references remain readable through each set's `exerciseName` and snapshot muscle IDs. The complete built-in library can be read through `strength.exercises`. Muscle-only workouts export an empty `sets` array.
+
+Meals include every analysis status. Totals derive from the exported matched items and exclude unmatched items. An analyzing or failed meal can retain items from its previous analysis; its exported totals describe those items. For a ready-only summary, filter on `status === "ready"`. Totals remain unrounded. Error messages are user-facing; analysis revisions and start times are omitted.
+
+Export excludes storage blobs, storage IDs, photo URLs, user IDs, creation timestamps, upload tickets, push subscriptions/keys/delivery logs, coach scheduling state, and recovery join rows. All relationships needed for user data use stable record IDs. The query follows Convex's normal read/response limits; it does not truncate data. If an account exceeds those limits, the query fails and the UI should retain the error. The local demo export was checked against the running backend. No chunked export or import is implemented.
+
+## Production safety
+
+Fixture nutrition and the dev JWT provider require both deployment system URLs to use exact loopback hosts. Non-local fixture mode stores a clear meal error instead of canned nutrients. The demo seed also requires the local guard, dev JWKS, dev-user subject, and dev issuer. Read the README's verified signal and canonical URL override limit for deployment setup. These guards do not alter existing public function shapes.
