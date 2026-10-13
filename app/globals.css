@@ -1943,7 +1943,7 @@ h1,
 .set-head,
 .set-rows li {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr) 36px;
+  grid-template-columns: 30px minmax(0, 0.8fr) minmax(0, 1.2fr) 32px;
   gap: 6px;
   align-items: center;
 }
@@ -1981,7 +1981,7 @@ h1,
 }
 .stepper {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 26px;
   align-items: center;
   height: 44px;
   border: 1px solid var(--border);
@@ -2356,4 +2356,147 @@ h1,
   font-size: 10px;
   color: var(--muted);
   margin-top: 6px;
+}
+/* Rest timer */
+.rest-timer {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 6px 5px 8px;
+  border-radius: 99px;
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: 0 8px 28px #0f1f1838;
+  animation: rest-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes rest-in {
+  from {
+    transform: translate(-50%, -16px);
+    opacity: 0;
+  }
+}
+.rest-ring {
+  width: 34px;
+  height: 34px;
+  transform: rotate(-90deg);
+}
+.rest-track,
+.rest-arc {
+  fill: none;
+  stroke-width: 3.5;
+}
+.rest-track {
+  stroke: color-mix(in srgb, var(--surface) 22%, transparent);
+}
+.rest-arc {
+  stroke: var(--surface);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 200ms linear;
+}
+.rest-time {
+  min-width: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rest-timer button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 99px;
+  color: inherit;
+}
+.rest-timer button:active {
+  background: color-mix(in srgb, var(--surface) 16%, transparent);
+}
+.rest-timer.done {
+  background: var(--green);
+}
+.rest-timer.done .rest-ring {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rest-timer {
+    animation: none;
+  }
+  .rest-arc {
+    transition: none;
+  }
+}
+/* Set check-off and plates */
+.set-rows .set-done {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.set-rows .set-done[aria-pressed="true"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--surface);
+}
+.set-rows li.is-done .stepper {
+  opacity: 0.6;
+}
+.plates {
+  margin: 8px 0 2px;
+  display: grid;
+  gap: 4px;
+}
+.plates svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.plates .bar {
+  fill: var(--muted);
+}
+.plates .plate {
+  stroke: var(--surface);
+  stroke-width: 1;
+}
+.plate-25 {
+  fill: #c8372d;
+}
+.plate-20 {
+  fill: #2f62b5;
+}
+.plate-15 {
+  fill: #e0b42a;
+}
+.plate-10 {
+  fill: #3a8a4d;
+}
+.plate-5 {
+  fill: #e9ece6;
+}
+.plate-2-5 {
+  fill: #9c2c25;
+}
+.plate-1-25 {
+  fill: #a9b0ab;
+}
+.entry-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rest-timer button:disabled {
+  opacity: 0.35;
 }

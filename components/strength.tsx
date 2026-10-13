@@ -1,17 +1,28 @@
 "use client";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Check, Minus, Plus, Search, Trash2, Trophy, X } from "lucide-react";
+import {
+  Check,
+  Disc3,
+  Minus,
+  Plus,
+  Search,
+  Trash2,
+  Trophy,
+  X,
+} from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Empty, Sheet, useTask } from "./ui";
 import { LineChart } from "./line-chart";
+import { BAR_KG, loadBar } from "@/lib/plates";
 
 export type Exercise = FunctionReturnType<
   typeof api.strength.exercises
 >[number];
-export type SetDraft = { reps: number; weightKg: number };
+// `done` is a local check-off for the rest timer; it is never saved.
+export type SetDraft = { reps: number; weightKg: number; done?: boolean };
 // `fresh` entries take their sets from the last session once it loads.
 export type EntryDraft = {
   exercise: Exercise;
@@ -104,14 +115,18 @@ export function EntryEditor({
   onChange,
   onRemove,
   onHistory,
+  onRest,
 }: {
   entry: EntryDraft;
   index: number;
   onChange: (sets: SetDraft[]) => void;
   onRemove: () => void;
   onHistory: () => void;
+  onRest: () => void;
 }) {
   const { sets, exercise } = entry;
+  const [showPlates, setShowPlates] = useState(false);
+  const next = sets.find((s) => !s.done) ?? sets[sets.length - 1];
   const last = useQuery(api.strength.exerciseHistory, {
     exerciseId: exercise._id,
     limit: 1,
@@ -171,10 +186,19 @@ export function EntryEditor({
       </div>
       <ol className="set-rows" aria-label={`${exercise.name} sets`}>
         {sets.map((s, i) => (
-          <li key={i}>
-            <span className="set-index" aria-hidden>
-              {i + 1}
-            </span>
+          <li key={i} className={s.done ? "is-done" : undefined}>
+            <button
+              type="button"
+              className="set-done"
+              aria-pressed={!!s.done}
+              aria-label={`Set ${i + 1} done`}
+              onClick={() => {
+                update(i, { done: !s.done });
+                if (!s.done) onRest();
+              }}
+            >
+              {s.done ? <Check size={15} strokeWidth={3} /> : i + 1}
+            </button>
             <Stepper
               label={`set ${i + 1} reps, exercise ${index + 1}`}
               value={s.reps}
@@ -203,15 +227,94 @@ export function EntryEditor({
           </li>
         ))}
       </ol>
-      <button
-        type="button"
-        className="text-button"
-        disabled={sets.length >= 20}
-        onClick={() => onChange([...sets, { ...sets[sets.length - 1] }])}
-      >
-        <Plus size={15} /> Add set
-      </button>
+      <div className="entry-actions">
+        <button
+          type="button"
+          className="text-button"
+          disabled={sets.length >= 20}
+          onClick={() =>
+            onChange([...sets, { ...sets[sets.length - 1], done: false }])
+          }
+        >
+          <Plus size={15} /> Add set
+        </button>
+        {next.weightKg >= BAR_KG && (
+          <button
+            type="button"
+            className="text-button"
+            aria-expanded={showPlates}
+            onClick={() => setShowPlates((v) => !v)}
+          >
+            <Disc3 size={15} /> Plates
+          </button>
+        )}
+      </div>
+      {showPlates && next.weightKg >= BAR_KG && (
+        <Plates totalKg={next.weightKg} />
+      )}
     </div>
+  );
+}
+
+const PLATE_SIZE: Record<number, [width: number, height: number]> = {
+  25: [16, 50],
+  20: [14, 50],
+  15: [12, 44],
+  10: [11, 36],
+  5: [9, 28],
+  2.5: [8, 22],
+  1.25: [7, 18],
+};
+
+const plateKg = (n: number) =>
+  n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+// One side of an Olympic bar, loaded from the collar out.
+function Plates({ totalKg }: { totalKg: number }) {
+  const { perSide, remainderKg } = loadBar(totalKg);
+  const starts = perSide.reduce<number[]>(
+    (xs, _, i) => [
+      ...xs,
+      i ? xs[i - 1] + PLATE_SIZE[perSide[i - 1]][0] + 1 : 64,
+    ],
+    [],
+  );
+  const plates = perSide.map((plate, i) => {
+    const [w, h] = PLATE_SIZE[plate];
+    return (
+      <rect
+        key={i}
+        className={`plate plate-${String(plate).replace(".", "-")}`}
+        x={starts[i]}
+        y={27 - h / 2}
+        width={w}
+        height={h}
+        rx={2}
+      />
+    );
+  });
+  const text = perSide.length
+    ? `Per side: ${perSide.map(plateKg).join(" + ")} kg`
+    : "Just the bar";
+  return (
+    <figure className="plates">
+      <svg viewBox="0 0 200 54" aria-hidden>
+        <rect className="bar" x={4} y={24} width={56} height={6} rx={2} />
+        <rect className="bar" x={56} y={18} width={8} height={18} rx={2} />
+        <rect className="bar" x={64} y={22.5} width={132} height={9} rx={2} />
+        {plates}
+      </svg>
+      <figcaption className="small">
+        <strong>{kg(totalKg)} kg</strong> · {text}
+        {remainderKg > 0 && (
+          <span className="muted">
+            {" "}
+            · {kg(remainderKg)} kg won’t load with standard plates
+          </span>
+        )}
+        <span className="muted"> · {BAR_KG} kg bar</span>
+      </figcaption>
+    </figure>
   );
 }
 

@@ -31,6 +31,7 @@ import {
   type Exercise,
 } from "./strength";
 import { MuscleSheet } from "./muscle-sheet";
+import { RestTimer, startRest, type Rest } from "./rest-timer";
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
@@ -149,6 +150,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const [picking, setPicking] = useState(false);
   const [historyFor, setHistoryFor] = useState<Exercise | null>(null);
   const [detailId, setDetailId] = useState<Id<"muscles"> | null>(null);
+  const [rest, setRest] = useState<Rest | null>(null);
   const detail = muscles.find((m) => m._id === detailId) ?? null;
   const addWorkout = useMutation(api.tracker.addWorkout),
     logSession = useMutation(api.strength.logSession),
@@ -220,7 +222,10 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                         note,
                         entries: entries.map((en) => ({
                           exerciseId: en.exercise._id,
-                          sets: en.sets,
+                          sets: en.sets.map(({ reps, weightKg }) => ({
+                            reps,
+                            weightKg,
+                          })),
                         })),
                         extraMuscleIds: selected,
                       })
@@ -281,6 +286,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                   setEntries((list) => list.filter((_, j) => j !== i))
                 }
                 onHistory={() => setHistoryFor(en.exercise)}
+                onRest={() => setRest(startRest())}
               />
             ))}
             <button
@@ -322,6 +328,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                 : "Save workout"}
           </button>
         </form>
+        <RestTimer rest={rest} onChange={setRest} />
         <ExercisePicker
           open={picking}
           onClose={() => setPicking(false)}
