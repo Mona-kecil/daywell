@@ -748,9 +748,11 @@ form > p.small {
   padding: 14px 0;
 }
 .source-link {
-  font-size: 10px;
+  min-height: 44px;
+  align-items: center;
+  font-size: 11px;
   color: var(--green);
-  display: inline-block;
+  display: inline-flex;
   margin: 6px 0;
 }
 .unmatched {
