@@ -3,10 +3,17 @@ import { v } from "convex/values";
 import { mealItem } from "./validators";
 
 export default defineSchema({
-  settings: defineTable({ userId: v.string(), waterGoal: v.number() }).index(
-    "by_user",
-    ["userId"],
-  ),
+  settings: defineTable({
+    userId: v.string(),
+    waterGoal: v.number(),
+    kcalTarget: v.optional(v.number()),
+    proteinTarget: v.optional(v.number()),
+    timeZone: v.optional(v.string()),
+    checkIns: v.optional(v.array(v.string())),
+    remindersEnabled: v.optional(v.boolean()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_reminders", ["remindersEnabled"]),
   muscles: defineTable({
     userId: v.string(),
     name: v.string(),
