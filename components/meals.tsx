@@ -11,6 +11,7 @@ import {
   Search,
   Utensils,
   LoaderCircle,
+  ChevronDown,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -162,6 +163,55 @@ function FoodItem({
     </div>
   );
 }
+// Share of meal energy from each macro, in the validated chart order.
+function MacroBar({ totals }: { totals: Macros }) {
+  const parts = [
+    {
+      id: "protein",
+      label: "Protein",
+      grams: totals.protein,
+      kcal: totals.protein * 4,
+    },
+    { id: "fat", label: "Fat", grams: totals.fat, kcal: totals.fat * 9 },
+    {
+      id: "carbs",
+      label: "Carbs",
+      grams: totals.carbs,
+      kcal: totals.carbs * 4,
+    },
+  ];
+  const sum = parts.reduce((a, p) => a + p.kcal, 0);
+  return (
+    <span className="macro-bar-wrap">
+      {sum > 0 && (
+        <span className="macro-bar" aria-hidden>
+          {parts.map(
+            (p) =>
+              p.kcal > 0 && (
+                <i
+                  key={p.id}
+                  className={`seg ${p.id}`}
+                  style={{ flexGrow: p.kcal / sum }}
+                />
+              ),
+          )}
+        </span>
+      )}
+      <span className="macro-bar-legend">
+        {parts.map((p) => (
+          <span key={p.id}>
+            <i className={`swatch ${p.id}`} aria-hidden />
+            {p.label}{" "}
+            <b>
+              {p.grams.toLocaleString(undefined, { maximumFractionDigits: 0 })}{" "}
+              g
+            </b>
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
 function MealCard({ meal, now }: { meal: Meal; now: number }) {
   const setDescription = useMutation(api.meals.setDescription),
     remove = useMutation(api.meals.deleteMeal);
@@ -169,152 +219,201 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
   const { run, pending } = useTask();
   const analyzing = meal.analysis.status === "analyzing";
   const totals = mealTotals(meal.items);
+  // Fresh or unfinished meals open for review; settled ones stay compact.
+  const [open, setOpen] = useState(
+    () => meal.analysis.status !== "ready" || now - meal.at < 15 * 60_000,
+  );
+  const detailsId = `meal-details-${meal._id}`;
   return (
-    <article className="card meal-card">
-      {meal.photoUrl && (
-        <div className="meal-photo">
+    <article className={`card meal-card ${open ? "open" : ""}`}>
+      <button
+        type="button"
+        className="meal-summary"
+        aria-expanded={open}
+        aria-controls={detailsId}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {meal.photoUrl && !open && (
           <Image
             unoptimized
+            className="meal-thumb"
             src={meal.photoUrl}
-            alt="Your meal photo"
-            width={1280}
-            height={960}
+            alt=""
+            width={152}
+            height={152}
             loading="lazy"
           />
-        </div>
-      )}
-      <div className="row spaced">
-        <span className="muted small">{timeLabel(meal.at)}</span>
-        <span
-          className={`pill ${meal.analysis.status === "ready" ? "green" : "amber"}`}
-        >
-          {meal.analysis.status === "ready"
-            ? "Logged"
-            : meal.analysis.status === "analyzing"
-              ? "Analyzing"
-              : "Needs a retry"}
+        )}
+        <span className="meal-summary-text">
+          <span className="meal-summary-title">
+            {meal.description || "Meal"}
+          </span>
+          <span className="muted small">
+            {timeLabel(meal.at)}
+            {meal.analysis.status === "ready" &&
+              ` · ${Math.round(totals.kcal).toLocaleString()} kcal`}
+          </span>
         </span>
-        <button
-          className="icon-button"
-          aria-label="Delete meal and photo"
-          disabled={pending}
-          onClick={() => run(() => remove({ id: meal._id }), "Meal deleted")}
-        >
-          <Trash2 size={18} />
-        </button>
-      </div>
-      {analyzing ? (
-        <div className="analysis-state" role="status">
-          <LoaderCircle className="spin" size={26} />
-          <h3>Putting your meal together…</h3>
-          <p className="muted small">
-            Identifying foods and looking up USDA nutrients.
-          </p>
-          {meal.analysis.status === "analyzing" &&
-            now - meal.analysis.startedAt > 90_000 && (
-              <button
-                className="secondary-button full"
-                disabled={pending}
-                onClick={() => run(() => reanalyze({ id: meal._id }))}
-              >
-                Restart analysis
-              </button>
-            )}
-        </div>
-      ) : (
-        <>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const data = new FormData(
-                e.currentTarget,
-                e.nativeEvent instanceof SubmitEvent
-                  ? e.nativeEvent.submitter
-                  : null,
-              );
-              const description = String(data.get("description"));
-              const action = data.get("intent");
-              await run(
-                async () => {
-                  await setDescription({ id: meal._id, description });
-                  if (action === "reanalyze") await reanalyze({ id: meal._id });
-                },
-                action === "reanalyze"
-                  ? "Analysis finished"
-                  : "Description saved",
-              );
-            }}
-          >
-            <label htmlFor={`description-${meal._id}`}>Meal description</label>
-            <textarea
-              id={`description-${meal._id}`}
-              name="description"
-              key={meal.description}
-              defaultValue={meal.description}
-              rows={2}
-              maxLength={4000}
-              placeholder="Describe what is on your plate"
-              required
-            />
-            <p className="muted small">
-              Correct the description, then re-analyze to update the foods.
-            </p>
-            <div className="row">
-              <button
-                className="soft-button"
-                name="intent"
-                value="save"
-                disabled={pending}
-              >
-                Save description
-              </button>
-              <button
-                className="soft-button"
-                name="intent"
-                value="reanalyze"
-                disabled={pending}
-              >
-                <RotateCw size={16} />
-                Re-analyze
-              </button>
-            </div>
-          </form>
-          {meal.analysis.status === "error" && (
-            <div className="meal-error" role="alert">
-              <p>{meal.analysis.message}</p>
-              <button
-                className="secondary-button full"
-                disabled={pending}
-                onClick={() => run(() => reanalyze({ id: meal._id }))}
-              >
-                <RotateCw size={17} />
-                Retry analysis
-              </button>
-            </div>
-          )}
-          <div className="food-list">
-            {meal.items.map((item) => (
-              <FoodItem
-                key={item.id}
-                item={item}
-                mealId={meal._id}
-                disabled={pending}
+        <ChevronDown className="meal-chevron" size={20} aria-hidden />
+      </button>
+      {!open && meal.analysis.status === "ready" && (
+        <MacroBar totals={totals} />
+      )}
+      {open && (
+        <div id={detailsId} className="meal-details">
+          {meal.photoUrl && (
+            <div className="meal-photo">
+              <Image
+                unoptimized
+                src={meal.photoUrl}
+                alt="Your meal photo"
+                width={1280}
+                height={960}
+                loading="lazy"
               />
-            ))}
-          </div>
-          {meal.analysis.status === "ready" && (
-            <div className="meal-total">
-              <div className="row spaced">
-                <strong>Meal total</strong>
-                <strong>{Math.round(totals.kcal)} kcal</strong>
-              </div>
-              <MacroSummary totals={totals} />
-              {meal.items.some((item) => item.status === "unmatched") && (
-                <p className="muted small">Totals exclude unmatched foods.</p>
-              )}
             </div>
           )}
-        </>
+          <div className="row spaced">
+            <span className="muted small">{timeLabel(meal.at)}</span>
+            <span
+              className={`pill ${meal.analysis.status === "ready" ? "green" : "amber"}`}
+            >
+              {meal.analysis.status === "ready"
+                ? "Logged"
+                : meal.analysis.status === "analyzing"
+                  ? "Analyzing"
+                  : "Needs a retry"}
+            </span>
+            <button
+              className="icon-button"
+              aria-label="Delete meal and photo"
+              disabled={pending}
+              onClick={() =>
+                run(() => remove({ id: meal._id }), "Meal deleted")
+              }
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+          {analyzing ? (
+            <div className="analysis-state" role="status">
+              <LoaderCircle className="spin" size={26} />
+              <h3>Putting your meal together…</h3>
+              <p className="muted small">
+                Identifying foods and looking up USDA nutrients.
+              </p>
+              {meal.analysis.status === "analyzing" &&
+                now - meal.analysis.startedAt > 90_000 && (
+                  <button
+                    className="secondary-button full"
+                    disabled={pending}
+                    onClick={() => run(() => reanalyze({ id: meal._id }))}
+                  >
+                    Restart analysis
+                  </button>
+                )}
+            </div>
+          ) : (
+            <>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const data = new FormData(
+                    e.currentTarget,
+                    e.nativeEvent instanceof SubmitEvent
+                      ? e.nativeEvent.submitter
+                      : null,
+                  );
+                  const description = String(data.get("description"));
+                  const action = data.get("intent");
+                  await run(
+                    async () => {
+                      await setDescription({ id: meal._id, description });
+                      if (action === "reanalyze")
+                        await reanalyze({ id: meal._id });
+                    },
+                    action === "reanalyze"
+                      ? "Analysis finished"
+                      : "Description saved",
+                  );
+                }}
+              >
+                <label htmlFor={`description-${meal._id}`}>
+                  Meal description
+                </label>
+                <textarea
+                  id={`description-${meal._id}`}
+                  name="description"
+                  key={meal.description}
+                  defaultValue={meal.description}
+                  rows={2}
+                  maxLength={4000}
+                  placeholder="Describe what is on your plate"
+                  required
+                />
+                <p className="muted small">
+                  Correct the description, then re-analyze to update the foods.
+                </p>
+                <div className="row">
+                  <button
+                    className="soft-button"
+                    name="intent"
+                    value="save"
+                    disabled={pending}
+                  >
+                    Save description
+                  </button>
+                  <button
+                    className="soft-button"
+                    name="intent"
+                    value="reanalyze"
+                    disabled={pending}
+                  >
+                    <RotateCw size={16} />
+                    Re-analyze
+                  </button>
+                </div>
+              </form>
+              {meal.analysis.status === "error" && (
+                <div className="meal-error" role="alert">
+                  <p>{meal.analysis.message}</p>
+                  <button
+                    className="secondary-button full"
+                    disabled={pending}
+                    onClick={() => run(() => reanalyze({ id: meal._id }))}
+                  >
+                    <RotateCw size={17} />
+                    Retry analysis
+                  </button>
+                </div>
+              )}
+              <div className="food-list">
+                {meal.items.map((item) => (
+                  <FoodItem
+                    key={item.id}
+                    item={item}
+                    mealId={meal._id}
+                    disabled={pending}
+                  />
+                ))}
+              </div>
+              {meal.analysis.status === "ready" && (
+                <div className="meal-total">
+                  <div className="row spaced">
+                    <strong>Meal total</strong>
+                    <strong>{Math.round(totals.kcal)} kcal</strong>
+                  </div>
+                  <MacroSummary totals={totals} />
+                  {meal.items.some((item) => item.status === "unmatched") && (
+                    <p className="muted small">
+                      Totals exclude unmatched foods.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
     </article>
   );

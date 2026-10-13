@@ -1,5 +1,10 @@
 "use client";
-import { useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import { useQuery } from "convex/react";
 import { Droplets, Dumbbell, Flame, Sparkles, Table2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -69,7 +74,9 @@ function tickIndexes(count: number) {
 function niceMax(value: number) {
   if (value <= 0) return 1;
   const magnitude = 10 ** Math.floor(Math.log10(value));
-  const step = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((s) => s * magnitude >= value) ?? 10;
+  const step =
+    [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((s) => s * magnitude >= value) ??
+    10;
   return step * magnitude;
 }
 
@@ -98,9 +105,7 @@ function useScrub(count: number) {
       const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
       if (step) {
         e.preventDefault();
-        setActive((i) =>
-          Math.min(count - 1, Math.max(0, (i ?? count) + step)),
-        );
+        setActive((i) => Math.min(count - 1, Math.max(0, (i ?? count) + step)));
       } else if (e.key === "Escape") setActive(null);
     },
     onBlur: () => setActive(null),
@@ -143,7 +148,8 @@ function BarChart({
             summary
           ) : (
             <>
-              <strong>{binLabel(bins[active])}</strong> · {describe(bins[active])}
+              <strong>{binLabel(bins[active])}</strong> ·{" "}
+              {describe(bins[active])}
             </>
           )}
         </p>
@@ -250,8 +256,11 @@ function TrainingMap({
         <p className="chart-readout" aria-live="polite">
           {active ? (
             <>
-              <strong className="capitalize">{muscles[active.muscle].name}</strong>{" "}
-              · {binLabel(bins[active.bin])} · {describe(active.muscle, active.bin)}
+              <strong className="capitalize">
+                {muscles[active.muscle].name}
+              </strong>{" "}
+              · {binLabel(bins[active.bin])} ·{" "}
+              {describe(active.muscle, active.bin)}
             </>
           ) : weekly ? (
             "Days trained per week"
@@ -372,10 +381,7 @@ export function InsightsView({
 }) {
   const [range, setRange] = useState<RangeId>("7d");
   const [table, setTable] = useState(false);
-  const history = useMemo(
-    () => bucketDays(period.days, data),
-    [period, data],
-  );
+  const history = useMemo(() => bucketDays(period.days, data), [period, data]);
   const { days: count, binDays: size } = RANGES[range];
   const days = history.slice(-count);
   const bins = binDays(days, size);
@@ -465,7 +471,10 @@ export function InsightsView({
       </div>
       {notes.length > 0 && (
         <section className="card insight-notes">
-          <SectionTitle title="Worth noticing" action={<Sparkles size={20} />} />
+          <SectionTitle
+            title="Worth noticing"
+            action={<Sparkles size={20} />}
+          />
           <ul>
             {notes.map((n) => (
               <li key={n}>{n}</li>
@@ -488,17 +497,26 @@ export function InsightsView({
                 : `Avg ${litres(stats.avgWaterMl)}${per ? " per day" : ""}`
             }
             describe={(b) =>
-              b.waterMl === null ? "Nothing logged" : `${litres(b.waterMl)}${per}`
+              b.waterMl === null
+                ? "Nothing logged"
+                : `${litres(b.waterMl)}${per}`
             }
             format={(v) => (v === 0 ? "0" : `${v / 1000}L`)}
-            goal={{ value: data.waterGoal, label: `Goal ${litres(data.waterGoal)}` }}
+            goal={{
+              value: data.waterGoal,
+              label: `Goal ${litres(data.waterGoal)}`,
+            }}
           />
           <BarChart
             title="Calories"
             unit="kcal"
             bins={bins}
             series={[
-              { id: "kcal", label: "Calories", value: (b) => b.macros?.kcal ?? null },
+              {
+                id: "kcal",
+                label: "Calories",
+                value: (b) => b.macros?.kcal ?? null,
+              },
             ]}
             summary={
               stats.avgKcal === null
@@ -515,9 +533,17 @@ export function InsightsView({
             unit="grams"
             bins={bins}
             series={[
-              { id: "protein", label: "Protein", value: (b) => b.macros?.protein ?? null },
+              {
+                id: "protein",
+                label: "Protein",
+                value: (b) => b.macros?.protein ?? null,
+              },
               { id: "fat", label: "Fat", value: (b) => b.macros?.fat ?? null },
-              { id: "carbs", label: "Carbs", value: (b) => b.macros?.carbs ?? null },
+              {
+                id: "carbs",
+                label: "Carbs",
+                value: (b) => b.macros?.carbs ?? null,
+              },
             ]}
             summary="Grams per day"
             describe={(b) =>

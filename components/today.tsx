@@ -27,9 +27,9 @@ export function MacroSummary({ totals }: { totals: Macros }) {
   return (
     <div className="macro-grid">
       {[
-        { label: "Protein", value: totals.protein, color: "green" },
-        { label: "Carbs", value: totals.carbs, color: "amber" },
-        { label: "Fat", value: totals.fat, color: "blue" },
+        { label: "Protein", value: totals.protein, color: "protein" },
+        { label: "Fat", value: totals.fat, color: "fat" },
+        { label: "Carbs", value: totals.carbs, color: "carbs" },
       ].map((m) => (
         <div key={m.label}>
           <span className={`macro-dot ${m.color}`} />
