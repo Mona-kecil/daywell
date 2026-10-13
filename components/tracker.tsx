@@ -51,11 +51,11 @@ export function ThemeToggle() {
     </button>
   );
 }
-export function Tracker() {
+export function Tracker({ devAuth = false }: { devAuth?: boolean }) {
   return (
     <FeedbackProvider>
       <Authenticated>
-        <Dashboard />
+        <Dashboard devAuth={devAuth} />
       </Authenticated>
       <Unauthenticated>
         <div className="app-shell">
@@ -72,8 +72,12 @@ export function Tracker() {
               Sign in to keep your workouts, water, and meals in your own
               account.
             </p>
-            <a className="primary-button full" href="/login">
-              Sign in or create an account <ArrowRight size={18} />
+            <a
+              className="primary-button full"
+              href={devAuth ? "/dev-login" : "/login"}
+            >
+              {devAuth ? "Sign in as Dev User" : "Sign in or create an account"}{" "}
+              <ArrowRight size={18} />
             </a>
           </main>
         </div>
@@ -91,8 +95,19 @@ export function Tracker() {
     </FeedbackProvider>
   );
 }
-function Dashboard() {
+function WorkOSSignOut() {
   const { signOut } = useAuth();
+  return (
+    <button
+      className="icon-button"
+      aria-label="Sign out"
+      onClick={() => void signOut()}
+    >
+      <LogOut size={19} />
+    </button>
+  );
+}
+function Dashboard({ devAuth }: { devAuth: boolean }) {
   const [tab, setTab] = useState<Tab>("today");
   const [initError, setInitError] = useState<string | null>(null);
   const now = useClock();
@@ -125,13 +140,20 @@ function Dashboard() {
         <Brand />
         <div className="row">
           <ThemeToggle />
-          <button
-            className="icon-button"
-            aria-label="Sign out"
-            onClick={() => void signOut()}
-          >
-            <LogOut size={19} />
-          </button>
+          {devAuth ? (
+            <button
+              className="icon-button"
+              aria-label="Sign out"
+              onClick={async () => {
+                await fetch("/api/dev-token", { method: "DELETE" });
+                window.location.reload();
+              }}
+            >
+              <LogOut size={19} />
+            </button>
+          ) : (
+            <WorkOSSignOut />
+          )}
         </div>
       </header>
       <main id="main-content">

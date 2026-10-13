@@ -1,11 +1,13 @@
 import { authConfigured } from "@/lib/auth-configured";
+import { devAuthConfigured } from "@/lib/dev-auth-config";
 import { Providers } from "@/components/providers";
 import { Tracker, ThemeToggle } from "@/components/tracker";
 import { Brand } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export default function Home() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!authConfigured() || !url)
+  const devAuth = devAuthConfigured();
+  if ((!authConfigured() && !devAuth) || !url)
     return (
       <div className="app-shell">
         <header className="topbar">
@@ -25,7 +27,9 @@ export default function Home() {
               <li>
                 Copy <code>.env.example</code> to <code>.env.local</code>.
               </li>
-              <li>Add your WorkOS keys and cookie password.</li>
+              <li>
+                Run <code>pnpm dev:setup</code> or add your WorkOS keys.
+              </li>
               <li>Start Convex and set its WorkOS client ID.</li>
               <li>Restart the app, then sign in.</li>
             </ol>
@@ -40,8 +44,8 @@ export default function Home() {
       </div>
     );
   return (
-    <Providers url={url}>
-      <Tracker />
+    <Providers url={url} devAuth={devAuth}>
+      <Tracker devAuth={devAuth} />
     </Providers>
   );
 }

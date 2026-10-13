@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as demo from "../demo.js";
+import type * as demoSeed from "../demoSeed.js";
 import type * as mealActions from "../mealActions.js";
 import type * as mealVision_fake from "../mealVision/fake.js";
 import type * as mealVision_index from "../mealVision/index.js";
@@ -24,6 +26,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  demo: typeof demo;
+  demoSeed: typeof demoSeed;
   mealActions: typeof mealActions;
   "mealVision/fake": typeof mealVision_fake;
   "mealVision/index": typeof mealVision_index;

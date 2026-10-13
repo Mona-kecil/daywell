@@ -29,6 +29,7 @@ async function analyze(ctx: ActionCtx, id: Id<"meals">): Promise<void> {
             searchQuery: item.searchQuery,
           },
           process.env.USDA_FDC_API_KEY,
+          process.env.FDC_MODE,
         ),
       );
     await ctx.runMutation(internal.meals.complete, {
@@ -87,6 +88,7 @@ export const research = action({
           searchQuery: args.query.trim(),
         },
         process.env.USDA_FDC_API_KEY,
+        process.env.FDC_MODE,
       );
       await ctx.runMutation(internal.meals.complete, {
         id: args.id,
