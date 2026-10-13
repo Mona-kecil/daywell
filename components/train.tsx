@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Trash2, SlidersHorizontal, Check, Dumbbell } from "lucide-react";
+import { Trash2, SlidersHorizontal, Check, Dumbbell, Plus } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
@@ -15,6 +15,14 @@ import {
   useIsDark,
   type MuscleKey,
 } from "./body3d";
+import {
+  EntryEditor,
+  ExerciseHistorySheet,
+  ExercisePicker,
+  SessionSets,
+  type EntryDraft,
+  type Exercise,
+} from "./strength";
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
@@ -22,10 +30,12 @@ function MuscleCard({
   muscle,
   now,
   editing,
+  weekSets,
 }: {
   muscle: Muscle;
   now: number;
   editing: boolean;
+  weekSets: number | undefined;
 }) {
   const setCooldown = useMutation(api.tracker.setCooldown);
   const { run, pending } = useTask();
@@ -93,6 +103,9 @@ function MuscleCard({
             ? `Ready ${readyAt.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} · `
             : ""}
           {muscle.cooldownHours}h cooldown
+          {weekSets
+            ? ` · ${weekSets} ${weekSets === 1 ? "set" : "sets"} this week`
+            : ""}
           {!readyAt && muscle.lastTrainedAt !== null
             ? ` · Last trained ${new Date(muscle.lastTrainedAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
             : ""}
@@ -114,8 +127,18 @@ function byReadiness(muscles: Muscle[], now: number) {
 export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<Id<"muscles">[]>([]);
+  const [entries, setEntries] = useState<EntryDraft[]>([]);
+  const [picking, setPicking] = useState(false);
+  const [historyFor, setHistoryFor] = useState<Exercise | null>(null);
   const addWorkout = useMutation(api.tracker.addWorkout),
+    logSession = useMutation(api.strength.logSession),
     deleteWorkout = useMutation(api.tracker.deleteWorkout);
+  const exercises = useQuery(api.strength.exercises, {});
+  // Sets logged this minute still count: the window ends at the next minute.
+  const weekly = useQuery(api.strength.weeklyMuscleSets, {
+    now: Math.ceil(now / 60_000) * 60_000,
+  });
+  const weekSets = new Map(weekly?.map((w) => [w.muscleId, w.sets]));
   const { results, status, loadMore } = usePaginatedQuery(
     api.tracker.workoutHistory,
     {},
@@ -138,6 +161,17 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
       recovery(now, m.lastTrainedAt, m.cooldownHours),
     ]),
   );
+  const addEntry = (exercise: Exercise) => {
+    setEntries((list) => [
+      ...list,
+      { exercise, sets: [{ reps: 8, weightKg: 20 }], fresh: true },
+    ]);
+    const ids = muscles
+      .filter((m) => exercise.muscles.includes(m.name))
+      .map((m) => m._id);
+    setSelected((cur) => [...new Set([...cur, ...ids])]);
+  };
+  const setCount = entries.reduce((n, e) => n + e.sets.length, 0);
   const selectedKeys = [...byKey]
     .filter(([, m]) => selected.includes(m._id))
     .map(([key]) => key);
@@ -155,18 +189,29 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
             e.preventDefault();
             const form = e.currentTarget;
             const data = new FormData(form);
+            const trainedAt = new Date(String(data.get("at"))).getTime();
+            const note = String(data.get("note"));
             if (
               await run(
                 () =>
-                  addWorkout({
-                    muscleIds: selected,
-                    trainedAt: new Date(String(data.get("at"))).getTime(),
-                    note: String(data.get("note")),
-                  }),
-                "Workout saved",
+                  entries.length
+                    ? logSession({
+                        trainedAt,
+                        note,
+                        entries: entries.map((en) => ({
+                          exerciseId: en.exercise._id,
+                          sets: en.sets,
+                        })),
+                        extraMuscleIds: selected,
+                      })
+                    : addWorkout({ muscleIds: selected, trainedAt, note }),
+                entries.length
+                  ? `Saved ${setCount} ${setCount === 1 ? "set" : "sets"}`
+                  : "Workout saved",
               )
             ) {
               setSelected([]);
+              setEntries([]);
               form.reset();
             }
           }}
@@ -196,6 +241,38 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
               ))}
             </div>
           </fieldset>
+          <fieldset className="exercise-entries">
+            <legend>
+              Exercises <span className="muted">(optional)</span>
+            </legend>
+            {entries.map((en, i) => (
+              <EntryEditor
+                key={en.exercise._id}
+                entry={en}
+                index={i}
+                onChange={(sets) =>
+                  setEntries((list) =>
+                    list.map((x, j) =>
+                      j === i ? { ...x, sets, fresh: false } : x,
+                    ),
+                  )
+                }
+                onRemove={() =>
+                  setEntries((list) => list.filter((_, j) => j !== i))
+                }
+                onHistory={() => setHistoryFor(en.exercise)}
+              />
+            ))}
+            <button
+              type="button"
+              className="soft-button full"
+              disabled={!exercises || entries.length >= 25}
+              aria-haspopup="dialog"
+              onClick={() => setPicking(true)}
+            >
+              <Plus size={17} /> Add exercise
+            </button>
+          </fieldset>
           <label htmlFor="workout-at">When</label>
           <input
             id="workout-at"
@@ -210,17 +287,33 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           <textarea
             id="workout-note"
             name="note"
-            placeholder="Sets, reps, or how the session went…"
+            placeholder="How the session went…"
             maxLength={2000}
             rows={2}
           />
           <button
             className="primary-button full"
-            disabled={pending || !selected.length}
+            disabled={pending || (!selected.length && !entries.length)}
           >
-            {pending ? "Saving…" : "Save workout"}
+            {pending
+              ? "Saving…"
+              : setCount
+                ? `Save workout · ${setCount} ${setCount === 1 ? "set" : "sets"}`
+                : "Save workout"}
           </button>
         </form>
+        <ExercisePicker
+          open={picking}
+          onClose={() => setPicking(false)}
+          exercises={exercises ?? []}
+          muscles={muscles}
+          chosen={entries.map((en) => en.exercise._id)}
+          onPick={addEntry}
+        />
+        <ExerciseHistorySheet
+          exercise={historyFor}
+          onClose={() => setHistoryFor(null)}
+        />
       </section>
       <section>
         <SectionTitle
@@ -238,7 +331,13 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
         />
         <div className="muscle-list">
           {(editing ? muscles : byReadiness(muscles, now)).map((m) => (
-            <MuscleCard key={m._id} muscle={m} now={now} editing={editing} />
+            <MuscleCard
+              key={m._id}
+              muscle={m}
+              now={now}
+              editing={editing}
+              weekSets={weekSets.get(m._id)}
+            />
           ))}
         </div>
       </section>
@@ -267,6 +366,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                     minute: "2-digit",
                   })}
                 </p>
+                <SessionSets workoutId={w._id} />
                 {w.note && <p className="small">{w.note}</p>}
               </div>
               <button

@@ -5,6 +5,7 @@ import {
   useState,
   useEffect,
   useRef,
+  useId,
   type ReactNode,
 } from "react";
 import { CircleCheck, X, ArrowUpRight, Sprout } from "lucide-react";
@@ -170,4 +171,55 @@ export function timeLabel(at: number) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+// A modal bottom sheet. Children mount only while open so their queries stay idle.
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      className="sheet"
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onClick={(e) => {
+        // A click on the backdrop lands on the dialog element itself.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {open && (
+        <div className="sheet-body">
+          <div className="sheet-grip" aria-hidden />
+          <div className="sheet-head">
+            <h2 id={titleId}>{title}</h2>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              <X size={20} />
+            </button>
+          </div>
+          {children}
+        </div>
+      )}
+    </dialog>
+  );
 }

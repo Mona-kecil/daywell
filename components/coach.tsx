@@ -1,8 +1,9 @@
 "use client";
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import {
   BellOff,
   BellRing,
+  Download,
   Dumbbell,
   Droplets,
   Moon,
@@ -11,7 +12,7 @@ import {
   Utensils,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -21,7 +22,8 @@ import {
   type PushSupport,
 } from "@/lib/push-client";
 import type { Suggestion } from "@/lib/coach";
-import { useTask } from "./ui";
+import { dayKey } from "@/lib/insights";
+import { Sheet, useTask } from "./ui";
 import type { Tab } from "./tracker";
 
 export const deviceTimeZone = () =>
@@ -109,59 +111,64 @@ export function SettingsSheet({
   open: boolean;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
   return (
-    <dialog
-      ref={ref}
-      className="sheet"
-      aria-labelledby="settings-title"
-      onClose={onClose}
-      onClick={(e) => {
-        // A click on the backdrop lands on the dialog element itself.
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      {open && <SettingsBody onClose={onClose} />}
-    </dialog>
+    <Sheet open={open} onClose={onClose} title="Settings">
+      <SettingsBody />
+    </Sheet>
   );
 }
 
-function SettingsBody({ onClose }: { onClose: () => void }) {
+function SettingsBody() {
   const settings = useQuery(api.coach.settings, {});
+  if (!settings)
+    return (
+      <p role="status" className="muted">
+        Loading…
+      </p>
+    );
   return (
-    <div className="sheet-body">
-      <div className="sheet-grip" aria-hidden />
-      <div className="sheet-head">
-        <h2 id="settings-title">Settings</h2>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Close settings"
-          onClick={onClose}
-        >
-          <X size={20} />
-        </button>
-      </div>
-      {!settings ? (
-        <p role="status" className="muted">
-          Loading…
-        </p>
-      ) : (
-        <>
-          <TargetsForm settings={settings} />
-          <CheckInsForm saved={settings.checkIns} />
-          <Reminders
-            enabled={settings.remindersEnabled}
-            timeZone={settings.timeZone}
-          />
-        </>
-      )}
+    <>
+      <TargetsForm settings={settings} />
+      <CheckInsForm saved={settings.checkIns} />
+      <Reminders
+        enabled={settings.remindersEnabled}
+        timeZone={settings.timeZone}
+      />
+      <ExportData />
+    </>
+  );
+}
+
+function ExportData() {
+  const convex = useConvex();
+  const { run, pending } = useTask();
+  const download = () =>
+    run(async () => {
+      const data = await convex.query(api.exportData.all, {});
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `daywell-${dayKey(new Date())}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }, "Export downloaded");
+  return (
+    <div className="sheet-section">
+      <h3>Your data</h3>
+      <p className="muted small">
+        Everything you’ve logged — workouts and sets, water, meals, check-ins
+        and settings — as one JSON file. Photos aren’t included.
+      </p>
+      <button
+        type="button"
+        className="secondary-button full"
+        disabled={pending}
+        onClick={() => void download()}
+      >
+        <Download size={17} /> {pending ? "Preparing…" : "Download export"}
+      </button>
     </div>
   );
 }
