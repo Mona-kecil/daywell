@@ -282,12 +282,37 @@ function TrainingMap({
       </div>
       <div
         className="heatmap"
+        tabIndex={0}
+        role="group"
+        aria-label={`Training map. Use arrow keys to read each muscle by ${weekly ? "week" : "day"}.`}
         style={{
           gridTemplateColumns: `minmax(64px, auto) repeat(${bins.length}, 1fr) 30px`,
         }}
         onPointerLeave={(e) => {
           if (e.pointerType === "mouse") setActive(null);
         }}
+        onKeyDown={(e) => {
+          const move = {
+            ArrowLeft: [0, -1],
+            ArrowRight: [0, 1],
+            ArrowUp: [-1, 0],
+            ArrowDown: [1, 0],
+          }[e.key];
+          if (move) {
+            e.preventDefault();
+            setActive((a) => ({
+              muscle: Math.min(
+                muscles.length - 1,
+                Math.max(0, (a?.muscle ?? 0) + (a ? move[0] : 0)),
+              ),
+              bin: Math.min(
+                bins.length - 1,
+                Math.max(0, (a?.bin ?? bins.length - 1) + (a ? move[1] : 0)),
+              ),
+            }));
+          } else if (e.key === "Escape") setActive(null);
+        }}
+        onBlur={() => setActive(null)}
       >
         {muscles.map((m, mi) => {
           const total = bins.reduce(

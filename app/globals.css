@@ -1604,3 +1604,8 @@ h1,
     var(--c-protein)
   );
 }
+.heatmap:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
