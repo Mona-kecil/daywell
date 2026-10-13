@@ -65,7 +65,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
@@ -1313,4 +1313,114 @@ code {
   .vessel-level {
     transition: none;
   }
+}
+h1,
+.metric strong,
+.stat strong {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: "SOFT" 60;
+}
+.stat strong small {
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+.day-rings {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.day-rings svg {
+  flex-shrink: 0;
+}
+.ring-track {
+  fill: none;
+  stroke: var(--track);
+}
+.ring-arc {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ring-arc.water {
+  stroke: var(--c-fat);
+}
+.ring-arc.protein {
+  stroke: var(--c-protein);
+}
+.ring-arc.kcal {
+  stroke: var(--c-carbs);
+}
+.swatch.kcal {
+  background: var(--c-carbs);
+}
+.ring-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.ring-legend li {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  column-gap: 7px;
+  align-items: center;
+}
+.ring-legend strong {
+  grid-column: 2;
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+.ring-legend small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-arc {
+    transition: none;
+  }
+}
+.body3d.compact {
+  min-height: 0;
+  border-radius: 16px;
+  background: radial-gradient(
+    90% 60% at 50% 40%,
+    var(--surface) 0%,
+    transparent 75%
+  );
+}
+.recovery-body {
+  display: grid;
+  grid-template-columns: 124px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.recovery-body h2 {
+  margin-bottom: 8px;
+}
+.recovery-body p {
+  font-size: 13px;
+}
+.recovery-body p + p {
+  margin-top: 12px;
+}
+.recovery-figure {
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.recovery-figure .body3d,
+.recovery-figure .body3d-loading {
+  --body3d-height: 210px;
+  min-height: 0;
+  height: 210px;
+}
+.ring-legend strong {
+  white-space: nowrap;
 }

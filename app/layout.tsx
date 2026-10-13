@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Fraunces, Geist } from "next/font/google";
 import "./globals.css";
+const display = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  axes: ["opsz", "SOFT"],
+});
+const body = Geist({ subsets: ["latin"], variable: "--font-body" });
 export const metadata: Metadata = {
   title: "Daywell — your daily tracker",
   description: "Track muscle recovery, hydration, and meals.",
@@ -20,7 +27,7 @@ export const viewport: Viewport = {
 };
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
         <a className="skip-link" href="#main-content">
           Skip to content
