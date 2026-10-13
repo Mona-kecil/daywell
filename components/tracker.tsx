@@ -19,6 +19,7 @@ import {
   Sun,
   ArrowRight,
   LogOut,
+  Settings2,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { localDayRange } from "@/lib/day";
@@ -29,6 +30,8 @@ import { Train } from "./train";
 import { Water } from "./water";
 import { Meals } from "./meals";
 import { Insights } from "./insights";
+import { SettingsSheet, deviceTimeZone } from "./coach";
+import { disablePush } from "@/lib/push-client";
 export type Tab = "today" | "train" | "water" | "meals" | "insights";
 const tabs = [
   { id: "today", label: "Today", Icon: CalendarDays },
@@ -99,20 +102,38 @@ export function Tracker({ devAuth = false }: { devAuth?: boolean }) {
     </FeedbackProvider>
   );
 }
+// Drop this device's push subscription while the session can still authorize it.
+function useReleasePush() {
+  const unsubscribe = useMutation(api.push.unsubscribe);
+  return () => disablePush(unsubscribe).catch(() => {});
+}
+const isTab = (value: string | null): value is Tab =>
+  tabs.some((t) => t.id === value);
 function WorkOSSignOut() {
   const { signOut } = useAuth();
+  const releasePush = useReleasePush();
   return (
     <button
       className="icon-button"
       aria-label="Sign out"
-      onClick={() => void signOut()}
+      onClick={async () => {
+        await releasePush();
+        await signOut();
+      }}
     >
       <LogOut size={19} />
     </button>
   );
 }
 function Dashboard({ devAuth }: { devAuth: boolean }) {
-  const [tab, setTab] = useState<Tab>("today");
+  // Reminder notifications open /?tab=water|meals|train. Dashboard only renders
+  // once the client is authenticated, so reading the URL here is safe.
+  const [tab, setTab] = useState<Tab>(() => {
+    const linked = new URLSearchParams(window.location.search).get("tab");
+    return isTab(linked) ? linked : "today";
+  });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const releasePush = useReleasePush();
   const [initError, setInitError] = useState<string | null>(null);
   const now = useClock();
   const initialize = useMutation(api.tracker.initialize);
@@ -125,6 +146,18 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
       ),
     );
   }, [initialize]);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("tab")) return;
+    url.searchParams.delete("tab");
+    window.history.replaceState(null, "", url);
+  }, []);
+  const settings = useQuery(api.coach.settings, {});
+  const setTimeZone = useMutation(api.coach.setTimeZone);
+  useEffect(() => {
+    if (settings && settings.timeZone === null)
+      void setTimeZone({ timeZone: deviceTimeZone() }).catch(() => {});
+  }, [settings, setTimeZone]);
   const overview = useQuery(api.tracker.overview, {});
   const day = localDayRange(new Date(now));
   const water = useQuery(api.tracker.waterToday, day),
@@ -160,11 +193,20 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
         <Brand />
         <div className="row">
           <ThemeToggle />
+          <button
+            className="icon-button"
+            aria-label="Settings"
+            aria-haspopup="dialog"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings2 size={20} />
+          </button>
           {devAuth ? (
             <button
               className="icon-button"
               aria-label="Sign out"
               onClick={async () => {
+                await releasePush();
                 await fetch("/api/dev-token", { method: "DELETE" });
                 window.location.reload();
               }}
@@ -207,6 +249,7 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
                 overview={overview}
                 waterMl={water.reduce((sum, e) => sum + e.amountMl, 0)}
                 totals={totals}
+                targets={settings}
                 mealCount={meals.length}
                 pendingMeals={
                   meals.filter((m) => m.analysis.status !== "ready").length
@@ -225,6 +268,10 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
           </div>
         )}
       </main>
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
       <nav className="tabbar" aria-label="Main navigation">
         {tabs.map(({ id, label, Icon }) => (
           <button

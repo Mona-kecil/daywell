@@ -4,6 +4,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import { CircleCheck, X, ArrowUpRight, Sprout } from "lucide-react";
@@ -22,6 +23,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       return () => clearTimeout(timer);
     }
   }, [message]);
+  // A popover sits in the top layer, so toasts stay visible above modal sheets.
+  const toast = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = toast.current;
+    if (!el?.showPopover) return;
+    if (el.matches(":popover-open")) el.hidePopover();
+    el.showPopover();
+  }, [message]);
   return (
     <Feedback.Provider
       value={(text, error = false) => setMessage({ text, error })}
@@ -29,6 +38,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       {children}
       {message && (
         <div
+          ref={toast}
+          popover="manual"
           className={`toast ${message.error ? "error" : ""}`}
           role={message.error ? "alert" : "status"}
         >

@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("convex/react", () => ({
   useMutation: () => mocks.mutation,
   useAction: () => mocks.action,
+  // Live queries stay loading; screens under test receive their data as props.
+  useQuery: () => undefined,
   usePaginatedQuery: () => ({
     results: [],
     status: "Exhausted",

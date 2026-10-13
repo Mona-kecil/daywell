@@ -826,6 +826,12 @@ form > p.small {
   box-shadow: 0 6px 24px #0002;
   font-size: 13px;
 }
+.toast[popover] {
+  inset: auto auto calc(100px + env(safe-area-inset-bottom)) 50%;
+  margin: 0;
+  border: 0;
+  overflow: visible;
+}
 .toast > span {
   flex: 1;
   overflow-wrap: anywhere;
@@ -1667,4 +1673,228 @@ h1,
     opacity: 0;
     transform: translateX(-28px);
   }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Coach */
+.coach-card {
+  padding: 18px 18px 8px;
+}
+.coach-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px 6px;
+}
+.coach-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.coach-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  color: var(--green);
+  background: var(--green-soft);
+}
+.coach-clear {
+  margin: 4px 4px 14px;
+}
+.coach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.coach-list li + li {
+  border-top: 1px solid var(--border);
+}
+.coach-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  border-radius: 14px;
+}
+.coach-item:hover {
+  background: var(--bg);
+}
+.coach-item .icon-tile {
+  flex-shrink: 0;
+}
+.coach-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.coach-text strong {
+  font-size: 14px;
+}
+.coach-cta {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+/* Settings sheet */
+.sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: min(88dvh, 820px);
+  padding: 0;
+  border: 0;
+  border-radius: 26px 26px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 -10px 40px #0f1f1826;
+  overscroll-behavior: contain;
+}
+.sheet::backdrop {
+  background: #0d1a1466;
+  backdrop-filter: blur(2px);
+}
+.sheet[open] {
+  animation: sheet-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sheet[open]::backdrop {
+  animation: fade-in 260ms ease-out;
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open],
+  .sheet[open]::backdrop {
+    animation: none;
+  }
+}
+.sheet-body {
+  padding: 8px 22px calc(26px + env(safe-area-inset-bottom));
+}
+.sheet-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border);
+  margin: 4px auto 6px;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sheet-head h2 {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+.sheet-section {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+.sheet-head + .sheet-section {
+  border-top: 0;
+}
+.sheet-section h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+.sheet-section > .muted {
+  margin: 0 0 6px;
+}
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.target-grid label {
+  margin-bottom: 0;
+}
+.unit-input {
+  position: relative;
+  display: block;
+  margin-top: 7px;
+}
+.unit-input input:not([type="file"]) {
+  width: 100%;
+  padding-right: 38px;
+  font-variant-numeric: tabular-nums;
+}
+.unit-input span {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+}
+.time-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 4px;
+}
+.time-chips li:not(.muted) {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 12px;
+  border-radius: 99px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.time-chips button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 99px;
+  background: none;
+  color: inherit;
+}
+.sheet .inline-form input {
+  max-width: none;
+  flex: 1;
+}
+.reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.reminder-row p {
+  margin: 0;
+}
+.reminder-row .icon-tile:not(.green) {
+  background: var(--track);
+  color: var(--muted);
 }

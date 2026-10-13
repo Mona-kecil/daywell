@@ -10,8 +10,9 @@ import type { Tab } from "./tracker";
 import { BodyModel, muscleKey } from "./body3d";
 import { DayRings } from "./day-rings";
 import { Burst, useCrossing } from "./celebrate";
+import { CoachCard } from "./coach";
 
-// Stand-ins until targets are configurable in settings.
+// Ring targets when the user hasn't set their own in Settings.
 const PROTEIN_TARGET_G = 120;
 const KCAL_TARGET = 2200;
 
@@ -49,6 +50,7 @@ export function Today({
   overview,
   waterMl,
   totals,
+  targets,
   mealCount,
   pendingMeals,
   onTab,
@@ -57,6 +59,7 @@ export function Today({
   overview: Overview;
   waterMl: number;
   totals: Macros;
+  targets?: { kcalTarget: number | null; proteinTarget: number | null };
   mealCount: number;
   pendingMeals: number;
   onTab: (tab: Tab) => void;
@@ -95,6 +98,7 @@ export function Today({
           <span>{accent}</span>
         </h1>
       </section>
+      <CoachCard now={now} onTab={onTab} />
       <section className="card burst-anchor rings-card">
         <SectionTitle title="Today so far" />
         <Burst count={celebrations} />
@@ -111,14 +115,14 @@ export function Today({
               id: "protein",
               label: "Protein",
               value: totals.protein,
-              target: PROTEIN_TARGET_G,
+              target: targets?.proteinTarget ?? PROTEIN_TARGET_G,
               unit: "g",
             },
             {
               id: "kcal",
               label: "Calories",
               value: totals.kcal,
-              target: KCAL_TARGET,
+              target: targets?.kcalTarget ?? KCAL_TARGET,
               unit: "kcal",
             },
           ]}
