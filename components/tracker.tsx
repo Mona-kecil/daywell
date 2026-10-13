@@ -254,6 +254,8 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
                 pendingMeals={
                   meals.filter((m) => m.analysis.status !== "ready").length
                 }
+                water={water}
+                meals={meals}
                 onTab={changeTab}
               />
             )}

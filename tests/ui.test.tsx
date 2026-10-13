@@ -103,6 +103,8 @@ describe("screen actions", () => {
           waterMl={500}
           totals={mealTotals(meals[0].items)}
           mealCount={1}
+          water={[]}
+          meals={[]}
           pendingMeals={0}
           onTab={onTab}
         />
@@ -156,6 +158,8 @@ describe("screen actions", () => {
           waterMl={500}
           totals={totals}
           mealCount={1}
+          water={[]}
+          meals={[]}
           pendingMeals={0}
           onTab={() => {}}
         />

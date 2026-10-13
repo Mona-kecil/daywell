@@ -2905,3 +2905,68 @@ h1,
   opacity: 0.5;
   pointer-events: none;
 }
+/* Day timeline */
+.day-timeline ol {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.day-timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 62px 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding-bottom: 16px;
+}
+.day-timeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(62px + 8px + 13px);
+  top: 30px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--track);
+}
+.day-timeline time {
+  padding-top: 5px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.timeline-dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 99px;
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+.day-timeline li.water {
+  --tone: var(--blue);
+  --tone-soft: color-mix(in srgb, var(--blue) 14%, var(--surface));
+}
+.day-timeline li.meal {
+  --tone: var(--amber);
+  --tone-soft: color-mix(in srgb, var(--amber) 16%, var(--surface));
+}
+.day-timeline li.workout {
+  --tone: var(--green);
+  --tone-soft: var(--green-soft);
+}
+.timeline-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+  min-width: 0;
+}
+.timeline-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-transform: none;
+}

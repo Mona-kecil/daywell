@@ -14,6 +14,8 @@ import { dayKey } from "@/lib/insights";
 import { Burst, useCrossing } from "./celebrate";
 import { CoachCard } from "./coach";
 import { CheckInCard } from "./checkin";
+import { DayTimeline } from "./timeline";
+import type { Doc } from "@/convex/_generated/dataModel";
 
 // Ring targets when the user hasn't set their own in Settings.
 const PROTEIN_TARGET_G = 120;
@@ -56,6 +58,8 @@ export function Today({
   targets,
   mealCount,
   pendingMeals,
+  water,
+  meals,
   onTab,
 }: {
   now: number;
@@ -65,6 +69,8 @@ export function Today({
   targets?: { kcalTarget: number | null; proteinTarget: number | null };
   mealCount: number;
   pendingMeals: number;
+  water: Doc<"water">[];
+  meals: FunctionReturnType<typeof api.meals.today>;
   onTab: (tab: Tab) => void;
 }) {
   const addWater = useMutation(api.tracker.addWater);
@@ -242,6 +248,12 @@ export function Today({
         </p>
       </section>
       <CheckInCard now={now} />
+      <DayTimeline
+        now={now}
+        water={water}
+        meals={meals}
+        muscles={overview.muscles}
+      />
       <section>
         <SectionTitle title="Quick actions" />
         <div className="quick-actions">
