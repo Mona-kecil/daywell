@@ -8,7 +8,7 @@
  * @module
  */
 
-import type * as food from "../food.js";
+import type * as achievements from "../achievements.js";
 import type * as checkins from "../checkins.js";
 import type * as coach from "../coach.js";
 import type * as coachCron from "../coachCron.js";
@@ -18,6 +18,8 @@ import type * as demo from "../demo.js";
 import type * as demoSeed from "../demoSeed.js";
 import type * as exerciseModel from "../exerciseModel.js";
 import type * as exportData from "../exportData.js";
+import type * as food from "../food.js";
+import type * as historyData from "../historyData.js";
 import type * as insights from "../insights.js";
 import type * as mealActions from "../mealActions.js";
 import type * as mealVision_fake from "../mealVision/fake.js";
@@ -42,7 +44,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  food: typeof food;
+  achievements: typeof achievements;
   checkins: typeof checkins;
   coach: typeof coach;
   coachCron: typeof coachCron;
@@ -52,6 +54,8 @@ declare const fullApi: ApiFromModules<{
   demoSeed: typeof demoSeed;
   exerciseModel: typeof exerciseModel;
   exportData: typeof exportData;
+  food: typeof food;
+  historyData: typeof historyData;
   insights: typeof insights;
   mealActions: typeof mealActions;
   "mealVision/fake": typeof mealVision_fake;
