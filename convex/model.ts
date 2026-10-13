@@ -8,14 +8,18 @@ export async function requireUser(ctx: { auth: Auth }) {
   return identity.subject;
 }
 export function positive(value: number, max: number, name: string) {
-  if (!Number.isFinite(value) || value <= 0 || value > max) throw new ConvexError(`${name} must be greater than 0 and at most ${max}.`);
+  if (!Number.isFinite(value) || value <= 0 || value > max)
+    throw new ConvexError(`${name} must be greater than 0 and at most ${max}.`);
 }
 export function validTimestamp(value: number) {
-  if (!Number.isFinite(value) || value < 0 || value > 8_640_000_000_000_000) throw new ConvexError("Invalid timestamp.");
+  if (!Number.isFinite(value) || value < 0 || value > 8_640_000_000_000_000)
+    throw new ConvexError("Invalid timestamp.");
 }
 export function validDay(startMs: number, endMs: number) {
-  validTimestamp(startMs); validTimestamp(endMs);
-  if (endMs <= startMs || endMs - startMs > 26 * 3_600_000) throw new ConvexError("Invalid day range.");
+  validTimestamp(startMs);
+  validTimestamp(endMs);
+  if (endMs <= startMs || endMs - startMs > 26 * 3_600_000)
+    throw new ConvexError("Invalid day range.");
 }
 export async function ownedMeal(ctx: QueryCtx | MutationCtx, id: Id<"meals">) {
   const userId = await requireUser(ctx);

@@ -1,0 +1,193 @@
+// @vitest-environment jsdom
+import { beforeAll, afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { renderToStaticMarkup } from "react-dom/server";
+import { resolve } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { webcrypto } from "node:crypto";
+import { convexTest } from "convex-test";
+import schema from "../convex/schema";
+import { api } from "../convex/_generated/api";
+import type { FunctionReturnType } from "convex/server";
+import { Today } from "../components/today";
+import { Train } from "../components/train";
+import { Water } from "../components/water";
+import { Meals } from "../components/meals";
+import { Brand, FeedbackProvider } from "../components/ui";
+import { mealTotals } from "../lib/nutrients";
+const mocks = vi.hoisted(() => ({
+  mutation: vi.fn(async () => {}),
+  action: vi.fn(async () => {}),
+}));
+vi.mock("convex/react", () => ({
+  useMutation: () => mocks.mutation,
+  useAction: () => mocks.action,
+  usePaginatedQuery: () => ({
+    results: [],
+    status: "Exhausted",
+    loadMore: () => {},
+  }),
+}));
+let overview: FunctionReturnType<typeof api.tracker.overview>;
+let entries: FunctionReturnType<typeof api.tracker.waterToday>;
+let meals: FunctionReturnType<typeof api.meals.today>;
+const now = new Date("2026-10-13T12:00:00Z").getTime();
+beforeAll(async () => {
+  // Use schema-generated IDs and values. UI RPC hooks alone are mocked.
+  vi.stubGlobal("crypto", webcrypto);
+  const t = convexTest(schema, import.meta.glob("../convex/**/*.{ts,js}"));
+  const user = t.withIdentity({ subject: "ui-fixture" });
+  await user.mutation(api.tracker.initialize, {});
+  overview = await user.query(api.tracker.overview, {});
+  await user.mutation(api.tracker.addWorkout, {
+    muscleIds: [overview.muscles[0]._id],
+    trainedAt: now - 36 * 3_600_000,
+    note: "Fixture",
+  });
+  overview = await user.query(api.tracker.overview, {});
+  await user.mutation(api.tracker.addWater, { amountMl: 500, at: now });
+  entries = await user.query(api.tracker.waterToday, {
+    startMs: now,
+    endMs: now + 1000,
+  });
+  const storageId = await t.run((ctx) =>
+    ctx.storage.store(new Blob(["fixture"], { type: "image/jpeg" })),
+  );
+  await t.run((ctx) =>
+    ctx.db.insert("meals", {
+      userId: "ui-fixture",
+      storageId,
+      at: now,
+      description: "Rice",
+      revision: 1,
+      analysis: { status: "ready" },
+      items: [
+        {
+          id: "rice",
+          name: "Rice",
+          grams: 150,
+          searchQuery: "rice white cooked",
+          status: "matched",
+          fdcId: 2708422,
+          foodDescription: "Rice, white, cooked, glutinous",
+          per100g: { kcal: 96, protein: 2.01, carbs: 20.97, fat: 0.19 },
+        },
+      ],
+    }),
+  );
+  meals = (
+    await user.query(api.meals.today, { startMs: now, endMs: now + 1000 })
+  ).map((meal) => ({ ...meal, photoUrl: "/icons/icon-192.png" }));
+  vi.unstubAllGlobals();
+});
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+describe("screen actions", () => {
+  it("opens Train from the Today action", async () => {
+    const onTab = vi.fn();
+    render(
+      <FeedbackProvider>
+        <Today
+          now={now}
+          overview={overview}
+          waterMl={500}
+          totals={mealTotals(meals[0].items)}
+          mealCount={1}
+          pendingMeals={0}
+          onTab={onTab}
+        />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Log workout" }));
+    expect(onTab).toHaveBeenCalledWith("train");
+  });
+  it("adds quick water and a custom amount", async () => {
+    render(
+      <FeedbackProvider>
+        <Water entries={entries} goal={2500} />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /250 ml/ }));
+    expect(mocks.mutation).toHaveBeenCalledWith(
+      expect.objectContaining({ amountMl: 250 }),
+    );
+    await userEvent.type(screen.getByLabelText("Custom amount (ml)"), "350");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(mocks.mutation).toHaveBeenCalledWith(
+      expect.objectContaining({ amountMl: 350 }),
+    );
+  });
+  it("saves the edited description before re-analysis", async () => {
+    render(
+      <FeedbackProvider>
+        <Meals meals={meals} totals={mealTotals(meals[0].items)} now={now} />
+      </FeedbackProvider>,
+    );
+    const input = screen.getByLabelText("Meal description");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Tofu and rice");
+    await userEvent.click(screen.getByRole("button", { name: "Re-analyze" }));
+    expect(mocks.mutation).toHaveBeenCalledWith({
+      id: meals[0]._id,
+      description: "Tofu and rice",
+    });
+    expect(mocks.action).toHaveBeenCalledWith({ id: meals[0]._id });
+    expect(mocks.mutation.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.action.mock.invocationCallOrder[0],
+    );
+  });
+  it("creates renderable mobile QA artifacts from the shipped screens", () => {
+    const totals = mealTotals(meals[0].items);
+    const screens = {
+      today: (
+        <Today
+          now={now}
+          overview={overview}
+          waterMl={500}
+          totals={totals}
+          mealCount={1}
+          pendingMeals={0}
+          onTab={() => {}}
+        />
+      ),
+      train: <Train muscles={overview.muscles} now={now} />,
+      water: <Water entries={entries} goal={2500} />,
+      meals: <Meals meals={meals} totals={totals} now={now} />,
+    };
+    const css = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    ).replace('@import "tailwindcss";', "");
+    for (const [tab, content] of Object.entries(screens)) {
+      const html = renderToStaticMarkup(
+        <FeedbackProvider>
+          <div className="app-shell">
+            <header className="topbar">
+              <Brand />
+              <span className="pill amber">QA fixture</span>
+            </header>
+            <main id="main-content">
+              <div className="date-line">Tuesday, October 13</div>
+              {content}
+            </main>
+            <nav className="tabbar">
+              {["today", "train", "water", "meals"].map((label) => (
+                <button key={label} className={label === tab ? "active" : ""}>
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </FeedbackProvider>,
+      );
+      writeFileSync(
+        `/tmp/daywell-ui-${tab}.html`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Daywell ${tab} QA fixture</title><style>${css}</style></head><body>${html}</body></html>`,
+      );
+      expect(html).toContain('id="main-content"');
+    }
+  });
+});
