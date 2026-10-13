@@ -888,3 +888,85 @@ code {
     padding-right: 32px;
   }
 }
+.body3d {
+  --body3d-height: 400px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: var(--body3d-height);
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 70% at 50% 35%, var(--surface) 0%, transparent 70%),
+    var(--track);
+  overflow: hidden;
+}
+.body3d-loading {
+  height: var(--body3d-height);
+}
+.body3d-stage {
+  flex: 1;
+  min-height: 0;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.body3d-fallback {
+  padding: 24px;
+  text-align: center;
+}
+.body3d-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.segmented button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--green);
+  color: var(--surface);
+}
+.body3d-caption {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  font-size: 13px;
+  backdrop-filter: blur(6px);
+}
+.body3d-legend {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.body3d-legend i {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d4573b, #e2a03a, #3f9a6b);
+}

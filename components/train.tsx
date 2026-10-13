@@ -8,6 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
 import { recovery } from "@/lib/recovery";
 import { Empty, Progress, SectionTitle, useTask } from "./ui";
+import { BodyModel, muscleKey, type MuscleKey } from "./body3d";
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
@@ -97,6 +98,25 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
     { initialNumItems: 10 },
   );
   const { run, pending } = useTask();
+  const toggle = (id: Id<"muscles">) =>
+    setSelected((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+    );
+  const byKey = new Map(
+    muscles.flatMap((m) => {
+      const key = muscleKey(m.name);
+      return key ? [[key, m] as const] : [];
+    }),
+  );
+  const states = Object.fromEntries(
+    [...byKey].map(([key, m]) => [
+      key,
+      recovery(now, m.lastTrainedAt, m.cooldownHours),
+    ]),
+  );
+  const selectedKeys = [...byKey]
+    .filter(([, m]) => selected.includes(m._id))
+    .map(([key]) => key);
   return (
     <>
       <section className="page-heading">
@@ -127,6 +147,14 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
             }
           }}
         >
+          <BodyModel
+            states={states}
+            selected={selectedKeys}
+            onToggle={(key: MuscleKey) => {
+              const m = byKey.get(key);
+              if (m) toggle(m._id);
+            }}
+          />
           <fieldset>
             <legend>What did you train?</legend>
             <div className="muscle-picker">
@@ -136,13 +164,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                   key={m._id}
                   className={selected.includes(m._id) ? "selected" : ""}
                   aria-pressed={selected.includes(m._id)}
-                  onClick={() =>
-                    setSelected((ids) =>
-                      ids.includes(m._id)
-                        ? ids.filter((id) => id !== m._id)
-                        : [...ids, m._id],
-                    )
-                  }
+                  onClick={() => toggle(m._id)}
                 >
                   {selected.includes(m._id) && <Check size={14} />}
                   {m.name}
