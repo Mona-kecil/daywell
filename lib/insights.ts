@@ -120,7 +120,7 @@ export function binDays(days: Day[], size: number): Bin[] {
 }
 
 // Consecutive days meeting `hit`, ending today; an unmet today is still in progress.
-export function streak(days: Day[], hit: (d: Day) => boolean) {
+export function streak<T>(days: T[], hit: (d: T) => boolean) {
   let i = days.length - 1;
   if (i >= 0 && !hit(days[i])) i--;
   let n = 0;
@@ -219,5 +219,59 @@ export function bodySummary(days: Day[], checkins: BodyCheckin[]) {
       weights.length >= 2 ? weights[weights.length - 1] - weights[0] : null,
     restedMood: mood && { rested: mood[0], short: mood[1] },
     trainedEnergy: energy && { trained: energy[0], rest: energy[1] },
+  };
+}
+
+export type Habits = {
+  water: boolean;
+  meals: boolean;
+  trained: boolean;
+  checkedIn: boolean;
+};
+export type ConsistencyDay = {
+  key: string;
+  startMs: number;
+  habits: Habits;
+  score: number;
+  // Monday-first grid position: column is the week, row the weekday.
+  col: number;
+  row: number;
+};
+
+export function consistency(
+  days: Day[],
+  waterGoal: number,
+  checkinDays: Set<string>,
+) {
+  const lead = days.length ? (new Date(days[0].startMs).getDay() + 6) % 7 : 0;
+  const cells: ConsistencyDay[] = days.map((d, i) => {
+    const habits = {
+      water: d.waterMl >= waterGoal,
+      meals: d.meals > 0,
+      trained: d.trained.length > 0,
+      checkedIn: checkinDays.has(d.key),
+    };
+    return {
+      key: d.key,
+      startMs: d.startMs,
+      habits,
+      score: Object.values(habits).filter(Boolean).length,
+      col: Math.floor((i + lead) / 7),
+      row: (i + lead) % 7,
+    };
+  });
+  const active = cells.filter((c) => c.score > 0).length;
+  let best = 0;
+  let run = 0;
+  for (const c of cells) {
+    run = c.score > 0 ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  return {
+    cells,
+    weeks: cells.length ? cells[cells.length - 1].col + 1 : 0,
+    active,
+    best,
+    current: streak(cells, (c) => c.score > 0),
   };
 }

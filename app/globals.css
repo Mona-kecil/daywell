@@ -16,10 +16,12 @@
   --c-protein: #2a7a50;
   --c-fat: #3a7cc0;
   --c-carbs: #c47a14;
+  --frequency: #2a7a50;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --frequency: #4fa574;
     --bg: #151d1a;
     --surface: #1e2923;
     --text: #e2ebe1;
@@ -40,6 +42,7 @@
   }
 }
 :root[data-theme="dark"] {
+  --frequency: #4fa574;
   --bg: #151d1a;
   --surface: #1e2923;
   --text: #e2ebe1;
@@ -2499,4 +2502,67 @@ h1,
 }
 .rest-timer button:disabled {
   opacity: 0.35;
+}
+/* Consistency calendar */
+.consistency h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.consistency > svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+.consistency > svg:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+.cal-0 {
+  fill: var(--track);
+  background: var(--track);
+}
+.cal-1 {
+  fill: color-mix(in srgb, var(--frequency) 25%, var(--track));
+  background: color-mix(in srgb, var(--frequency) 25%, var(--track));
+}
+.cal-2 {
+  fill: color-mix(in srgb, var(--frequency) 50%, var(--track));
+  background: color-mix(in srgb, var(--frequency) 50%, var(--track));
+}
+.cal-3 {
+  fill: color-mix(in srgb, var(--frequency) 75%, var(--track));
+  background: color-mix(in srgb, var(--frequency) 75%, var(--track));
+}
+.cal-4 {
+  fill: var(--frequency);
+  background: var(--frequency);
+}
+.cal-cell.today {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+.cal-cell.active {
+  stroke: var(--amber);
+  stroke-width: 2.5;
+}
+.cal-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 8px;
+}
+.cal-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.cal-legend span:first-child {
+  margin-right: 2px;
+}
+.cal-legend span:last-child {
+  margin-left: 2px;
 }

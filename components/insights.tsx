@@ -33,6 +33,7 @@ import {
 } from "@/lib/insights";
 import { SectionTitle } from "./ui";
 import { LineChart } from "./line-chart";
+import { ConsistencyCalendar } from "./consistency";
 import {
   BodyModel,
   mix,
@@ -657,6 +658,11 @@ export function InsightsView({
           </ul>
         </section>
       )}
+      <ConsistencyCalendar
+        days={history}
+        waterGoal={data.waterGoal}
+        checkinDays={new Set(checkins.map((c) => c.day))}
+      />
       {table ? (
         <DataTable bins={bins} muscles={data.muscles} byDay={byDay} />
       ) : (
