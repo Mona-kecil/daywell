@@ -2276,3 +2276,84 @@ h1,
     transition: none;
   }
 }
+/* Muscle detail sheet */
+.muscle-name-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  margin: -10px 0;
+  text-align: left;
+}
+.muscle-name-button h3 {
+  margin: 0;
+}
+.muscle-name-button svg {
+  color: var(--muted);
+}
+.muscle-status {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+.muscle-status p {
+  margin: 0;
+}
+.week-chart {
+  margin: 18px 0 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+.week-chart .chart-head {
+  margin-bottom: 10px;
+}
+.week-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 110px;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+.week-bars.loading {
+  border: 0;
+  border-radius: 12px;
+  background: var(--track);
+  margin-top: 18px;
+}
+.week-bars li,
+.week-bars button {
+  height: 100%;
+}
+.week-bars button {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 6px;
+}
+.week-bars button:focus-visible {
+  outline: 2px solid var(--green);
+}
+.week-bars button span {
+  width: min(22px, 70%);
+  background: var(--green);
+  border-radius: 4px 4px 0 0;
+  transition: opacity 120ms;
+}
+.week-bars button span.zero {
+  background: var(--border);
+}
+.week-bars:has(.active) button:not(.active) span {
+  opacity: 0.45;
+}
+.week-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+}

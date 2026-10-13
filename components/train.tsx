@@ -2,7 +2,14 @@
 import { useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Trash2, SlidersHorizontal, Check, Dumbbell, Plus } from "lucide-react";
+import {
+  Trash2,
+  SlidersHorizontal,
+  Check,
+  Dumbbell,
+  Plus,
+  ChevronRight,
+} from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
@@ -23,6 +30,7 @@ import {
   type EntryDraft,
   type Exercise,
 } from "./strength";
+import { MuscleSheet } from "./muscle-sheet";
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
@@ -31,11 +39,13 @@ function MuscleCard({
   now,
   editing,
   weekSets,
+  onOpen,
 }: {
   muscle: Muscle;
   now: number;
   editing: boolean;
   weekSets: number | undefined;
+  onOpen: () => void;
 }) {
   const setCooldown = useMutation(api.tracker.setCooldown);
   const { run, pending } = useTask();
@@ -48,7 +58,15 @@ function MuscleCard({
   return (
     <div className="muscle-card">
       <div className="row spaced">
-        <h3 className="capitalize">{muscle.name}</h3>
+        <button
+          type="button"
+          className="muscle-name-button"
+          aria-haspopup="dialog"
+          onClick={onOpen}
+        >
+          <h3 className="capitalize">{muscle.name}</h3>
+          <ChevronRight size={16} aria-hidden />
+        </button>
         <span
           className={`small ${status.kind === "recovering" ? "muted" : "green-text"}`}
         >
@@ -130,6 +148,8 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const [entries, setEntries] = useState<EntryDraft[]>([]);
   const [picking, setPicking] = useState(false);
   const [historyFor, setHistoryFor] = useState<Exercise | null>(null);
+  const [detailId, setDetailId] = useState<Id<"muscles"> | null>(null);
+  const detail = muscles.find((m) => m._id === detailId) ?? null;
   const addWorkout = useMutation(api.tracker.addWorkout),
     logSession = useMutation(api.strength.logSession),
     deleteWorkout = useMutation(api.tracker.deleteWorkout);
@@ -310,6 +330,13 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           chosen={entries.map((en) => en.exercise._id)}
           onPick={addEntry}
         />
+        <MuscleSheet
+          muscle={detail}
+          now={now}
+          exercises={exercises ?? []}
+          onClose={() => setDetailId(null)}
+          onExercise={setHistoryFor}
+        />
         <ExerciseHistorySheet
           exercise={historyFor}
           onClose={() => setHistoryFor(null)}
@@ -337,6 +364,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
               now={now}
               editing={editing}
               weekSets={weekSets.get(m._id)}
+              onOpen={() => setDetailId(m._id)}
             />
           ))}
         </div>
