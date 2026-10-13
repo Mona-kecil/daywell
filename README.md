@@ -15,23 +15,57 @@ cp .env.example .env.local
 
 Convex writes its deployment name and public URL into the ignored `.env.local` file. Keep that file out of Git.
 
-To work without account credentials, run these commands in order. The first command can stop with the missing WorkOS client ID error shown in [the check report](docs/checks.md).
+For WorkOS login, fill the credentials below, run `CONVEX_AGENT_MODE=anonymous npx convex dev` in one terminal and `pnpm dev` in another. Open `http://localhost:3000`.
+
+## Local development without WorkOS
+
+Use an anonymous local Convex deployment. No WorkOS keys or USDA key are needed.
 
 ```sh
-CONVEX_AGENT_MODE=anonymous npx convex dev --once
-CONVEX_AGENT_MODE=anonymous npx convex env set WORKOS_CLIENT_ID ""
-CONVEX_AGENT_MODE=anonymous npx convex dev
+pnpm install
+pnpm exec playwright install chromium
+pnpm dev:setup
+pnpm dev:all
 ```
 
-A blank client ID gives the local deployment no accepted JWT issuers. Every data function still requires an authenticated identity. The browser shows setup instructions until you supply credentials. This flow creates a local anonymous deployment, without a cloud project.
-
-In a second terminal, start Next.js.
+Keep `dev:all` running. It starts Convex at `http://127.0.0.1:3210` and Next.js at `http://localhost:3000`. Wait for **Convex functions ready** and **Ready**, then run these in a second terminal:
 
 ```sh
-pnpm dev
+pnpm seed:demo
+pnpm shots
+pnpm e2e
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000/dev-login` to sign in as `dev-user`. The normal sign-in screen also links there in dev-auth mode. Sign out clears the dev cookie. Tokens expire after five minutes; Convex requests a fresh token through `/api/dev-token`. The signed, HttpOnly session cookie lasts eight hours.
+
+`dev:setup` bootstraps Convex if needed, generates an RSA keypair, and writes `DEV_AUTH=1` and `DEV_AUTH_PRIVATE_JWK` to the ignored `.env.local` with owner-only permissions. A second run reuses the key. It sets `DEV_AUTH_JWKS`, `FDC_MODE=fixture`, and `MEAL_VISION_PROVIDER=fake` on Convex. It refuses cloud deployments and deployment-key overrides. These commands target local data; `seed:demo` replaces only the dev user's data and photos.
+
+The seed writes 14 calendar days relative to the machine's date: a push/pull/legs rotation with rest days, six drinks per day, and two to four ready meals per day. Each meal has a generated JPEG in Convex storage and grounded foods. Totals use the app's nutrient helpers. Repeating the seed preserves the record counts: 11 workouts, 84 drinks, 41 meals, and 11 muscles.
+
+`shots` and `e2e` require both dev servers to be running. Screenshots cover each navigation tab at 375×812 in light and dark mode, under `artifacts/shots/<tab>-<theme>.png`. There are four tabs and no separate Settings screen. The screenshot script discovers tabs from the navigation. The smoke test adds and deletes water, a back workout, and a photo meal; it checks recovery, grounded calories, and portion edits. Failure screenshots and traces live under `artifacts/e2e/`. All `artifacts/` files are ignored. Set `DAYWELL_URL` to use another local Next port. Browser checks use the `Asia/Jakarta` timezone; seed data uses the machine's timezone.
+
+Both dev routes return 404 in a production build, even when dev environment variables remain set. To check the built server on port 3100:
+
+```sh
+pnpm build
+pnpm test:production
+```
+
+If port 3100 is in use, set `DAYWELL_PRODUCTION_PORT=3101` for `test:production`.
+
+The unit test also checks the production guard, unsigned-cookie rejection, token lifetime, and logout. When neither auth path is configured, the setup screen remains. WorkOS behavior uses the original AuthKit bridge when dev auth is off.
+
+Convex's installed `src/server/authentication.ts` declares `customJwt.jwks` as a string, and `src/cli/lib/deployApi/types.ts` validates it with `z.string()`. The backend accepts the base64 data URI used here, as documented in the [Convex custom JWT guide](https://docs.convex.dev/auth/advanced/custom-jwt). Dev token signing is gated by Next's production `NODE_ENV`. Keep `DEV_AUTH_JWKS` on the anonymous local deployment; do not configure that issuer on a production Convex deployment.
+
+Fixture mode reads `lib/fixtures/fdc-search.json` through the same FDC parser as live mode. These are **hand-built search fixtures**, not captured live responses. Per-100 g nutrient values and FDC IDs come from the [USDA SR Legacy April 2018 CSV archive](https://fdc.nal.usda.gov/download-datasets/). Word matching handles query order and aliases; unknown foods remain unmatched. The fixture set covers rice, grilled chicken breast, broccoli, egg, oatmeal, banana, salmon, Greek yogurt, avocado, olive oil, whole-wheat bread, and cooked pasta. Rebuild it with `python3 scripts/build-fdc-fixtures.py`.
+
+Live FDC search stays the default. To switch the running local deployment:
+
+```sh
+CONVEX_AGENT_MODE=anonymous npx convex env set FDC_MODE live
+```
+
+The seed uses fixture nutrients so it stays repeatable even if live mode is enabled. Its entry action checks `DEV_AUTH_JWKS`, subject `dev-user`, and issuer `https://daywell.dev.local`; the reset mutation repeats those checks and is internal. The CLI's impersonated identity cannot invoke an internal action, so the script calls the guarded action with `--identity`.
 
 ## Connect WorkOS AuthKit
 

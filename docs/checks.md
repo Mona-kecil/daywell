@@ -1,6 +1,6 @@
 # Acceptance checks
 
-The app source, unit tests, and mobile screens are implemented. Local checks pass except the live USDA grounding check. That check returns HTTP 429. WorkOS login needs the owner's credentials before it can be exercised.
+The report below records the original WorkOS-only implementation. The [local development check report](local-development-checks.md) records dev login, USDA fixtures, demo data, authenticated screenshots, and browser smoke tests. Those checks pass without WorkOS credentials. The original live USDA check below returned HTTP 429.
 
 ## Commands and results
 
