@@ -8,7 +8,7 @@ export async function groundFood(input: { id: string; name: string; grams: numbe
   url.searchParams.set("query", input.searchQuery);
   url.searchParams.set("dataType", "Foundation,SR Legacy,Survey (FNDDS)");
   url.searchParams.set("pageSize", "25");
-  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  const response = await fetch(url.toString().replace(/\+/g, "%20"), { signal: AbortSignal.timeout(20_000), headers: { Accept: "application/json", "User-Agent": "Daywell/0.1 (food database integration)" } });
   if (!response.ok) throw new Error(`USDA search failed (${response.status}). Please retry later.`);
   const result = searchSchema.parse(await response.json());
   // FDC returns relevance-ranked results. Select the first complete nutrient record.
