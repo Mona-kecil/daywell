@@ -54,6 +54,25 @@ export default defineSchema({
     trainedAt: v.number(),
     note: v.string(),
   }).index("by_user_time", ["userId", "trainedAt"]),
+  exercises: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    muscleIds: v.array(v.id("muscles")),
+    custom: v.boolean(),
+  }).index("by_user", ["userId"]),
+  strengthSets: defineTable({
+    userId: v.string(),
+    workoutId: v.id("workouts"),
+    exerciseId: v.id("exercises"),
+    muscleIds: v.array(v.id("muscles")),
+    trainedAt: v.number(),
+    reps: v.number(),
+    weightKg: v.number(),
+    order: v.number(),
+  })
+    .index("by_user_workout", ["userId", "workoutId"])
+    .index("by_user_exercise_time", ["userId", "exerciseId", "trainedAt"])
+    .index("by_user_time", ["userId", "trainedAt"]),
   workoutMuscles: defineTable({
     userId: v.string(),
     muscleId: v.id("muscles"),

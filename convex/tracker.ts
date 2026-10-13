@@ -1,8 +1,15 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireUser, positive, validTimestamp, validDay } from "./model";
+import {
+  requireUser,
+  positive,
+  validTimestamp,
+  validDay,
+  createWorkout,
+} from "./model";
 import { dayArgs } from "./validators";
+import { seedExercises } from "./exerciseModel";
 import { MUSCLE_DEFAULTS } from "../lib/recovery";
 
 export const initialize = mutation({
@@ -19,6 +26,7 @@ export const initialize = mutation({
       for (const muscle of MUSCLE_DEFAULTS)
         await ctx.db.insert("muscles", { userId, ...muscle });
     }
+    await seedExercises(ctx, userId);
   },
 });
 export const overview = query({
@@ -67,31 +75,7 @@ export const addWorkout = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    validTimestamp(args.trainedAt);
-    const ids = [...new Set(args.muscleIds)];
-    if (!ids.length || ids.length > 11 || args.note.length > 2000)
-      throw new ConvexError(
-        "Choose muscles and keep the note under 2,000 characters.",
-      );
-    for (const id of ids) {
-      const group = await ctx.db.get(id);
-      if (!group || group.userId !== userId)
-        throw new ConvexError("Muscle not found.");
-    }
-    const workoutId = await ctx.db.insert("workouts", {
-      userId,
-      muscleIds: ids,
-      trainedAt: args.trainedAt,
-      note: args.note.trim(),
-    });
-    for (const muscleId of ids)
-      await ctx.db.insert("workoutMuscles", {
-        userId,
-        muscleId,
-        workoutId,
-        trainedAt: args.trainedAt,
-      });
-    return workoutId;
+    return createWorkout(ctx, userId, args);
   },
 });
 export const workoutHistory = query({
@@ -119,6 +103,13 @@ export const deleteWorkout = mutation({
       )
       .collect();
     for (const link of links) await ctx.db.delete(link._id);
+    const sets = await ctx.db
+      .query("strengthSets")
+      .withIndex("by_user_workout", (q) =>
+        q.eq("userId", userId).eq("workoutId", args.id),
+      )
+      .collect();
+    for (const set of sets) await ctx.db.delete(set._id);
     await ctx.db.delete(args.id);
   },
 });

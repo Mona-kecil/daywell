@@ -45,6 +45,22 @@ it("demo seed replaces fourteen days, deletes old photos, and preserves other us
     muscles: 11,
   });
   expect(await t.run((ctx) => ctx.storage.get(meals[0].storageId))).toBeNull();
+  expect(await dev.query(api.strength.exercises, {})).toHaveLength(25);
+  expect(
+    await t.run((ctx) => ctx.db.query("strengthSets").collect()),
+  ).toHaveLength(108);
+  const bench = (await dev.query(api.strength.exercises, {})).find(
+    (e) => e.name === "Bench press",
+  );
+  if (!bench) throw new Error("Missing demo bench");
+  const strength = await dev.query(api.strength.exerciseHistory, {
+    exerciseId: bench._id,
+  });
+  expect(strength.sessions).toHaveLength(4);
+  expect(strength.sessions[0].topSetKg).toBeGreaterThan(
+    strength.sessions[3].topSetKg,
+  );
+  expect(strength.prAt).toBe(strength.sessions[0].trainedAt);
   const overview = await dev.query(api.tracker.overview, {});
   expect(overview.muscles).toHaveLength(11);
   const states = overview.muscles.map(

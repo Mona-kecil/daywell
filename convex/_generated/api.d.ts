@@ -14,6 +14,7 @@ import type * as coachData from "../coachData.js";
 import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as demoSeed from "../demoSeed.js";
+import type * as exerciseModel from "../exerciseModel.js";
 import type * as insights from "../insights.js";
 import type * as mealActions from "../mealActions.js";
 import type * as mealVision_fake from "../mealVision/fake.js";
@@ -27,6 +28,7 @@ import type * as pushActions from "../pushActions.js";
 import type * as pushProviders_fake from "../pushProviders/fake.js";
 import type * as pushProviders_types from "../pushProviders/types.js";
 import type * as pushProviders_webpush from "../pushProviders/webpush.js";
+import type * as strength from "../strength.js";
 import type * as tracker from "../tracker.js";
 import type * as validators from "../validators.js";
 
@@ -43,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   demo: typeof demo;
   demoSeed: typeof demoSeed;
+  exerciseModel: typeof exerciseModel;
   insights: typeof insights;
   mealActions: typeof mealActions;
   "mealVision/fake": typeof mealVision_fake;
@@ -56,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   "pushProviders/fake": typeof pushProviders_fake;
   "pushProviders/types": typeof pushProviders_types;
   "pushProviders/webpush": typeof pushProviders_webpush;
+  strength: typeof strength;
   tracker: typeof tracker;
   validators: typeof validators;
 }>;

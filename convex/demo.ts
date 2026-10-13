@@ -3,7 +3,8 @@ import type { Auth } from "convex/server";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
 import { mealItem } from "./validators";
-import { requireUser } from "./model";
+import { seedExercises } from "./exerciseModel";
+import { requireUser, createWorkout } from "./model";
 import { MUSCLE_DEFAULTS } from "../lib/recovery";
 import { isLocalDeployment } from "../lib/local-deployment";
 import { DEV_ISSUER, DEV_USER } from "../lib/dev-auth-config";
@@ -64,6 +65,14 @@ export const replace = internalMutation({
         .withIndex("by_user_workout", (q) => q.eq("userId", userId))
         .collect()),
       ...(await ctx.db
+        .query("strengthSets")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId))
+        .collect()),
+      ...(await ctx.db
+        .query("exercises")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect()),
+      ...(await ctx.db
         .query("water")
         .withIndex("by_user_time", (q) => q.eq("userId", userId))
         .collect()),
@@ -80,14 +89,45 @@ export const replace = internalMutation({
         muscle.name,
         await ctx.db.insert("muscles", { userId, ...muscle }),
       );
+    await seedExercises(ctx, userId);
+    const exercises = await ctx.db
+      .query("exercises")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
     const rotation = [
-      { label: "Push", names: ["chest", "shoulders", "triceps"] },
-      { label: "Pull", names: ["back", "biceps", "forearms"] },
+      {
+        label: "Push",
+        exercises: [
+          ["Bench press", 65],
+          ["Overhead press", 30],
+          ["Triceps pushdown", 20],
+        ],
+        names: ["chest", "shoulders", "triceps"],
+      },
+      {
+        label: "Pull",
+        exercises: [
+          ["Barbell row", 55],
+          ["Hammer curl", 14],
+          ["Wrist curl", 10],
+        ],
+        names: ["back", "biceps", "forearms"],
+      },
       {
         label: "Legs",
+        exercises: [
+          ["Back squat", 85],
+          ["Romanian deadlift", 65],
+          ["Standing calf raise", 40],
+          ["Crunch", 0],
+        ],
         names: ["quads", "hamstrings", "glutes", "calves", "abs"],
       },
-    ];
+    ] satisfies {
+      label: string;
+      names: string[];
+      exercises: [string, number][];
+    }[];
     let workouts = 0,
       water = 0;
     for (const [offset, start] of args.days.entries()) {
@@ -99,19 +139,32 @@ export const replace = internalMutation({
           return id;
         });
         const trainedAt = args.now - (offset * 24 + 2) * 3_600_000;
-        const workoutId = await ctx.db.insert("workouts", {
-          userId,
+        const workoutId = await createWorkout(ctx, userId, {
           muscleIds,
           trainedAt,
           note: `${session.label} · 3 sets per exercise, steady effort`,
         });
-        for (const muscleId of muscleIds)
-          await ctx.db.insert("workoutMuscles", {
-            userId,
-            muscleId,
-            workoutId,
-            trainedAt,
-          });
+        let order = 0;
+        for (const [name, baseWeight] of session.exercises) {
+          const exercise = exercises.find((row) => row.name === name);
+          if (!exercise || typeof baseWeight !== "number")
+            throw new ConvexError("Missing demo exercise.");
+          const weightKg =
+            baseWeight === 0
+              ? 0
+              : Math.max(2, baseWeight - Math.floor(offset / 4) * 2.5);
+          for (const reps of [10, 8, 8])
+            await ctx.db.insert("strengthSets", {
+              userId,
+              workoutId,
+              exerciseId: exercise._id,
+              muscleIds: exercise.muscleIds,
+              trainedAt,
+              reps,
+              weightKg,
+              order: order++,
+            });
+        }
         workouts++;
       }
       for (const [index, hour] of [7, 10, 13, 16, 19, 21].entries()) {
