@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { mealItem } from "./validators";
+import { mealItem, pushKeys, pushPayload } from "./validators";
 
 export default defineSchema({
   settings: defineTable({
@@ -14,6 +14,35 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_reminders", ["remindersEnabled"]),
+  pushSubscriptions: defineTable({
+    userId: v.string(),
+    endpoint: v.string(),
+    keys: pushKeys,
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_endpoint", ["endpoint"]),
+  coachSent: defineTable({
+    userId: v.string(),
+    localDay: v.string(),
+    slot: v.string(),
+    createdAt: v.number(),
+    delivery: v.union(
+      v.object({ status: v.literal("pending"), payload: pushPayload }),
+      v.object({ status: v.literal("attempted"), at: v.number() }),
+    ),
+  }).index("by_user_day_slot", ["userId", "localDay", "slot"]),
+  coachRuns: defineTable({
+    key: v.literal("check-ins"),
+    lastRunAt: v.number(),
+  }).index("by_key", ["key"]),
+  pushDeliveries: defineTable({
+    sentId: v.id("coachSent"),
+    endpoint: v.string(),
+    payload: pushPayload,
+    statusCode: v.number(),
+    at: v.number(),
+  }).index("by_sent", ["sentId"]),
   muscles: defineTable({
     userId: v.string(),
     name: v.string(),

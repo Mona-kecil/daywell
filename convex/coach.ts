@@ -5,7 +5,9 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { positive, requireUser } from "./model";
+import { positive, requireUser, validTimestamp } from "./model";
+import { normalizeTimeZone } from "../lib/coach-time";
+import { suggestionsFor } from "./coachData";
 import { DEFAULT_CHECK_INS } from "../lib/coach";
 
 async function userSettings(ctx: QueryCtx | MutationCtx) {
@@ -70,9 +72,7 @@ export const setTimeZone = mutation({
     const row = await writableSettings(ctx);
     let timeZone: string;
     try {
-      timeZone = new Intl.DateTimeFormat("en-US", {
-        timeZone: args.timeZone,
-      }).resolvedOptions().timeZone;
+      timeZone = normalizeTimeZone(args.timeZone);
     } catch {
       throw new ConvexError("Choose a valid IANA time zone.");
     }
@@ -86,5 +86,26 @@ export const setRemindersEnabled = mutation({
     if (args.enabled && !row.timeZone)
       throw new ConvexError("Set your time zone before enabling reminders.");
     await ctx.db.patch(row._id, { remindersEnabled: args.enabled });
+  },
+});
+
+export const suggestions = query({
+  args: { now: v.number(), timeZone: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    validTimestamp(args.now);
+    const row = await userSettings(ctx);
+    const userId = await requireUser(ctx);
+    const timeZone = row?.timeZone ?? args.timeZone ?? "UTC";
+    try {
+      normalizeTimeZone(timeZone);
+    } catch {
+      throw new ConvexError("Choose a valid IANA time zone.");
+    }
+    return suggestionsFor(
+      ctx,
+      row ?? { userId, waterGoal: 2500 },
+      args.now,
+      timeZone,
+    );
   },
 });

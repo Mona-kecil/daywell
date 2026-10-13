@@ -9,6 +9,9 @@
  */
 
 import type * as coach from "../coach.js";
+import type * as coachCron from "../coachCron.js";
+import type * as coachData from "../coachData.js";
+import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as demoSeed from "../demoSeed.js";
 import type * as insights from "../insights.js";
@@ -18,6 +21,11 @@ import type * as mealVision_index from "../mealVision/index.js";
 import type * as mealVision_types from "../mealVision/types.js";
 import type * as meals from "../meals.js";
 import type * as model from "../model.js";
+import type * as push from "../push.js";
+import type * as pushActions from "../pushActions.js";
+import type * as pushProviders_fake from "../pushProviders/fake.js";
+import type * as pushProviders_types from "../pushProviders/types.js";
+import type * as pushProviders_webpush from "../pushProviders/webpush.js";
 import type * as tracker from "../tracker.js";
 import type * as validators from "../validators.js";
 
@@ -29,6 +37,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   coach: typeof coach;
+  coachCron: typeof coachCron;
+  coachData: typeof coachData;
+  crons: typeof crons;
   demo: typeof demo;
   demoSeed: typeof demoSeed;
   insights: typeof insights;
@@ -38,6 +49,11 @@ declare const fullApi: ApiFromModules<{
   "mealVision/types": typeof mealVision_types;
   meals: typeof meals;
   model: typeof model;
+  push: typeof push;
+  pushActions: typeof pushActions;
+  "pushProviders/fake": typeof pushProviders_fake;
+  "pushProviders/types": typeof pushProviders_types;
+  "pushProviders/webpush": typeof pushProviders_webpush;
   tracker: typeof tracker;
   validators: typeof validators;
 }>;

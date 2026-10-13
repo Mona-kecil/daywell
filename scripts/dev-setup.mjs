@@ -3,6 +3,7 @@ import {
   generateKeyPairSync,
   createPrivateKey,
   createPublicKey,
+  createECDH,
 } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { parseEnv } from "node:util";
@@ -75,9 +76,43 @@ const publicJwk = {
   alg: "RS256",
   use: "sig",
 };
+function deploymentEnv(name) {
+  try {
+    return convex(["env", "get", name], true).trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+const deployedPrivate = deploymentEnv("VAPID_PRIVATE_KEY");
+const vapid = createECDH("prime256v1");
+const savedPrivate = env.VAPID_PRIVATE_KEY || deployedPrivate;
+if (savedPrivate) vapid.setPrivateKey(Buffer.from(savedPrivate, "base64url"));
+else vapid.generateKeys();
+const vapidPrivate = vapid.getPrivateKey().toString("base64url");
+const vapidPublic = vapid.getPublicKey().toString("base64url");
+if (
+  (deployedPrivate && deployedPrivate !== vapidPrivate) ||
+  (env.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
+    env.NEXT_PUBLIC_VAPID_PUBLIC_KEY !== vapidPublic) ||
+  (env.VAPID_PUBLIC_KEY && env.VAPID_PUBLIC_KEY !== vapidPublic)
+)
+  throw new Error(
+    "Local and Convex VAPID keys disagree. Align the existing keys before setup.",
+  );
+const deployedPublic = deploymentEnv("VAPID_PUBLIC_KEY");
+if (deployedPublic && deployedPublic !== vapidPublic)
+  throw new Error("Convex VAPID public and private keys disagree.");
+const vapidSubject =
+  env.VAPID_SUBJECT ||
+  deploymentEnv("VAPID_SUBJECT") ||
+  "mailto:dev@daywell.local";
 let text = readFileSync(filename, "utf8");
 for (const [name, value] of Object.entries({
   DEV_AUTH: "1",
+  VAPID_PRIVATE_KEY: vapidPrivate,
+  VAPID_PUBLIC_KEY: vapidPublic,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapidPublic,
+  VAPID_SUBJECT: vapidSubject,
   DEV_AUTH_PRIVATE_JWK: JSON.stringify(privateJwk),
 })) {
   const line = `${name}=${value}`;
@@ -92,5 +127,20 @@ convex(["env", "set", "DEV_AUTH_JWKS", JSON.stringify({ keys: [publicJwk] })]);
 convex(["env", "set", "WORKOS_CLIENT_ID", env.WORKOS_CLIENT_ID || ""]);
 convex(["env", "set", "FDC_MODE", "fixture"]);
 convex(["env", "set", "MEAL_VISION_PROVIDER", "fake"]);
+for (const [name, value, present] of [
+  ["VAPID_PRIVATE_KEY", vapidPrivate, deployedPrivate],
+  ["VAPID_PUBLIC_KEY", vapidPublic, deployedPublic],
+  ["VAPID_SUBJECT", vapidSubject, deploymentEnv("VAPID_SUBJECT")],
+  ["PUSH_PROVIDER", "fake", deploymentEnv("PUSH_PROVIDER")],
+]) {
+  if (present) continue;
+  try {
+    convex(["env", "set", name, value], true);
+  } catch {
+    throw new Error(`Could not set ${name} on local Convex.`);
+  }
+  console.log(`Configured ${name} on local Convex.`);
+}
+console.log("VAPID keys configured; existing keys retained.");
 if (!running) convex(["dev", "--once"]);
 console.log("Dev auth configured. Start pnpm dev:all, then pnpm seed:demo.");

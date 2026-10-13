@@ -38,7 +38,7 @@ pnpm e2e
 
 Open `http://localhost:3000/dev-login` to sign in as `dev-user`. The normal sign-in screen also links there in dev-auth mode. Sign out clears the dev cookie. Tokens expire after five minutes; Convex requests a fresh token through `/api/dev-token`. The signed, HttpOnly session cookie lasts eight hours.
 
-`dev:setup` bootstraps Convex if needed, generates an RSA keypair, and writes `DEV_AUTH=1` and `DEV_AUTH_PRIVATE_JWK` to the ignored `.env.local` with owner-only permissions. A second run reuses the key. It sets `DEV_AUTH_JWKS`, `FDC_MODE=fixture`, and `MEAL_VISION_PROVIDER=fake` on Convex. It refuses cloud deployments and deployment-key overrides. These commands target local data; `seed:demo` replaces only the dev user's data and photos.
+`dev:setup` bootstraps Convex if needed, generates an RSA keypair, and writes `DEV_AUTH=1` and `DEV_AUTH_PRIVATE_JWK` to the ignored `.env.local` with owner-only permissions. A second run reuses the key. It also creates or reuses VAPID keys, writes the public key for Next, and installs missing push configuration on local Convex. It sets `DEV_AUTH_JWKS`, `FDC_MODE=fixture`, and `MEAL_VISION_PROVIDER=fake` on Convex. It refuses cloud deployments and deployment-key overrides. These commands target local data; `seed:demo` replaces only the dev user's data and photos.
 
 The seed writes 14 calendar days relative to the machine's date: a push/pull/legs rotation with rest days, six drinks per day, and two to four ready meals per day. Each meal has a generated JPEG in Convex storage and grounded foods. Totals use the app's nutrient helpers. Repeating the seed preserves the record counts: 11 workouts, 84 drinks, 41 meals, and 11 muscles.
 
@@ -148,6 +148,12 @@ npx convex env set MEAL_VISION_PROVIDER real
 ```
 
 Set any provider credentials on Convex. No OpenAI, Anthropic, or other LLM SDK is installed. No real vision provider is implemented in this version.
+
+## Coach and push reminders
+
+Coach settings, deterministic suggestions, and push reminders are available through Convex APIs. The UI integration contract is in [Coach API](docs/coach-api.md). Save an IANA time zone, register the browser subscription from a user click, then enable reminders. The check-in cron runs every 15 minutes. Each local day/slot sends at most once; DST gaps skip nonexistent times and repeated hours share one slot.
+
+Push defaults to a fake sender that records calls. For delivery, set `PUSH_PROVIDER=webpush`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` on Convex; set matching `NEXT_PUBLIC_VAPID_PUBLIC_KEY` on Next. Keep the private key off the client. `pnpm dev:setup` generates and retains local keys. `/sw.js` handles notifications and clicks; it does not cache the app.
 
 ## Use the tracker
 

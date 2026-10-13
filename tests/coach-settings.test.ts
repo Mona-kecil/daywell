@@ -48,6 +48,9 @@ describe("coach settings", () => {
       alice.mutation(api.coach.setTimeZone, { timeZone: "Mars/Olympus" }),
     ).rejects.toThrow("IANA");
     await expect(
+      alice.mutation(api.coach.setTimeZone, { timeZone: "+01:00" }),
+    ).rejects.toThrow("IANA");
+    await expect(
       alice.mutation(api.coach.setRemindersEnabled, { enabled: true }),
     ).rejects.toThrow("time zone");
     await alice.mutation(api.coach.setTimeZone, { timeZone: "Asia/Jakarta" });
