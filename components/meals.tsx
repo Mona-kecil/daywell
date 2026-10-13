@@ -312,7 +312,9 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
                 Identifying foods and looking up USDA nutrients.
               </p>
               {meal.analysis.status === "analyzing" &&
-                now - meal.analysis.startedAt > 90_000 && (
+                now - meal.analysis.startedAt > 90_000 &&
+                // Re-analysis needs the photo; without one, delete and re-log.
+                (meal.photoUrl ? (
                   <button
                     className="secondary-button full"
                     disabled={pending}
@@ -320,7 +322,12 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
                   >
                     Restart analysis
                   </button>
-                )}
+                ) : (
+                  <p className="muted small">
+                    This is taking longer than usual. If it doesn’t finish,
+                    delete the meal and log it again.
+                  </p>
+                ))}
             </div>
           ) : (
             <>

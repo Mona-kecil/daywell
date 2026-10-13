@@ -57,7 +57,8 @@ export function RestTimer({
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!rest) return;
-    let rang = Date.now() >= rest.endsAt;
+    // Adjusting is only possible before the end, so a changed rest is unrung.
+    let rang = false;
     const id = setInterval(() => {
       const t = Date.now();
       setNow(t);
@@ -79,7 +80,11 @@ export function RestTimer({
       Math.max(15_000, rest.total + seconds * 1000),
     );
     localStorage.setItem(KEY, String(total / 1000));
-    onChange({ endsAt: rest.endsAt + (total - rest.total), total });
+    // Shortening past the end finishes now, so "Go!" still shows and chimes.
+    onChange({
+      endsAt: Math.max(Date.now(), rest.endsAt + (total - rest.total)),
+      total,
+    });
   };
   const R = 15;
   const C = 2 * Math.PI * R;

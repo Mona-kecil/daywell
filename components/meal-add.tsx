@@ -2,9 +2,16 @@
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Plus, RotateCcw, ScanBarcode, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { manualError, manualMealSchema, mealSummary } from "@/lib/manual-meal";
 import { scaleNutrients, sumNutrients, type Macros } from "@/lib/nutrients";
 import { Sheet, timeLabel, useTask } from "./ui";
 
@@ -78,41 +85,51 @@ declare global {
   }
 }
 
-// Streams the rear camera into a video and reports the first barcode seen.
+// Streams the rear camera into a video and reports each new barcode once,
+// so a code that found nothing isn't looked up again while it stays in view.
 function CameraScanner({ onCode }: { onCode: (code: string) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const report = useEffectEvent(onCode);
   useEffect(() => {
     const Barcode = window.BarcodeDetector;
     if (!Barcode) return;
     let stream: MediaStream | null = null;
     let timer: ReturnType<typeof setInterval> | undefined;
     let stopped = false;
+    let last: string | null = null;
     const detector = new Barcode({ formats: ["ean_13", "ean_8", "upc_a"] });
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "environment" }, audio: false })
       .then(async (s) => {
         stream = s;
-        if (stopped || !video.current) return;
+        // Permission can resolve after the sheet closed; release the camera.
+        if (stopped || !video.current) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
         video.current.srcObject = s;
         await video.current.play();
+        if (stopped) return;
         timer = setInterval(async () => {
           if (!video.current || video.current.readyState < 2) return;
           const [hit] = await detector.detect(video.current).catch(() => []);
-          if (hit && !stopped) {
-            stopped = true;
+          if (hit && !stopped && hit.rawValue !== last) {
+            last = hit.rawValue;
             navigator.vibrate?.(60);
-            onCode(hit.rawValue);
+            report(hit.rawValue);
           }
         }, 250);
       })
-      .catch(() => setError("Camera unavailable. Type the code instead."));
+      .catch(() => {
+        if (!stopped) setError("Camera unavailable. Type the code instead.");
+      });
     return () => {
       stopped = true;
       clearInterval(timer);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [onCode]);
+  }, []);
   if (error) return <p className="small amber-text">{error}</p>;
   return (
     <div className="scanner">
@@ -181,7 +198,7 @@ function BarcodeBody({ onDone }: { onDone: () => void }) {
             id="barcode-grams"
             type="number"
             inputMode="decimal"
-            min={0.1}
+            min={0}
             max={10000}
             step="any"
             required
@@ -213,7 +230,7 @@ function BarcodeBody({ onDone }: { onDone: () => void }) {
     <div className="sheet-section">
       {camera ? (
         <>
-          <CameraScanner onCode={search} />
+          <CameraScanner onCode={(c) => !pending && search(c)} />
           <p className="muted small">
             Point the camera at the barcode on the package.
           </p>
@@ -331,21 +348,20 @@ function ManualBody({ onDone }: { onDone: () => void }) {
   );
   const save = (e: FormEvent) => {
     e.preventDefault();
-    const dense = items.find(
-      (i) =>
-        i.per100g.kcal > 1000 ||
-        i.per100g.protein + i.per100g.carbs + i.per100g.fat > 100,
-    );
-    if (dense) {
-      setError(
-        `${dense.name || "A food"} has more than 100 g of macros or 1,000 kcal per 100 g. Check its grams.`,
-      );
+    const meal = {
+      at: Date.now(),
+      description: description.trim() || mealSummary(items.map((i) => i.name)),
+      items,
+    };
+    // The server's own rules, so nothing it would reject gets sent.
+    const parsed = manualMealSchema.safeParse(meal);
+    if (!parsed.success) {
+      setError(manualError(parsed.error.issues, items));
       return;
     }
     setError(null);
-    const summary = description.trim() || items.map((i) => i.name).join(", ");
     void run(async () => {
-      await addManual({ at: Date.now(), description: summary, items });
+      await addManual(meal);
       onDone();
     }, "Meal logged");
   };
@@ -384,7 +400,7 @@ function ManualBody({ onDone }: { onDone: () => void }) {
                 <input
                   type="number"
                   inputMode="decimal"
-                  min={0.1}
+                  min={0}
                   max={10000}
                   step="any"
                   required

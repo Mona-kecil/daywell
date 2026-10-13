@@ -143,6 +143,20 @@ describe("screen actions", () => {
     expect(await screen.findByText("Undone")).toBeTruthy();
     expect(screen.queryByText("Undo")).toBeNull();
   });
+  it("offers no photo restart for a stalled photo-less meal", () => {
+    const stalled = {
+      ...meals[0],
+      photoUrl: null,
+      analysis: { status: "analyzing" as const, startedAt: now - 120_000 },
+    };
+    render(
+      <FeedbackProvider>
+        <Meals meals={[stalled]} totals={mealTotals([])} now={now} />
+      </FeedbackProvider>,
+    );
+    expect(screen.queryByText("Restart analysis")).toBeNull();
+    expect(screen.getByText(/delete the meal and log it again/)).toBeTruthy();
+  });
   it("saves the edited description before re-analysis", async () => {
     render(
       <FeedbackProvider>

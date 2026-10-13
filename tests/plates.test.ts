@@ -12,6 +12,14 @@ describe("loadBar", () => {
     expect(loadBar(142.5).perSide).toEqual([25, 25, 10, 1.25]);
   });
 
+  it("keeps an exact remainder when a side needs half a 1.25 kg plate", () => {
+    expect(loadBar(141.25)).toEqual({
+      perSide: [25, 25, 10],
+      remainderKg: 1.25,
+      belowBar: false,
+    });
+  });
+
   it("handles the empty bar, too-light weights and unloadable remainders", () => {
     expect(loadBar(20)).toEqual({
       perSide: [],
