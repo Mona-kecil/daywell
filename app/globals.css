@@ -2566,3 +2566,46 @@ h1,
 .cal-legend span:last-child {
   margin-left: 2px;
 }
+/* Water pace */
+.water-pace svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: pan-y;
+  border-radius: 6px;
+}
+.water-pace svg:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+.water-goal line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.water-goal text {
+  font-size: 10px;
+  fill: var(--muted);
+}
+.pace-line {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  stroke-linecap: round;
+}
+.water-step {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.water-pace .line-dot {
+  fill: var(--blue);
+}
+.now-dot {
+  fill: var(--surface);
+  stroke: var(--blue);
+  stroke-width: 2;
+}

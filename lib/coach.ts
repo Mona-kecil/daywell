@@ -30,14 +30,21 @@ export type CoachInput = {
   }[];
 };
 
+// Water is paced evenly from 07:00 to 22:00 local time.
+export const WATER_DAY = { start: 7 * 60, end: 22 * 60 };
+export const waterPace = (localMinutes: number) =>
+  Math.max(
+    0,
+    Math.min(
+      1,
+      (localMinutes - WATER_DAY.start) / (WATER_DAY.end - WATER_DAY.start),
+    ),
+  );
+
 export function coachSuggestions(input: CoachInput): Suggestion[] {
   const { now, localMinutes, waterMl, waterGoal, macros, targets } = input;
   const suggestions: Suggestion[] = [];
-  const fraction = Math.max(
-    0,
-    Math.min(1, (localMinutes - 7 * 60) / (15 * 60)),
-  );
-  const waterGap = waterGoal * fraction - waterMl;
+  const waterGap = waterGoal * waterPace(localMinutes) - waterMl;
   if (waterGoal > 0 && waterMl < waterGoal && waterGap > waterGoal * 0.15) {
     const amount = Math.max(50, Math.round(waterGap / 50) * 50);
     suggestions.push({

@@ -5,14 +5,17 @@ import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import { Empty, SectionTitle, timeLabel, useTask } from "./ui";
+import { WaterPace } from "./water-pace";
 import { WaterVessel } from "./water-vessel";
 import { Burst, useCrossing } from "./celebrate";
 export function Water({
   entries,
   goal,
+  now,
 }: {
   entries: FunctionReturnType<typeof api.tracker.waterToday>;
   goal: number;
+  now: number;
 }) {
   const add = useMutation(api.tracker.addWater),
     remove = useMutation(api.tracker.deleteWater),
@@ -93,6 +96,7 @@ export function Water({
           </form>
         )}
       </section>
+      <WaterPace entries={entries} goal={goal} now={now} />
       <section className="card">
         <SectionTitle title="Add a drink" />
         <div className="water-buttons">

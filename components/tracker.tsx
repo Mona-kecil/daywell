@@ -259,7 +259,7 @@ function Dashboard({ devAuth }: { devAuth: boolean }) {
             )}
             {tab === "train" && <Train muscles={overview.muscles} now={now} />}
             {tab === "water" && (
-              <Water entries={water} goal={overview.waterGoal} />
+              <Water entries={water} goal={overview.waterGoal} now={now} />
             )}
             {tab === "meals" && (
               <Meals meals={meals} totals={totals} now={now} />

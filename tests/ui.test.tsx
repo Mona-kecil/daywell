@@ -114,7 +114,7 @@ describe("screen actions", () => {
   it("adds quick water and a custom amount", async () => {
     render(
       <FeedbackProvider>
-        <Water entries={entries} goal={2500} />
+        <Water entries={entries} goal={2500} now={now} />
       </FeedbackProvider>,
     );
     await userEvent.click(screen.getByRole("button", { name: /250 ml/ }));
@@ -161,7 +161,7 @@ describe("screen actions", () => {
         />
       ),
       train: <Train muscles={overview.muscles} now={now} />,
-      water: <Water entries={entries} goal={2500} />,
+      water: <Water entries={entries} goal={2500} now={now} />,
       meals: <Meals meals={meals} totals={totals} now={now} />,
     };
     const css = readFileSync(

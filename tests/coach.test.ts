@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coachSuggestions, type CoachInput } from "../lib/coach";
+import { coachSuggestions, waterPace, type CoachInput } from "../lib/coach";
 const base: CoachInput = {
   now: Date.UTC(2026, 9, 14, 12),
   localMinutes: 12 * 60,
@@ -124,5 +124,15 @@ describe("coach rules", () => {
       expect(s.title.length).toBeLessThanOrEqual(60);
       expect(s.body.length).toBeLessThanOrEqual(140);
     }
+  });
+});
+
+describe("waterPace", () => {
+  it("runs from nothing at 07:00 to the full goal at 22:00", () => {
+    expect(waterPace(6 * 60)).toBe(0);
+    expect(waterPace(7 * 60)).toBe(0);
+    expect(waterPace(14 * 60 + 30)).toBe(0.5);
+    expect(waterPace(22 * 60)).toBe(1);
+    expect(waterPace(23 * 60)).toBe(1);
   });
 });
