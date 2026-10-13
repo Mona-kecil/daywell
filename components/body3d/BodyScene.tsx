@@ -27,6 +27,7 @@ import {
   type Shape,
 } from "./anatomy";
 import { useIsDark } from "./useIsDark";
+import { PALETTE, recoveryHex } from "./palette";
 
 export type MuscleState = {
   kind: "never" | "recovering" | "ready";
@@ -42,35 +43,8 @@ export type BodyModelProps = {
   compact?: boolean;
 };
 
-const PALETTE = {
-  light: {
-    skin: "#d6dcd2",
-    never: "#aeb8b0",
-    sore: "#d4573b",
-    mid: "#e2a03a",
-    ready: "#3f9a6b",
-  },
-  dark: {
-    skin: "#5f6f66",
-    never: "#62706a",
-    sore: "#ef7b5f",
-    mid: "#efbd5f",
-    ready: "#7fca9b",
-  },
-};
-
 export function recoveryColor(state: MuscleState | undefined, dark: boolean) {
-  const p = dark ? PALETTE.dark : PALETTE.light;
-  if (!state || state.kind === "never") return new Color(p.never);
-  if (state.kind === "ready") return new Color(p.ready);
-  const f = state.fraction;
-  return f < 0.5
-    ? new Color().lerpColors(new Color(p.sore), new Color(p.mid), f / 0.5)
-    : new Color().lerpColors(
-        new Color(p.mid),
-        new Color(p.ready),
-        (f - 0.5) / 0.5,
-      );
+  return new Color(recoveryHex(state, dark));
 }
 
 const SPHERE = new SphereGeometry(1, 40, 28);

@@ -87,10 +87,12 @@ export function Progress({
   value,
   label,
   tone = "green",
+  color,
 }: {
   value: number;
   label: string;
   tone?: "green" | "blue" | "amber";
+  color?: string;
 }) {
   const percentage = Math.round(Math.min(1, Math.max(0, value)) * 100);
   return (
@@ -102,7 +104,7 @@ export function Progress({
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <span style={{ width: `${percentage}%` }} />
+      <span style={{ width: `${percentage}%`, background: color }} />
     </div>
   );
 }

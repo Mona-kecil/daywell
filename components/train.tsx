@@ -8,7 +8,13 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
 import { recovery } from "@/lib/recovery";
 import { Empty, Progress, SectionTitle, useTask } from "./ui";
-import { BodyModel, muscleKey, type MuscleKey } from "./body3d";
+import {
+  BodyModel,
+  muscleKey,
+  recoveryHex,
+  useIsDark,
+  type MuscleKey,
+} from "./body3d";
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
@@ -24,6 +30,11 @@ function MuscleCard({
   const setCooldown = useMutation(api.tracker.setCooldown);
   const { run, pending } = useTask();
   const status = recovery(now, muscle.lastTrainedAt, muscle.cooldownHours);
+  const dark = useIsDark();
+  const readyAt =
+    status.kind === "recovering" && muscle.lastTrainedAt !== null
+      ? new Date(muscle.lastTrainedAt + muscle.cooldownHours * 3_600_000)
+      : null;
   return (
     <div className="muscle-card">
       <div className="row spaced">
@@ -35,9 +46,9 @@ function MuscleCard({
         </span>
       </div>
       <Progress
-        value={status.fraction}
+        value={status.kind === "never" ? 0 : status.fraction}
         label={`${muscle.name} recovery`}
-        tone={status.kind === "never" ? "amber" : "green"}
+        color={recoveryHex(status, dark)}
       />
       {editing ? (
         <form
@@ -78,14 +89,27 @@ function MuscleCard({
         </form>
       ) : (
         <p className="muted small">
+          {readyAt
+            ? `Ready ${readyAt.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} · `
+            : ""}
           {muscle.cooldownHours}h cooldown
-          {muscle.lastTrainedAt !== null
+          {!readyAt && muscle.lastTrainedAt !== null
             ? ` · Last trained ${new Date(muscle.lastTrainedAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
             : ""}
         </p>
       )}
     </div>
   );
+}
+// Soonest-ready recovering muscles first, then ready, then never trained.
+function byReadiness(muscles: Muscle[], now: number) {
+  const rank = (m: Muscle) => {
+    const status = recovery(now, m.lastTrainedAt, m.cooldownHours);
+    if (status.kind === "recovering")
+      return m.lastTrainedAt! + m.cooldownHours * 3_600_000 - now;
+    return status.kind === "ready" ? Number.MAX_SAFE_INTEGER : Infinity;
+  };
+  return [...muscles].sort((a, b) => rank(a) - rank(b));
 }
 export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const [editing, setEditing] = useState(false);
@@ -213,7 +237,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           }
         />
         <div className="muscle-list">
-          {muscles.map((m) => (
+          {(editing ? muscles : byReadiness(muscles, now)).map((m) => (
             <MuscleCard key={m._id} muscle={m} now={now} editing={editing} />
           ))}
         </div>
