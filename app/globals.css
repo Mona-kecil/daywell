@@ -2970,3 +2970,90 @@ h1,
   line-height: 1.35;
   text-transform: none;
 }
+.forecast-next {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.forecast-splits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.forecast-splits button {
+  display: grid;
+  gap: 2px;
+  min-height: 56px;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+.forecast-splits button span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.forecast-splits button.next {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.forecast-splits button.next strong,
+.forecast-splits button.next span {
+  color: var(--green);
+}
+.forecast-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.forecast-rows li {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) 62px;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  font-size: 13px;
+}
+.forecast-rows li > span:last-child {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.forecast-track {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+.forecast-track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.forecast-track b {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+}
+.forecast-track b.beyond {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  mask-image: linear-gradient(to right, #000 85%, transparent);
+}
+.forecast-axis {
+  min-height: 20px !important;
+}
+.forecast-axis .forecast-track span {
+  position: absolute;
+  bottom: 2px;
+  padding-left: 4px;
+  border-left: 1px solid var(--border);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+}

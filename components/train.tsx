@@ -14,7 +14,8 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
 import { recovery } from "@/lib/recovery";
-import { Empty, Progress, SectionTitle, useTask } from "./ui";
+import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
+import { RecoveryForecast } from "./forecast";
 import {
   BodyModel,
   muscleKey,
@@ -167,6 +168,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
     { initialNumItems: 10 },
   );
   const { run, pending } = useTask();
+  const toast = useToast();
   const toggle = (id: Id<"muscles">) =>
     setSelected((ids) =>
       ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
@@ -204,7 +206,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
         <h1>Training & recovery.</h1>
         <p className="muted">Log workouts and check each muscle group.</p>
       </section>
-      <section className="card">
+      <section className="card" id="log-workout">
         <SectionTitle title="Log a workout" action={<Dumbbell size={22} />} />
         <form
           onSubmit={async (e) => {
@@ -349,6 +351,19 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           onClose={() => setHistoryFor(null)}
         />
       </section>
+      <RecoveryForecast
+        muscles={muscles}
+        now={now}
+        onPlan={(ids, label) => {
+          setSelected(ids);
+          toast(`${label} muscles selected`);
+          document.getElementById("log-workout")?.scrollIntoView({
+            behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? "instant"
+              : "smooth",
+          });
+        }}
+      />
       <section>
         <SectionTitle
           title="Muscle recovery"
