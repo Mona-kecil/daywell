@@ -9,6 +9,7 @@ import { Progress, SectionTitle, ActionLink, useTask } from "./ui";
 import type { Tab } from "./tracker";
 import { BodyModel, muscleKey } from "./body3d";
 import { DayRings } from "./day-rings";
+import { Burst, useCrossing } from "./celebrate";
 
 // Stand-ins until targets are configurable in settings.
 const PROTEIN_TARGET_G = 120;
@@ -83,6 +84,7 @@ export function Today({
     }),
   );
   const [lead, accent] = greeting(now);
+  const celebrations = useCrossing(waterMl >= overview.waterGoal);
   return (
     <>
       <section className="welcome">
@@ -93,8 +95,9 @@ export function Today({
           <span>{accent}</span>
         </h1>
       </section>
-      <section className="card">
+      <section className="card burst-anchor rings-card">
         <SectionTitle title="Today so far" />
+        <Burst count={celebrations} />
         <DayRings
           rings={[
             {

@@ -1537,3 +1537,63 @@ h1,
     transition: none;
   }
 }
+.burst-anchor {
+  position: relative;
+  display: inline-block;
+}
+.rings-card.burst-anchor {
+  display: block;
+}
+.rings-card .burst {
+  left: 90px;
+  top: 128px;
+}
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.burst i {
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  margin: calc(var(--size) / -2);
+  border-radius: 50%;
+  opacity: 0;
+  animation: burst 0.95s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+.burst i:nth-child(3n) {
+  border-radius: 2px;
+}
+.burst i.water {
+  background: var(--c-fat);
+}
+.burst i.protein {
+  background: var(--c-protein);
+}
+.burst i.kcal {
+  background: var(--c-carbs);
+}
+@keyframes burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.4);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), calc(var(--y) + 24px)) scale(1)
+      rotate(160deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .burst {
+    display: none;
+  }
+}

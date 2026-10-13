@@ -6,6 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import { Empty, SectionTitle, timeLabel, useTask } from "./ui";
 import { WaterVessel } from "./water-vessel";
+import { Burst, useCrossing } from "./celebrate";
 export function Water({
   entries,
   goal,
@@ -19,6 +20,7 @@ export function Water({
   const [editing, setEditing] = useState(false);
   const { run, pending } = useTask();
   const total = entries.reduce((sum, e) => sum + e.amountMl, 0);
+  const celebrations = useCrossing(total >= goal);
   return (
     <>
       <section className="page-heading">
@@ -41,7 +43,10 @@ export function Water({
           </button>
         </div>
         <div className="water-hero-body">
-          <WaterVessel value={total / goal} label="Today's hydration" />
+          <span className="burst-anchor">
+            <WaterVessel value={total / goal} label="Today's hydration" />
+            <Burst count={celebrations} />
+          </span>
           <div>
             <div className="metric">
               <strong>{total.toLocaleString()}</strong>
