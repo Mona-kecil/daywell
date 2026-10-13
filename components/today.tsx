@@ -7,15 +7,30 @@ import { recovery } from "@/lib/recovery";
 import type { Macros } from "@/lib/nutrients";
 import { Progress, SectionTitle, ActionLink, useTask } from "./ui";
 import type { Tab } from "./tracker";
+import { BodyModel, muscleKey } from "./body3d";
+import { DayRings } from "./day-rings";
+import { Burst, useCrossing } from "./celebrate";
+
+// Stand-ins until targets are configurable in settings.
+const PROTEIN_TARGET_G = 120;
+const KCAL_TARGET = 2200;
+
+function greeting(now: number) {
+  const hour = new Date(now).getHours();
+  if (hour < 5) return ["Still up?", "Rest counts too."];
+  if (hour < 12) return ["Good", "morning."];
+  if (hour < 18) return ["Good", "afternoon."];
+  return ["Good", "evening."];
+}
 
 type Overview = FunctionReturnType<typeof api.tracker.overview>;
 export function MacroSummary({ totals }: { totals: Macros }) {
   return (
     <div className="macro-grid">
       {[
-        { label: "Protein", value: totals.protein, color: "green" },
-        { label: "Carbs", value: totals.carbs, color: "amber" },
-        { label: "Fat", value: totals.fat, color: "blue" },
+        { label: "Protein", value: totals.protein, color: "protein" },
+        { label: "Fat", value: totals.fat, color: "fat" },
+        { label: "Carbs", value: totals.carbs, color: "carbs" },
       ].map((m) => (
         <div key={m.label}>
           <span className={`macro-dot ${m.color}`} />
@@ -60,16 +75,54 @@ export function Today({
       a.cooldownHours * 3_600_000 -
       ((b.lastTrainedAt ?? 0) + b.cooldownHours * 3_600_000),
   )[0];
+  const states = Object.fromEntries(
+    overview.muscles.flatMap((m) => {
+      const key = muscleKey(m.name);
+      return key
+        ? [[key, recovery(now, m.lastTrainedAt, m.cooldownHours)] as const]
+        : [];
+    }),
+  );
+  const [lead, accent] = greeting(now);
+  const celebrations = useCrossing(waterMl >= overview.waterGoal);
   return (
     <>
       <section className="welcome">
         <div className="eyebrow">YOUR DAILY CHECK-IN</div>
         <h1>
-          Your daily
+          {lead}
           <br />
-          <span>overview.</span>
+          <span>{accent}</span>
         </h1>
-        <p className="muted">Track your training, hydration, and meals.</p>
+      </section>
+      <section className="card burst-anchor rings-card">
+        <SectionTitle title="Today so far" />
+        <Burst count={celebrations} />
+        <DayRings
+          rings={[
+            {
+              id: "water",
+              label: "Water",
+              value: waterMl,
+              target: overview.waterGoal,
+              unit: "ml",
+            },
+            {
+              id: "protein",
+              label: "Protein",
+              value: totals.protein,
+              target: PROTEIN_TARGET_G,
+              unit: "g",
+            },
+            {
+              id: "kcal",
+              label: "Calories",
+              value: totals.kcal,
+              target: KCAL_TARGET,
+              unit: "kcal",
+            },
+          ]}
+        />
       </section>
       <section className="card recovery-card">
         <div className="card-top">
@@ -80,34 +133,33 @@ export function Today({
             {recovering.length ? "Recovery in progress" : "Room to move"}
           </span>
         </div>
-        <h2>Muscle recovery</h2>
-        <p className="muted">
-          {trained.length
-            ? `${ready} of ${trained.length} trained muscle groups are ready.`
-            : "No workouts yet. Start with the muscles you trained."}
-        </p>
-        <div className="readiness-dots" aria-label="Muscle readiness">
-          {overview.muscles.map((m) => (
-            <span
-              key={m._id}
-              className={
-                m.lastTrainedAt === null
-                  ? "untrained"
-                  : recovery(now, m.lastTrainedAt, m.cooldownHours).kind ===
-                      "ready"
-                    ? "ready"
-                    : "resting"
-              }
-              title={`${m.name}: ${recovery(now, m.lastTrainedAt, m.cooldownHours).label}`}
-            />
-          ))}
+        <div className="recovery-body">
+          <button
+            type="button"
+            className="recovery-figure"
+            aria-label="Open muscle recovery"
+            onClick={() => onTab("train")}
+          >
+            <BodyModel states={states} height={210} compact />
+          </button>
+          <div>
+            <h2>Muscle recovery</h2>
+            <p className="muted">
+              {trained.length
+                ? `${ready} of ${trained.length} trained muscle groups are ready.`
+                : "No workouts yet. Start with the muscles you trained."}
+            </p>
+            {next && (
+              <p className="small capitalize">
+                <strong>{next.name}</strong>
+                <br />
+                <span className="muted">
+                  {recovery(now, next.lastTrainedAt, next.cooldownHours).label}
+                </span>
+              </p>
+            )}
+          </div>
         </div>
-        {next && (
-          <p className="small capitalize">
-            {next.name} ·{" "}
-            {recovery(now, next.lastTrainedAt, next.cooldownHours).label}
-          </p>
-        )}
         <button className="card-link" onClick={() => onTab("train")}>
           See muscle recovery <ArrowRight size={18} />
         </button>

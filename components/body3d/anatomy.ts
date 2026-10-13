@@ -97,7 +97,11 @@ export const SKIN: Shape[] = [
     return [
       capsule(j.shoulder, j.elbow, 0.05),
       capsule(j.elbow, j.wrist, 0.041),
-      ellipsoid([0.326 * s, 0.852, 0.02], [0.032, 0.064, 0.044], [0, 0, 0.1 * s]),
+      ellipsoid(
+        [0.326 * s, 0.852, 0.02],
+        [0.032, 0.064, 0.044],
+        [0, 0, 0.1 * s],
+      ),
       capsule(j.hip, j.knee, 0.078),
       capsule(j.knee, j.ankle, 0.052),
       ellipsoid([0.103 * s, 0.04, 0.045], [0.047, 0.037, 0.112]),
@@ -111,41 +115,63 @@ function mirrored(make: (s: 1 | -1) => Shape[]) {
 
 export const MUSCLES: Record<MuscleKey, Shape[]> = {
   chest: mirrored((s) => [
-    ellipsoid([0.083 * s, 1.392, 0.064], [0.094, 0.07, 0.05], [0.18, 0.1 * s, -0.2 * s]),
+    ellipsoid(
+      [0.083 * s, 1.392, 0.064],
+      [0.094, 0.07, 0.05],
+      [0.18, 0.1 * s, -0.2 * s],
+    ),
   ]),
   abs: [0, 1].flatMap((col) =>
     [
       [1.245, 0.088],
       [1.177, 0.086],
       [1.109, 0.083],
-    ].map(
-      ([y, z], row): RoundedBox => ({
-        kind: "box",
-        position: [(col ? -1 : 1) * 0.031, y, z],
-        size: [0.048, 0.058, 0.022],
-        rotation: [-0.12 + row * 0.1, 0, 0],
-      }),
-    ),
+    ].map(([y, z], row): RoundedBox => ({
+      kind: "box",
+      position: [(col ? -1 : 1) * 0.031, y, z],
+      size: [0.048, 0.058, 0.022],
+      rotation: [-0.12 + row * 0.1, 0, 0],
+    })),
   ),
   shoulders: mirrored((s) => [
-    ellipsoid([0.217 * s, 1.432, -0.002], [0.07, 0.08, 0.072], [0, 0, -0.38 * s]),
+    ellipsoid(
+      [0.217 * s, 1.432, -0.002],
+      [0.07, 0.08, 0.072],
+      [0, 0, -0.38 * s],
+    ),
   ]),
   biceps: mirrored((s) => {
     const j = joints(s);
-    return [along(j.shoulder, j.elbow, 0.56, [0, 0, 0.024], [0.042, 0.105, 0.036])];
+    return [
+      along(j.shoulder, j.elbow, 0.56, [0, 0, 0.024], [0.042, 0.105, 0.036]),
+    ];
   }),
   triceps: mirrored((s) => {
     const j = joints(s);
-    return [along(j.shoulder, j.elbow, 0.45, [0.004 * s, 0, -0.024], [0.044, 0.12, 0.038])];
+    return [
+      along(
+        j.shoulder,
+        j.elbow,
+        0.45,
+        [0.004 * s, 0, -0.024],
+        [0.044, 0.12, 0.038],
+      ),
+    ];
   }),
   forearms: mirrored((s) => {
     const j = joints(s);
-    return [along(j.elbow, j.wrist, 0.3, [0.003 * s, 0, 0.003], [0.05, 0.1, 0.048])];
+    return [
+      along(j.elbow, j.wrist, 0.3, [0.003 * s, 0, 0.003], [0.05, 0.1, 0.048]),
+    ];
   }),
   back: [
     ellipsoid([0, 1.47, -0.055], [0.13, 0.07, 0.05], [0.35, 0, 0]),
     ...mirrored((s) => [
-      ellipsoid([0.1 * s, 1.29, -0.058], [0.085, 0.155, 0.045], [-0.1, 0.22 * s, 0.22 * s]),
+      ellipsoid(
+        [0.1 * s, 1.29, -0.058],
+        [0.085, 0.155, 0.045],
+        [-0.1, 0.22 * s, 0.22 * s],
+      ),
       ellipsoid([0.032 * s, 1.12, -0.078], [0.03, 0.095, 0.022]),
     ]),
   ],
@@ -167,7 +193,13 @@ export const MUSCLES: Record<MuscleKey, Shape[]> = {
     const j = joints(s);
     return [
       along(j.knee, j.ankle, 0.3, [0.014 * s, 0, -0.028], [0.034, 0.1, 0.04]),
-      along(j.knee, j.ankle, 0.3, [-0.014 * s, 0, -0.028], [0.034, 0.105, 0.04]),
+      along(
+        j.knee,
+        j.ankle,
+        0.3,
+        [-0.014 * s, 0, -0.028],
+        [0.034, 0.105, 0.04],
+      ),
     ];
   }),
 };

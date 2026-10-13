@@ -16,7 +16,13 @@ function wave(phase: number) {
   return `${d} V${H + 10} H${-phase} Z`;
 }
 
-export function WaterVessel({ value, label }: { value: number; label: string }) {
+export function WaterVessel({
+  value,
+  label,
+}: {
+  value: number;
+  label: string;
+}) {
   const id = useId();
   const pct = Math.round(Math.min(1, Math.max(0, value)) * 100);
   // Keep a sliver visible at 0% and the wave crest below the rim at 100%.
@@ -40,7 +46,10 @@ export function WaterVessel({ value, label }: { value: number; label: string }) 
       </defs>
       <path d={GLASS} className="vessel-back" />
       <g clipPath={`url(#${id}-glass)`}>
-        <g className="vessel-level" style={{ transform: `translateY(${level}px)` }}>
+        <g
+          className="vessel-level"
+          style={{ transform: `translateY(${level}px)` }}
+        >
           <path d={wave(WAVE / 2)} className="vessel-wave back" />
           <path d={wave(0)} className="vessel-wave front" />
         </g>

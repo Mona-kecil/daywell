@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 export async function signIn(page: Page) {
   await page.goto("/dev-login");
   await expect(
-    page.getByRole("heading", { name: /Your daily.*overview/ }),
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening)|Still up/ }),
   ).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Main navigation" }),

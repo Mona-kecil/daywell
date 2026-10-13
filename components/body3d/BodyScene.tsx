@@ -7,10 +7,10 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import {
   CapsuleGeometry,
-  Color,
   MathUtils,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
@@ -27,6 +27,7 @@ import {
   type Shape,
 } from "./anatomy";
 import { useIsDark } from "./useIsDark";
+import { PALETTE, recoveryHex } from "./palette";
 
 export type MuscleState = {
   kind: "never" | "recovering" | "ready";
@@ -38,34 +39,12 @@ export type BodyModelProps = {
   selected?: readonly MuscleKey[];
   onToggle?: (key: MuscleKey) => void;
   height?: number;
+  // A small turntable preview: no toolbar, legend, or muscle picking.
+  compact?: boolean;
+  // Overrides the recovery colouring, e.g. for frequency maps.
+  colorOf?: (key: MuscleKey, dark: boolean) => string;
+  legend?: ReactNode;
 };
-
-const PALETTE = {
-  light: {
-    skin: "#d6dcd2",
-    never: "#aeb8b0",
-    sore: "#d4573b",
-    mid: "#e2a03a",
-    ready: "#3f9a6b",
-  },
-  dark: {
-    skin: "#5f6f66",
-    never: "#62706a",
-    sore: "#ef7b5f",
-    mid: "#efbd5f",
-    ready: "#7fca9b",
-  },
-};
-
-export function recoveryColor(state: MuscleState | undefined, dark: boolean) {
-  const p = dark ? PALETTE.dark : PALETTE.light;
-  if (!state || state.kind === "never") return new Color(p.never);
-  if (state.kind === "ready") return new Color(p.ready);
-  const f = state.fraction;
-  return f < 0.5
-    ? new Color().lerpColors(new Color(p.sore), new Color(p.mid), f / 0.5)
-    : new Color().lerpColors(new Color(p.mid), new Color(p.ready), (f - 0.5) / 0.5);
-}
 
 const SPHERE = new SphereGeometry(1, 40, 28);
 const TURN = Math.PI;
@@ -116,18 +95,16 @@ function ShapeMesh({
 
 function Muscle({
   name,
-  state,
   selected,
   hovered,
-  dark,
+  color,
   onHover,
   onToggle,
 }: {
   name: MuscleKey;
-  state: MuscleState | undefined;
   selected: boolean;
   hovered: boolean;
-  dark: boolean;
+  color: string;
   onHover: (key: MuscleKey | null) => void;
   onToggle?: (key: MuscleKey) => void;
 }) {
@@ -143,10 +120,9 @@ function Muscle({
   );
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
-    const color = recoveryColor(state, dark);
-    material.color.copy(color);
-    material.emissive.copy(color);
-  }, [material, state, dark]);
+    material.color.set(color);
+    material.emissive.set(color);
+  }, [material, color]);
   useFrame(({ clock }) => {
     const pulse = 0.5 + 0.5 * Math.sin(clock.elapsedTime * 4);
     const target = selected ? 0.28 + 0.3 * pulse : hovered ? 0.22 : 0;
@@ -172,7 +148,12 @@ function Muscle({
   return (
     <group scale={hovered || selected ? 1.035 : 1}>
       {MUSCLES[name].map((shape, i) => (
-        <ShapeMesh key={i} shape={shape} material={material} handlers={handlers} />
+        <ShapeMesh
+          key={i}
+          shape={shape}
+          material={material}
+          handlers={handlers}
+        />
       ))}
     </group>
   );
@@ -185,6 +166,8 @@ function Figure({
   dark,
   yaw,
   idle,
+  spin,
+  colorOf,
   onHover,
   onToggle,
 }: {
@@ -194,6 +177,8 @@ function Figure({
   dark: boolean;
   yaw: React.RefObject<number>;
   idle: React.RefObject<number>;
+  spin: boolean;
+  colorOf: BodyModelProps["colorOf"];
   onHover: (key: MuscleKey | null) => void;
   onToggle?: (key: MuscleKey) => void;
 }) {
@@ -208,6 +193,10 @@ function Figure({
   }, [skin, dark]);
   useFrame(({ clock }, dt) => {
     if (!group.current) return;
+    if (spin) {
+      group.current.rotation.y += dt * 0.5;
+      return;
+    }
     const sway =
       performance.now() - idle.current > 3500
         ? Math.sin(clock.elapsedTime * 0.6) * 0.22
@@ -236,10 +225,9 @@ function Figure({
         <Muscle
           key={key}
           name={key}
-          state={states[key]}
+          color={colorOf?.(key, dark) ?? recoveryHex(states[key], dark)}
           selected={selected.includes(key)}
           hovered={hovered === key}
-          dark={dark}
           onHover={onHover}
           onToggle={onToggle}
         />
@@ -250,7 +238,10 @@ function Figure({
 
 function nearestYaw(current: number, facing: "front" | "back") {
   const base = Math.round(current / (2 * TURN)) * 2 * TURN;
-  const options = facing === "front" ? [base - 2 * TURN, base, base + 2 * TURN] : [base - TURN, base + TURN];
+  const options =
+    facing === "front"
+      ? [base - 2 * TURN, base, base + 2 * TURN]
+      : [base - TURN, base + TURN];
   return options.reduce((a, b) =>
     Math.abs(b - current) < Math.abs(a - current) ? b : a,
   );
@@ -266,8 +257,12 @@ export default function BodyScene({
   selected = [],
   onToggle,
   height = 400,
+  compact = false,
+  colorOf,
+  legend,
 }: BodyModelProps) {
   const dark = useIsDark();
+  const reduceMotion = useReducedMotion();
   const yaw = useRef(0);
   const idle = useRef(0);
   const [facing, setFacing] = useState<"front" | "back">("front");
@@ -314,11 +309,11 @@ export default function BodyScene({
   const shownState = shown ? states[shown] : undefined;
 
   return (
-    <div className="body3d" style={{ height }}>
+    <div className={compact ? "body3d compact" : "body3d"} style={{ height }}>
       <div
         className="body3d-stage"
-        onPointerDown={onPointerDown}
-        style={{ cursor: hovered ? "pointer" : "grab" }}
+        onPointerDown={compact ? undefined : onPointerDown}
+        style={{ cursor: compact ? "inherit" : hovered ? "pointer" : "grab" }}
       >
         <Canvas
           dpr={[1, 2]}
@@ -332,9 +327,22 @@ export default function BodyScene({
           }
           onPointerMissed={() => setHovered(null)}
         >
-          <hemisphereLight args={[dark ? "#c9e2d3" : "#ffffff", dark ? "#1a2420" : "#c7cfc2", 0.9]} />
-          <directionalLight position={[2.2, 3.2, 3]} intensity={dark ? 1.5 : 1.9} />
-          <directionalLight position={[-2.5, 2, -3]} intensity={dark ? 1.4 : 0.9} color={dark ? "#9fd3c0" : "#dce9ff"} />
+          <hemisphereLight
+            args={[
+              dark ? "#c9e2d3" : "#ffffff",
+              dark ? "#1a2420" : "#c7cfc2",
+              0.9,
+            ]}
+          />
+          <directionalLight
+            position={[2.2, 3.2, 3]}
+            intensity={dark ? 1.5 : 1.9}
+          />
+          <directionalLight
+            position={[-2.5, 2, -3]}
+            intensity={dark ? 1.4 : 0.9}
+            color={dark ? "#9fd3c0" : "#dce9ff"}
+          />
           <directionalLight position={[0, 0.6, 3]} intensity={0.35} />
           <Figure
             states={states}
@@ -343,11 +351,17 @@ export default function BodyScene({
             dark={dark}
             yaw={yaw}
             idle={idle}
-            onHover={setHovered}
-            onToggle={(key) => {
-              setFocus(key);
-              onToggle?.(key);
-            }}
+            spin={compact && !reduceMotion}
+            colorOf={colorOf}
+            onHover={compact ? () => {} : setHovered}
+            onToggle={
+              compact
+                ? undefined
+                : (key) => {
+                    setFocus(key);
+                    onToggle?.(key);
+                  }
+            }
           />
           <ContactShadows
             position={[0, 0.001, 0]}
@@ -360,35 +374,58 @@ export default function BodyScene({
           />
         </Canvas>
       </div>
-      <div className="body3d-toolbar">
-        <div className="segmented" role="group" aria-label="Body view">
-          {(["front", "back"] as const).map((side) => (
-            <button
-              key={side}
-              type="button"
-              aria-pressed={facing === side}
-              onClick={() => turnTo(side)}
-            >
-              {side === "front" ? "Front" : "Back"}
-            </button>
-          ))}
-        </div>
-        <p className="body3d-caption" aria-live="polite">
-          {shown ? (
-            <>
-              <strong className="capitalize">{shown}</strong>
-              <span className="muted"> · {shownState?.label ?? "Not tracked"}</span>
-            </>
-          ) : (
-            <span className="muted">Drag to turn · tap a muscle</span>
-          )}
-        </p>
-      </div>
-      <div className="body3d-legend" aria-hidden>
-        <span>Sore</span>
-        <i />
-        <span>Ready</span>
-      </div>
+      {!compact && (
+        <>
+          <div className="body3d-toolbar">
+            <div className="segmented" role="group" aria-label="Body view">
+              {(["front", "back"] as const).map((side) => (
+                <button
+                  key={side}
+                  type="button"
+                  aria-pressed={facing === side}
+                  onClick={() => turnTo(side)}
+                >
+                  {side === "front" ? "Front" : "Back"}
+                </button>
+              ))}
+            </div>
+            <p className="body3d-caption" aria-live="polite">
+              {shown ? (
+                <>
+                  <strong className="capitalize">{shown}</strong>
+                  <span className="muted">
+                    {" "}
+                    · {shownState?.label ?? "Not tracked"}
+                  </span>
+                </>
+              ) : (
+                <span className="muted">Drag to turn · tap a muscle</span>
+              )}
+            </p>
+          </div>
+          <div className="body3d-legend" aria-hidden>
+            {legend ?? (
+              <>
+                <span>Sore</span>
+                <i />
+                <span>Ready</span>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
+}
+
+function useReducedMotion() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduce(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return reduce;
 }

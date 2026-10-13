@@ -1,5 +1,10 @@
 "use client";
-import { useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import { useQuery } from "convex/react";
 import { Droplets, Dumbbell, Flame, Sparkles, Table2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -16,6 +21,17 @@ import {
   type RangeId,
 } from "@/lib/insights";
 import { SectionTitle } from "./ui";
+import {
+  BodyModel,
+  mix,
+  muscleKey,
+  PALETTE,
+  type MuscleKey,
+  type MuscleState,
+} from "./body3d";
+
+// The validated protein series colour; one hue, light → dark by frequency.
+const FREQUENCY_HUE = { light: "#2a7a50", dark: "#4fa574" };
 
 export function Insights({ now }: { now: number }) {
   const today = dayKey(new Date(now));
@@ -69,7 +85,9 @@ function tickIndexes(count: number) {
 function niceMax(value: number) {
   if (value <= 0) return 1;
   const magnitude = 10 ** Math.floor(Math.log10(value));
-  const step = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((s) => s * magnitude >= value) ?? 10;
+  const step =
+    [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((s) => s * magnitude >= value) ??
+    10;
   return step * magnitude;
 }
 
@@ -98,9 +116,7 @@ function useScrub(count: number) {
       const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
       if (step) {
         e.preventDefault();
-        setActive((i) =>
-          Math.min(count - 1, Math.max(0, (i ?? count) + step)),
-        );
+        setActive((i) => Math.min(count - 1, Math.max(0, (i ?? count) + step)));
       } else if (e.key === "Escape") setActive(null);
     },
     onBlur: () => setActive(null),
@@ -143,7 +159,8 @@ function BarChart({
             summary
           ) : (
             <>
-              <strong>{binLabel(bins[active])}</strong> · {describe(bins[active])}
+              <strong>{binLabel(bins[active])}</strong> ·{" "}
+              {describe(bins[active])}
             </>
           )}
         </p>
@@ -250,8 +267,11 @@ function TrainingMap({
         <p className="chart-readout" aria-live="polite">
           {active ? (
             <>
-              <strong className="capitalize">{muscles[active.muscle].name}</strong>{" "}
-              · {binLabel(bins[active.bin])} · {describe(active.muscle, active.bin)}
+              <strong className="capitalize">
+                {muscles[active.muscle].name}
+              </strong>{" "}
+              · {binLabel(bins[active.bin])} ·{" "}
+              {describe(active.muscle, active.bin)}
             </>
           ) : weekly ? (
             "Days trained per week"
@@ -262,12 +282,37 @@ function TrainingMap({
       </div>
       <div
         className="heatmap"
+        tabIndex={0}
+        role="group"
+        aria-label={`Training map. Use arrow keys to read each muscle by ${weekly ? "week" : "day"}.`}
         style={{
           gridTemplateColumns: `minmax(64px, auto) repeat(${bins.length}, 1fr) 30px`,
         }}
         onPointerLeave={(e) => {
           if (e.pointerType === "mouse") setActive(null);
         }}
+        onKeyDown={(e) => {
+          const move = {
+            ArrowLeft: [0, -1],
+            ArrowRight: [0, 1],
+            ArrowUp: [-1, 0],
+            ArrowDown: [1, 0],
+          }[e.key];
+          if (move) {
+            e.preventDefault();
+            setActive((a) => ({
+              muscle: Math.min(
+                muscles.length - 1,
+                Math.max(0, (a?.muscle ?? 0) + (a ? move[0] : 0)),
+              ),
+              bin: Math.min(
+                bins.length - 1,
+                Math.max(0, (a?.bin ?? bins.length - 1) + (a ? move[1] : 0)),
+              ),
+            }));
+          } else if (e.key === "Escape") setActive(null);
+        }}
+        onBlur={() => setActive(null)}
       >
         {muscles.map((m, mi) => {
           const total = bins.reduce(
@@ -309,6 +354,67 @@ function TrainingMap({
         )}
         <span className="heat-legend-total">Days in range</span>
       </div>
+    </section>
+  );
+}
+
+function TrainingBody({
+  bins,
+  muscles,
+}: {
+  bins: Bin[];
+  muscles: InsightsInput["muscles"];
+}) {
+  const counts = new Map<MuscleKey, number>();
+  for (const m of muscles) {
+    const key = muscleKey(m.name);
+    if (key)
+      counts.set(
+        key,
+        bins.reduce((sum, b) => sum + (b.trained.get(m._id) ?? 0), 0),
+      );
+  }
+  const max = Math.max(1, ...counts.values());
+  const states = Object.fromEntries(
+    [...counts].map(([key, n]): [MuscleKey, MuscleState] => [
+      key,
+      {
+        kind: "ready",
+        fraction: 1,
+        label: `${n} ${n === 1 ? "day" : "days"} trained`,
+      },
+    ]),
+  );
+  return (
+    <section className="card chart">
+      <div className="chart-head">
+        <h3>Where you trained</h3>
+        <p className="chart-readout">Days each muscle was trained</p>
+      </div>
+      <BodyModel
+        states={states}
+        height={360}
+        colorOf={(key, dark) => {
+          const n = counts.get(key) ?? 0;
+          const base = dark ? PALETTE.dark.never : PALETTE.light.never;
+          return n
+            ? mix(
+                base,
+                FREQUENCY_HUE[dark ? "dark" : "light"],
+                0.3 + (0.7 * n) / max,
+              )
+            : base;
+        }}
+        legend={
+          <>
+            <span>0</span>
+            <i className="frequency-ramp" />
+            <span>
+              {max} {max === 1 ? "day" : "days"}
+            </span>
+          </>
+        }
+      />
     </section>
   );
 }
@@ -372,10 +478,7 @@ export function InsightsView({
 }) {
   const [range, setRange] = useState<RangeId>("7d");
   const [table, setTable] = useState(false);
-  const history = useMemo(
-    () => bucketDays(period.days, data),
-    [period, data],
-  );
+  const history = useMemo(() => bucketDays(period.days, data), [period, data]);
   const { days: count, binDays: size } = RANGES[range];
   const days = history.slice(-count);
   const bins = binDays(days, size);
@@ -465,7 +568,10 @@ export function InsightsView({
       </div>
       {notes.length > 0 && (
         <section className="card insight-notes">
-          <SectionTitle title="Worth noticing" action={<Sparkles size={20} />} />
+          <SectionTitle
+            title="Worth noticing"
+            action={<Sparkles size={20} />}
+          />
           <ul>
             {notes.map((n) => (
               <li key={n}>{n}</li>
@@ -488,17 +594,26 @@ export function InsightsView({
                 : `Avg ${litres(stats.avgWaterMl)}${per ? " per day" : ""}`
             }
             describe={(b) =>
-              b.waterMl === null ? "Nothing logged" : `${litres(b.waterMl)}${per}`
+              b.waterMl === null
+                ? "Nothing logged"
+                : `${litres(b.waterMl)}${per}`
             }
             format={(v) => (v === 0 ? "0" : `${v / 1000}L`)}
-            goal={{ value: data.waterGoal, label: `Goal ${litres(data.waterGoal)}` }}
+            goal={{
+              value: data.waterGoal,
+              label: `Goal ${litres(data.waterGoal)}`,
+            }}
           />
           <BarChart
             title="Calories"
             unit="kcal"
             bins={bins}
             series={[
-              { id: "kcal", label: "Calories", value: (b) => b.macros?.kcal ?? null },
+              {
+                id: "kcal",
+                label: "Calories",
+                value: (b) => b.macros?.kcal ?? null,
+              },
             ]}
             summary={
               stats.avgKcal === null
@@ -515,9 +630,17 @@ export function InsightsView({
             unit="grams"
             bins={bins}
             series={[
-              { id: "protein", label: "Protein", value: (b) => b.macros?.protein ?? null },
+              {
+                id: "protein",
+                label: "Protein",
+                value: (b) => b.macros?.protein ?? null,
+              },
               { id: "fat", label: "Fat", value: (b) => b.macros?.fat ?? null },
-              { id: "carbs", label: "Carbs", value: (b) => b.macros?.carbs ?? null },
+              {
+                id: "carbs",
+                label: "Carbs",
+                value: (b) => b.macros?.carbs ?? null,
+              },
             ]}
             summary="Grams per day"
             describe={(b) =>
@@ -527,6 +650,7 @@ export function InsightsView({
             }
             format={(v) => `${whole(v)}g`}
           />
+          <TrainingBody bins={bins} muscles={data.muscles} />
           <TrainingMap bins={bins} muscles={data.muscles} />
         </>
       )}
