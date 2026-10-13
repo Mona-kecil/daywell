@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.convex/
+coverage/
+*.tsbuildinfo
+.DS_Store
