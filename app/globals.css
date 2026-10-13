@@ -1263,3 +1263,54 @@ code {
   color: var(--muted);
   font-weight: 600;
 }
+.water-hero-body {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 14px;
+}
+.water-hero-body .metric {
+  margin: 0 0 6px;
+}
+.vessel {
+  flex-shrink: 0;
+  overflow: visible;
+}
+.vessel-back {
+  fill: color-mix(in srgb, var(--surface) 65%, transparent);
+}
+.vessel-rim {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+.vessel-level {
+  transition: transform 0.9s cubic-bezier(0.34, 1.35, 0.5, 1);
+}
+.vessel-wave {
+  animation: vessel-wave 3.2s linear infinite;
+}
+.vessel-wave.front {
+  fill: var(--c-fat);
+}
+.vessel-wave.back {
+  fill: var(--c-fat);
+  opacity: 0.4;
+  animation-duration: 5s;
+  animation-direction: reverse;
+}
+@keyframes vessel-wave {
+  to {
+    transform: translateX(-96px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vessel-wave {
+    animation: none;
+  }
+  .vessel-level {
+    transition: none;
+  }
+}
