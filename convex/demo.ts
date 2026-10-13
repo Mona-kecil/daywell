@@ -5,10 +5,12 @@ import { internalMutation } from "./_generated/server";
 import { mealItem } from "./validators";
 import { requireUser } from "./model";
 import { MUSCLE_DEFAULTS } from "../lib/recovery";
+import { isLocalDeployment } from "../lib/local-deployment";
 import { DEV_ISSUER, DEV_USER } from "../lib/dev-auth-config";
 
 export async function requireDevUser(ctx: { auth: Auth }) {
   if (
+    !isLocalDeployment(process.env) ||
     !process.env.DEV_AUTH_JWKS ||
     (await requireUser(ctx)) !== DEV_USER ||
     (await ctx.auth.getUserIdentity())?.issuer !== DEV_ISSUER

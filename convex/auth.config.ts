@@ -1,9 +1,10 @@
+import { isLocalDeployment } from "../lib/local-deployment";
 import type { AuthConfig } from "convex/server";
 const clientId = process.env.WORKOS_CLIENT_ID;
 const devJwks = process.env.DEV_AUTH_JWKS;
 export default {
   providers: [
-    ...(devJwks
+    ...(devJwks && isLocalDeployment(process.env)
       ? [
           {
             type: "customJwt" as const,

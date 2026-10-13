@@ -17,6 +17,8 @@ const input = {
 afterEach(() => vi.unstubAllEnvs());
 
 it("demo seed replaces fourteen days, deletes old photos, and preserves other users", async () => {
+  vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+  vi.stubEnv("CONVEX_SITE_URL", "http://127.0.0.1:3211");
   vi.stubEnv("DEV_AUTH_JWKS", "configured");
   const t = convexTest(schema, modules);
   const dev = t.withIdentity({ subject: DEV_USER, issuer: DEV_ISSUER });
@@ -64,6 +66,8 @@ it("demo seed rejects absent dev auth, other users, and another issuer", async (
   await expect(dev.action(api.demoSeed.run, input)).rejects.toThrow(
     "configured dev-user",
   );
+  vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+  vi.stubEnv("CONVEX_SITE_URL", "http://127.0.0.1:3211");
   vi.stubEnv("DEV_AUTH_JWKS", "configured");
   await expect(
     t

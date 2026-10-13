@@ -3,6 +3,7 @@ import { action, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireUser } from "./model";
+import { fdcMode } from "../lib/local-deployment";
 import { groundFood } from "../lib/fdc";
 import { mealVisionProvider } from "./mealVision";
 
@@ -29,7 +30,7 @@ async function analyze(ctx: ActionCtx, id: Id<"meals">): Promise<void> {
             searchQuery: item.searchQuery,
           },
           process.env.USDA_FDC_API_KEY,
-          process.env.FDC_MODE,
+          fdcMode(process.env),
         ),
       );
     await ctx.runMutation(internal.meals.complete, {
@@ -88,7 +89,7 @@ export const research = action({
           searchQuery: args.query.trim(),
         },
         process.env.USDA_FDC_API_KEY,
-        process.env.FDC_MODE,
+        fdcMode(process.env),
       );
       await ctx.runMutation(internal.meals.complete, {
         id: args.id,
