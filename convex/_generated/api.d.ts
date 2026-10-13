@@ -36,6 +36,8 @@ import type * as pushProviders_webpush from "../pushProviders/webpush.js";
 import type * as strength from "../strength.js";
 import type * as tracker from "../tracker.js";
 import type * as validators from "../validators.js";
+import type * as weeklyReviewCron from "../weeklyReviewCron.js";
+import type * as weeklyReviewData from "../weeklyReviewData.js";
 
 import type {
   ApiFromModules,
@@ -72,6 +74,8 @@ declare const fullApi: ApiFromModules<{
   strength: typeof strength;
   tracker: typeof tracker;
   validators: typeof validators;
+  weeklyReviewCron: typeof weeklyReviewCron;
+  weeklyReviewData: typeof weeklyReviewData;
 }>;
 
 /**

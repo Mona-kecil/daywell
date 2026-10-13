@@ -49,6 +49,23 @@ it("demo seed replaces fourteen days, deletes old photos, and preserves other us
     muscles: 11,
     checkins: 81,
   });
+  const achievements = await dev.query(api.achievements.list, {
+    now,
+    timeZone: "UTC",
+  });
+  expect(
+    achievements.filter((a) => a.earnedAt !== null).length,
+  ).toBeGreaterThan(0);
+  expect(
+    achievements.find((a) => a.id === "sets-100")?.earnedAt,
+  ).not.toBeNull();
+  expect(
+    await dev.query(api.coach.weeklyReview, { now, timeZone: "UTC" }),
+  ).toMatchObject({ workouts: expect.any(Number), daysLogged: 7 });
+  expect(
+    (await dev.query(api.coach.weeklyReview, { now, timeZone: "UTC" }))
+      .totalSets,
+  ).toBeGreaterThan(0);
   const oldPhoto = meals[0].storageId;
   if (!oldPhoto) throw new Error("Missing demo photo");
   expect(await t.run((ctx) => ctx.storage.get(oldPhoto))).toBeNull();

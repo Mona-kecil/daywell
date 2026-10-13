@@ -33,7 +33,7 @@ export default defineSchema({
     ),
   }).index("by_user_day_slot", ["userId", "localDay", "slot"]),
   coachRuns: defineTable({
-    key: v.literal("check-ins"),
+    key: v.union(v.literal("check-ins"), v.literal("weekly-review")),
     lastRunAt: v.number(),
   }).index("by_key", ["key"]),
   pushDeliveries: defineTable({
