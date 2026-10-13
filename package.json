@@ -14,7 +14,10 @@
     "icons": "node scripts/generate-icons.mjs",
     "dev:setup": "node scripts/dev-setup.mjs",
     "dev:all": "concurrently --kill-others --names convex,next \"CONVEX_AGENT_MODE=anonymous npx convex dev\" \"pnpm dev\"",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "shots": "tsx scripts/shots.ts",
+    "e2e": "playwright test",
+    "test:production": "playwright test --config playwright.production.config.ts"
   },
   "packageManager": "pnpm@10.18.3",
   "dependencies": {
