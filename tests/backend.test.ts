@@ -255,3 +255,35 @@ describe("meal lifecycle", () => {
     ).rejects.toThrow("Wait for");
   });
 });
+describe("insights range", () => {
+  it("requires auth, caps the range, and scopes rows to the user", async () => {
+    const { t, alice, bob } = setup();
+    const span = { startMs: 0, endMs: 7 * 86_400_000 };
+    await expect(t.query(api.insights.range, span)).rejects.toThrow("Sign in");
+    await expect(
+      alice.query(api.insights.range, { startMs: 0, endMs: 94 * 86_400_000 }),
+    ).rejects.toThrow("Invalid range");
+    await alice.mutation(api.tracker.initialize, {});
+    await bob.mutation(api.tracker.initialize, {});
+    await alice.mutation(api.tracker.addWater, { amountMl: 400, at: 1000 });
+    await alice.mutation(api.tracker.addWater, {
+      amountMl: 300,
+      at: span.endMs,
+    });
+    const { muscles } = await alice.query(api.tracker.overview, {});
+    await alice.mutation(api.tracker.addWorkout, {
+      muscleIds: [muscles[0]._id],
+      trainedAt: 2000,
+      note: "",
+    });
+    const mine = await alice.query(api.insights.range, span);
+    expect(mine.water).toEqual([{ at: 1000, amountMl: 400 }]);
+    expect(mine.workouts).toEqual([
+      { trainedAt: 2000, muscleIds: [muscles[0]._id] },
+    ]);
+    expect(mine.muscles).toHaveLength(11);
+    const theirs = await bob.query(api.insights.range, span);
+    expect(theirs.water).toEqual([]);
+    expect(theirs.workouts).toEqual([]);
+  });
+});
