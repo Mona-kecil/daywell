@@ -57,6 +57,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     </Feedback.Provider>
   );
 }
+export const useToast = () => useContext(Feedback);
 export function useTask() {
   const notify = useContext(Feedback);
   const [pending, setPending] = useState(false);

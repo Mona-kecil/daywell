@@ -8,7 +8,9 @@ import type { Macros } from "@/lib/nutrients";
 import { Progress, SectionTitle, ActionLink, useTask } from "./ui";
 import type { Tab } from "./tracker";
 import { BodyModel, muscleKey } from "./body3d";
-import { DayRings } from "./day-rings";
+import { DayRings, type Ring } from "./day-rings";
+import { ShareDayButton } from "./share-day";
+import { dayKey } from "@/lib/insights";
 import { Burst, useCrossing } from "./celebrate";
 import { CoachCard } from "./coach";
 import { CheckInCard } from "./checkin";
@@ -89,6 +91,29 @@ export function Today({
   );
   const [lead, accent] = greeting(now);
   const celebrations = useCrossing(waterMl >= overview.waterGoal);
+  const rings: Ring[] = [
+    {
+      id: "water",
+      label: "Water",
+      value: waterMl,
+      target: overview.waterGoal,
+      unit: "ml",
+    },
+    {
+      id: "protein",
+      label: "Protein",
+      value: totals.protein,
+      target: targets?.proteinTarget ?? PROTEIN_TARGET_G,
+      unit: "g",
+    },
+    {
+      id: "kcal",
+      label: "Calories",
+      value: totals.kcal,
+      target: targets?.kcalTarget ?? KCAL_TARGET,
+      unit: "kcal",
+    },
+  ];
   return (
     <>
       <section className="welcome">
@@ -101,33 +126,28 @@ export function Today({
       </section>
       <CoachCard now={now} onTab={onTab} />
       <section className="card burst-anchor rings-card">
-        <SectionTitle title="Today so far" />
-        <Burst count={celebrations} />
-        <DayRings
-          rings={[
-            {
-              id: "water",
-              label: "Water",
-              value: waterMl,
-              target: overview.waterGoal,
-              unit: "ml",
-            },
-            {
-              id: "protein",
-              label: "Protein",
-              value: totals.protein,
-              target: targets?.proteinTarget ?? PROTEIN_TARGET_G,
-              unit: "g",
-            },
-            {
-              id: "kcal",
-              label: "Calories",
-              value: totals.kcal,
-              target: targets?.kcalTarget ?? KCAL_TARGET,
-              unit: "kcal",
-            },
-          ]}
+        <SectionTitle
+          title="Today so far"
+          action={
+            <ShareDayButton
+              day={{
+                now,
+                rings,
+                meals: mealCount,
+                trained: overview.muscles
+                  .filter(
+                    (m) =>
+                      m.lastTrainedAt !== null &&
+                      dayKey(new Date(m.lastTrainedAt)) ===
+                        dayKey(new Date(now)),
+                  )
+                  .map((m) => m.name),
+              }}
+            />
+          }
         />
+        <Burst count={celebrations} />
+        <DayRings rings={rings} />
       </section>
       <section className="card recovery-card">
         <div className="card-top">
