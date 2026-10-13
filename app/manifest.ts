@@ -30,5 +30,15 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
+    // Long-press the home-screen icon to jump straight to a tab.
+    shortcuts: [
+      { name: "Log water", short_name: "Water", url: "/?tab=water" },
+      { name: "Log a meal", short_name: "Meal", url: "/?tab=meals" },
+      { name: "Log a workout", short_name: "Workout", url: "/?tab=train" },
+      { name: "Insights", url: "/?tab=insights" },
+    ].map((s) => ({
+      ...s,
+      icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+    })),
   };
 }
