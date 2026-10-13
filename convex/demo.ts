@@ -4,7 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
 import { mealItem } from "./validators";
 import { seedExercises } from "./exerciseModel";
-import { requireUser, createWorkout } from "./model";
+import { requireUser, createWorkout, validLocalDay } from "./model";
 import { MUSCLE_DEFAULTS } from "../lib/recovery";
 import { isLocalDeployment } from "../lib/local-deployment";
 import { DEV_ISSUER, DEV_USER } from "../lib/dev-auth-config";
@@ -25,6 +25,7 @@ export const replace = internalMutation({
   args: {
     now: v.number(),
     days: v.array(v.number()),
+    checkinDays: v.optional(v.array(v.string())),
     meals: v.array(
       v.object({
         storageId: v.id("_storage"),
@@ -38,6 +39,14 @@ export const replace = internalMutation({
     await requireDevUser(ctx);
     if (args.days.length !== 14)
       throw new ConvexError("Seed requires fourteen days.");
+    const checkinDays =
+      args.checkinDays ??
+      Array.from({ length: 90 }, (_, i) =>
+        new Date(args.days[0] - i * 86_400_000).toISOString().slice(0, 10),
+      );
+    if (checkinDays.length !== 90 || new Set(checkinDays).size !== 90)
+      throw new ConvexError("Seed requires ninety distinct check-in days.");
+    for (const day of checkinDays) validLocalDay(day);
     const userId = DEV_USER;
     const oldMeals = await ctx.db
       .query("meals")
@@ -48,6 +57,10 @@ export const replace = internalMutation({
       await ctx.db.delete(meal._id);
     }
     const records = [
+      ...(await ctx.db
+        .query("bodyCheckins")
+        .withIndex("by_user_day", (q) => q.eq("userId", userId))
+        .collect()),
       ...(await ctx.db
         .query("settings")
         .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -187,7 +200,23 @@ export const replace = internalMutation({
         revision: 1,
         analysis: { status: "ready" },
       });
+    let checkins = 0;
+    for (const [offset, day] of checkinDays.entries()) {
+      if (offset % 10 === 4) continue;
+      await ctx.db.insert("bodyCheckins", {
+        userId,
+        day,
+        weightKg:
+          Math.round((75 + offset * 0.012 + Math.sin(offset) * 0.18) * 10) / 10,
+        sleepHours: 5.5 + (offset % 13) * 0.25,
+        mood: 3 + (offset % 3),
+        energy: 2 + (offset % 4),
+        ...(offset % 12 === 0 ? { note: "Steady training and meals." } : {}),
+      });
+      checkins++;
+    }
     return {
+      checkins,
       days: args.days.length,
       workouts,
       water,

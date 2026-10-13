@@ -27,6 +27,11 @@ const days = Array.from({ length: 14 }, (_, offset) => {
   date.setHours(0, 0, 0, 0);
   return date.getTime();
 });
+const checkinDays = Array.from({ length: 90 }, (_, offset) => {
+  const date = new Date(now);
+  date.setDate(date.getDate() - offset);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+});
 const photos = await Promise.all(
   ["#cfac72", "#e5ad70", "#dd9077", "#9fb57d"].map(async (color) => {
     const svg = `<svg width="640" height="480" xmlns="http://www.w3.org/2000/svg"><rect width="640" height="480" fill="#e5e9df"/><ellipse cx="320" cy="240" rx="230" ry="190" fill="#fffdf7"/><ellipse cx="320" cy="240" rx="185" ry="150" fill="${color}"/><circle cx="245" cy="220" r="60" fill="#65945b"/><circle cx="385" cy="270" r="65" fill="#f0d999"/><text x="320" y="435" text-anchor="middle" font-size="22" fill="#354139">Daywell demo plate</text></svg>`;
@@ -43,7 +48,7 @@ try {
       "convex",
       "run",
       "demoSeed:run",
-      JSON.stringify({ now, days, photos }),
+      JSON.stringify({ now, days, photos, checkinDays }),
       "--identity",
       JSON.stringify({ subject: DEV_USER, issuer: DEV_ISSUER }),
     ],

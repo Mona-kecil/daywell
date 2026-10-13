@@ -81,6 +81,15 @@ export default defineSchema({
   })
     .index("by_user_muscle_time", ["userId", "muscleId", "trainedAt"])
     .index("by_user_workout", ["userId", "workoutId"]),
+  bodyCheckins: defineTable({
+    userId: v.string(),
+    day: v.string(),
+    weightKg: v.optional(v.number()),
+    sleepHours: v.optional(v.number()),
+    mood: v.optional(v.number()),
+    energy: v.optional(v.number()),
+    note: v.optional(v.string()),
+  }).index("by_user_day", ["userId", "day"]),
   water: defineTable({
     userId: v.string(),
     amountMl: v.number(),

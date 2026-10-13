@@ -58,3 +58,40 @@ History defaults to 20 sessions and accepts an integer limit from 1–100. Sessi
 Epley e1RM is `weightKg * (1 + reps / 30)`; a single uses its exact weight. Volume is the sum of `reps * weightKg`. Values are unrounded kilograms; format them in the UI. No bodyweight mass is inferred. Weekly counts include timestamps in the closed interval `[max(0, now - 7 * 86_400_000), now]`, exclude future sets, and count a set once for each mapped muscle. Every owned muscle appears, including zero counts. `now` has the same timestamp validation.
 
 The demo seed now gives all 11 existing workouts three sets per exercise, with lower weights on older sessions. It recreates the exercise library and sets on each run and preserves other users.
+
+## Daily body check-ins
+
+```ts
+api.checkins.upsert({ // mutation
+  day: string,
+  weightKg?: number | null,
+  sleepHours?: number | null,
+  mood?: number | null,
+  energy?: number | null,
+  note?: string | null
+}) // Id<"bodyCheckins">
+
+// A saved row has this shape; cleared/missing fields are absent, not null:
+type BodyCheckin = {
+  _id: Id<"bodyCheckins">;
+  _creationTime: number;
+  userId: string;
+  day: string;
+  weightKg?: number;
+  sleepHours?: number;
+  mood?: number;
+  energy?: number;
+  note?: string;
+};
+
+api.checkins.get({ day: string }) // query → BodyCheckin | null
+api.checkins.range({ fromDay: string, toDay: string }) // query → BodyCheckin[]
+```
+
+Supply the user's local calendar date as an exact `YYYY-MM-DD` string. Dates must exist on the calendar (including leap-year validation). The backend does not infer the day from UTC or from saved coach settings. Format from local year/month/day parts; avoid `toISOString().slice(0, 10)` for local input. Days can lie in the past or future.
+
+Weight accepts finite numbers from 20–400 kg. Sleep accepts finite numbers from 0–24 hours, including quarter hours and other fractions. Mood and energy accept integers from 1–5. Notes preserve whitespace and allow 280 input characters. All bounds are inclusive. Omitted fields keep their prior value; null removes that field. A new row with no measurements is allowed. Clearing every field keeps the row and its ID. Repeated updates to the same user/day keep one row; different users have different rows for the same day.
+
+Ranges include both endpoints, sort ascending by day, and permit at most 400 calendar days including both endpoints. Reversed or longer ranges fail. Missing days produce no placeholder rows. `get` returns null when the caller has no record for that day. Coach reminder `settings.checkIns` times remain a separate feature.
+
+For a form, query `get` for the selected local day, render absent fields blank, then send only changed fields. Send null when the user clears an existing value. Await `upsert` before closing; Convex refreshes subscribed queries. The seed passes 90 date strings computed in the CLI's local timezone, omits nine days, and replaces only the dev user's check-ins. Its optional `checkinDays` argument preserves older demo callers; callers without it use UTC date strings derived from the supplied first day timestamp.
