@@ -73,7 +73,8 @@ export function Today({
   meals: FunctionReturnType<typeof api.meals.today>;
   onTab: (tab: Tab) => void;
 }) {
-  const addWater = useMutation(api.tracker.addWater);
+  const addWater = useMutation(api.tracker.addWater),
+    deleteWater = useMutation(api.tracker.deleteWater);
   const { run, pending } = useTask();
   const trained = overview.muscles.filter((m) => m.lastTrainedAt !== null);
   const recovering = trained.filter(
@@ -225,6 +226,7 @@ export function Today({
               run(
                 () => addWater({ amountMl: 250, at: Date.now() }),
                 "Added 250 ml",
+                (id) => deleteWater({ id }),
               )
             }
           >

@@ -24,7 +24,8 @@ export function RecentMeals() {
       (m, i) => latest.findIndex((x) => x.description === m.description) === i,
     )
     .slice(0, 6);
-  const repeat = useMutation(api.meals.repeat);
+  const repeat = useMutation(api.meals.repeat),
+    deleteMeal = useMutation(api.meals.deleteMeal);
   const { run, pending } = useTask();
   const [busy, setBusy] = useState<Id<"meals"> | null>(null);
   if (!recent?.length) return null;
@@ -43,6 +44,7 @@ export function RecentMeals() {
                 void run(
                   () => repeat({ mealId: meal.id, at: Date.now() }),
                   `Logged ${meal.description}`,
+                  (id) => deleteMeal({ id }),
                 ).finally(() => setBusy(null));
               }}
             >

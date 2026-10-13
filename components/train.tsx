@@ -235,6 +235,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                 entries.length
                   ? `Saved ${setCount} ${setCount === 1 ? "set" : "sets"}`
                   : "Workout saved",
+                (id) => deleteWorkout({ id }),
               )
             ) {
               setSelected([]);

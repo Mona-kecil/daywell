@@ -109,6 +109,7 @@ export function Water({
                 run(
                   () => add({ amountMl: amount, at: Date.now() }),
                   `Added ${amount} ml`,
+                  (id) => remove({ id }),
                 )
               }
             >
@@ -133,6 +134,7 @@ export function Water({
                 () =>
                   add({ amountMl: Number(data.get("amount")), at: Date.now() }),
                 "Water added",
+                (id) => remove({ id }),
               )
             )
               form.reset();

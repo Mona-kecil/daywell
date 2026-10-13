@@ -846,6 +846,13 @@ form > p.small {
   background: #8a4135;
   color: white;
 }
+.toast > .toast-undo {
+  padding: 0 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .toast > button {
   min-width: 44px;
   min-height: 44px;

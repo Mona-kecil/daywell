@@ -10,14 +10,30 @@ import {
 } from "react";
 import { CircleCheck, X, ArrowUpRight, Sprout } from "lucide-react";
 
-const Feedback = createContext<(message: string, error?: boolean) => void>(
-  () => {},
-);
+type Notify = (
+  message: string,
+  error?: boolean,
+  undo?: () => Promise<unknown>,
+) => void;
+const Feedback = createContext<Notify>(() => {});
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<{
     text: string;
     error: boolean;
+    undo?: () => Promise<unknown>;
   } | null>(null);
+  const undo = async (revert: () => Promise<unknown>) => {
+    setMessage(null);
+    try {
+      await revert();
+      setMessage({ text: "Undone", error: false });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : "Could not undo.",
+        error: true,
+      });
+    }
+  };
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(null), 6000);
@@ -34,7 +50,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   }, [message]);
   return (
     <Feedback.Provider
-      value={(text, error = false) => setMessage({ text, error })}
+      value={(text, error = false, undo) => setMessage({ text, error, undo })}
     >
       {children}
       {message && (
@@ -46,6 +62,15 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         >
           <CircleCheck size={20} />
           <span>{message.text}</span>
+          {message.undo && (
+            <button
+              type="button"
+              className="toast-undo"
+              onClick={() => undo(message.undo!)}
+            >
+              Undo
+            </button>
+          )}
           <button
             aria-label="Dismiss notification"
             onClick={() => setMessage(null)}
@@ -61,11 +86,16 @@ export const useToast = () => useContext(Feedback);
 export function useTask() {
   const notify = useContext(Feedback);
   const [pending, setPending] = useState(false);
-  async function run(task: () => Promise<unknown>, message?: string) {
+  // Pass `undo` to offer reverting the task's result from the toast.
+  async function run<T>(
+    task: () => Promise<T>,
+    message?: string,
+    undo?: (result: T) => Promise<unknown>,
+  ) {
     setPending(true);
     try {
-      await task();
-      if (message) notify(message);
+      const result = await task();
+      if (message) notify(message, false, undo && (() => undo(result)));
       return true;
     } catch (error) {
       notify(

@@ -129,6 +129,20 @@ describe("screen actions", () => {
       expect.objectContaining({ amountMl: 350 }),
     );
   });
+  it("undoes a quick drink from the toast", async () => {
+    mocks.mutation.mockResolvedValueOnce("water-1" as never);
+    render(
+      <FeedbackProvider>
+        <Water entries={entries} goal={2500} now={now} />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /250 ml/ }));
+    expect(await screen.findByText("Added 250 ml")).toBeTruthy();
+    await userEvent.click(screen.getByText("Undo"));
+    expect(mocks.mutation).toHaveBeenLastCalledWith({ id: "water-1" });
+    expect(await screen.findByText("Undone")).toBeTruthy();
+    expect(screen.queryByText("Undo")).toBeNull();
+  });
   it("saves the edited description before re-analysis", async () => {
     render(
       <FeedbackProvider>
