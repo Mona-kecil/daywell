@@ -1,0 +1,50 @@
+{
+  "source": "Hand-built branded-food contract fixtures. Synthetic products and FDC IDs; not live USDA records.",
+  "cases": [
+    {
+      "code": "012345678905",
+      "response": {
+        "foods": [
+          {
+            "fdcId": 9000001,
+            "description": "Demo whole grain cereal",
+            "dataType": "Branded",
+            "gtinUpc": "012345678905",
+            "brandName": "Daywell Demo",
+            "servingSize": 40,
+            "servingSizeUnit": "g",
+            "foodNutrients": [
+              { "nutrientId": 1008, "value": 350, "unitName": "KCAL" },
+              { "nutrientId": 1003, "value": 10, "unitName": "G" },
+              { "nutrientId": 1005, "value": 70, "unitName": "G" },
+              { "nutrientId": 1004, "value": 5, "unitName": "G" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "code": "4006381333931",
+      "response": {
+        "foods": [
+          {
+            "fdcId": 9000002,
+            "description": "Demo yogurt",
+            "dataType": "Branded",
+            "gtinUpc": "4006381333931",
+            "brandOwner": "Daywell Demo Dairy",
+            "servingSize": 150,
+            "servingSizeUnit": "g",
+            "foodNutrients": [
+              { "nutrientId": 1008, "value": 80, "unitName": "KCAL" },
+              { "nutrientId": 1003, "value": 8, "unitName": "G" },
+              { "nutrientId": 1005, "value": 10, "unitName": "G" },
+              { "nutrientId": 1004, "value": 1, "unitName": "G" }
+            ]
+          }
+        ]
+      }
+    },
+    { "code": "96385074", "response": { "foods": [] } }
+  ]
+}

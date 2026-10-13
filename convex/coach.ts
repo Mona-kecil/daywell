@@ -9,6 +9,17 @@ import { positive, requireUser, validTimestamp } from "./model";
 import { normalizeTimeZone } from "../lib/coach-time";
 import { suggestionsFor } from "./coachData";
 import { DEFAULT_CHECK_INS } from "../lib/coach";
+import { validHistoryClock } from "./historyData";
+import { weeklyReviewFor } from "./weeklyReviewData";
+
+export const weeklyReview = query({
+  args: { now: v.number(), timeZone: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    validHistoryClock(args.now, args.timeZone);
+    return weeklyReviewFor(ctx, userId, args.now, args.timeZone);
+  },
+});
 
 async function userSettings(ctx: QueryCtx | MutationCtx) {
   const userId = await requireUser(ctx);

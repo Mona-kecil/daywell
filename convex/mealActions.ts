@@ -9,6 +9,9 @@ import { mealVisionProvider } from "./mealVision";
 
 async function analyze(ctx: ActionCtx, id: Id<"meals">): Promise<void> {
   await requireUser(ctx);
+  const source = await ctx.runQuery(internal.meals.read, { id });
+  if (!source.storageId)
+    throw new ConvexError("This meal has no photo to re-analyse.");
   const revision = await ctx.runMutation(internal.meals.begin, { id });
   try {
     const meal = await ctx.runQuery(internal.meals.read, { id });

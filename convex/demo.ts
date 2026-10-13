@@ -53,7 +53,7 @@ export const replace = internalMutation({
       .withIndex("by_user_time", (q) => q.eq("userId", userId))
       .collect();
     for (const meal of oldMeals) {
-      await ctx.storage.delete(meal.storageId);
+      if (meal.storageId) await ctx.storage.delete(meal.storageId);
       await ctx.db.delete(meal._id);
     }
     const records = [
