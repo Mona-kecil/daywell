@@ -1,0 +1,5 @@
+$ CONVEX_AGENT_MODE=anonymous npx convex dev --once
+CONVEX_AGENT_MODE=anonymous mode is in beta, functionality may change in the future.
+✖ A local backend is still running on port 3210. Please stop it and run this command again.
+
+Exit code: 1

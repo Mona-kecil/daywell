@@ -1,0 +1,16 @@
+$ pnpm test
+
+> daywell@0.1.0 test /Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b
+> vitest run
+
+
+ RUN  v5.0.4 /Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b
+
+
+ Test Files  4 passed (4)
+      Tests  36 passed (36)
+   Start at  22:00:25
+   Duration  1.63s (environment 35%, import 28%, tests 26%, transform 10%, worker 1%)
+
+
+Exit code: 0

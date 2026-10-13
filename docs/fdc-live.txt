@@ -1,0 +1,15 @@
+
+> daywell@0.1.0 test:fdc /Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b
+> tsx scripts/fdc-live.ts
+
+/Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b/lib/fdc.ts:22
+    throw new Error(
+          ^
+
+Error: USDA search failed (429). Please retry later.
+    at groundFood (/Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b/lib/fdc.ts:22:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async <anonymous> (/Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b/scripts/fdc-live.ts:3:14)
+
+Node.js v24.13.0
+ ELIFECYCLE  Command failed with exit code 1.

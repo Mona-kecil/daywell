@@ -1,0 +1,7 @@
+$ pnpm lint
+
+> daywell@0.1.0 lint /Users/monakecil/.t3/scratch/2026-10-13-i-kind-of-want-to-6349e50b
+> eslint .
+
+
+Exit code: 0

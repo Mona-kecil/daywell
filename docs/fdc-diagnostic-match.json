@@ -1,0 +1,18 @@
+{
+  "source": "retained live diagnostic response; not a fresh grounding request",
+  "fdcId": 2708422,
+  "foodDescription": "Rice, white, cooked, glutinous",
+  "grams": 150,
+  "per100g": {
+    "kcal": 96,
+    "protein": 2.01,
+    "carbs": 20.97,
+    "fat": 0.19
+  },
+  "macros": {
+    "kcal": 144,
+    "protein": 3.0149999999999992,
+    "carbs": 31.455,
+    "fat": 0.285
+  }
+}

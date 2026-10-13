@@ -1,0 +1,5 @@
+PASS: real local JPEG upload, SHA-256 claim, and authenticated action-to-mutation calls
+Meal status: error (USDA search failed (429). Please retry later.)
+PASS: another user cannot read the meal
+PASS: unauthenticated query rejected
+PASS: meal and stored photo deleted
