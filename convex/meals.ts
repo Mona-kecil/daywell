@@ -12,8 +12,9 @@ import {
   validTimestamp,
   positive,
 } from "./model";
-import { dayArgs, mealItem } from "./validators";
-import { mealItemSchema } from "../lib/nutrients";
+import { dayArgs, mealItem, macros } from "./validators";
+import { mealItemSchema, mealTotals } from "../lib/nutrients";
+import { manualMealSchema } from "../lib/manual-meal";
 
 export const today = query({
   args: dayArgs,
@@ -30,7 +31,9 @@ export const today = query({
     return Promise.all(
       meals.map(async (meal) => ({
         ...meal,
-        photoUrl: await ctx.storage.getUrl(meal.storageId),
+        photoUrl: meal.storageId
+          ? await ctx.storage.getUrl(meal.storageId)
+          : null,
       })),
     );
   },
@@ -109,7 +112,12 @@ export const read = internalQuery({
   args: { id: v.id("meals") },
   handler: async (ctx, args) => {
     const meal = await ownedMeal(ctx, args.id);
-    return { ...meal, photoUrl: await ctx.storage.getUrl(meal.storageId) };
+    return {
+      ...meal,
+      photoUrl: meal.storageId
+        ? await ctx.storage.getUrl(meal.storageId)
+        : null,
+    };
   },
 });
 export const complete = internalMutation({
@@ -193,7 +201,102 @@ export const deleteMeal = mutation({
   args: { id: v.id("meals") },
   handler: async (ctx, args) => {
     const meal = await ownedMeal(ctx, args.id);
-    await ctx.storage.delete(meal.storageId);
+    if (meal.storageId) await ctx.storage.delete(meal.storageId);
     await ctx.db.delete(args.id);
+  },
+});
+
+export const repeat = mutation({
+  args: { mealId: v.id("meals"), at: v.number() },
+  handler: async (ctx, args) => {
+    const meal = await ownedMeal(ctx, args.mealId);
+    validTimestamp(args.at);
+    if (meal.analysis.status !== "ready")
+      throw new ConvexError("Only analysed meals can be repeated.");
+    // Omit the photo: deleting either meal must not affect the other's storage.
+    return ctx.db.insert("meals", {
+      userId: meal.userId,
+      at: args.at,
+      description: meal.description,
+      items: meal.items,
+      revision: 0,
+      analysis: { status: "ready" },
+    });
+  },
+});
+
+export const recent = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    const limit = args.limit ?? 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20)
+      throw new ConvexError("Limit must be an integer from 1–20.");
+    const rows = await ctx.db
+      .query("meals")
+      .withIndex("by_user_status_time", (q) =>
+        q.eq("userId", userId).eq("analysis.status", "ready"),
+      )
+      .order("desc")
+      .take(200);
+    const seen = new Set<string>();
+    const result = [];
+    for (const meal of rows) {
+      const key = meal.description
+        .normalize("NFKC")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({
+        id: meal._id,
+        description: meal.description,
+        ...mealTotals(meal.items),
+        at: meal.at,
+        hasPhoto: Boolean(meal.storageId),
+      });
+      if (result.length === limit) break;
+    }
+    return result;
+  },
+});
+
+export const addManual = mutation({
+  args: {
+    at: v.number(),
+    description: v.string(),
+    items: v.array(
+      v.object({
+        name: v.string(),
+        grams: v.number(),
+        fdcId: v.optional(v.number()),
+        per100g: macros,
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    validTimestamp(args.at);
+    const parsed = manualMealSchema.safeParse(args);
+    if (!parsed.success)
+      throw new ConvexError(
+        "Use a description of 1–4,000 characters and 1–30 items; names 1–200 characters, grams >0–10,000, FDC IDs positive integers, kcal 0–1,000 and macros 0–100 per 100 g.",
+      );
+    const { at, description, items } = parsed.data;
+    return ctx.db.insert("meals", {
+      userId,
+      at,
+      description,
+      revision: 0,
+      analysis: { status: "ready" },
+      items: items.map((item, index) => ({
+        ...item,
+        id: `manual:${index}`,
+        searchQuery: item.name,
+        foodDescription: item.name,
+        status: "matched",
+      })),
+    });
   },
 });

@@ -15,7 +15,7 @@ export const mealItem = v.union(
   v.object({
     ...itemFields,
     status: v.literal("matched"),
-    fdcId: v.number(),
+    fdcId: v.optional(v.number()),
     foodDescription: v.string(),
     per100g: macros,
   }),

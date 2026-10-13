@@ -84,7 +84,7 @@ export const mealItemSchema = z.discriminatedUnion("status", [
   z.object({
     ...itemFields,
     status: z.literal("matched"),
-    fdcId: z.number(),
+    fdcId: z.number().optional(),
     foodDescription: z.string(),
     per100g: macrosSchema,
   }),

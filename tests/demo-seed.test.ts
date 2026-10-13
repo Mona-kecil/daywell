@@ -49,7 +49,9 @@ it("demo seed replaces fourteen days, deletes old photos, and preserves other us
     muscles: 11,
     checkins: 81,
   });
-  expect(await t.run((ctx) => ctx.storage.get(meals[0].storageId))).toBeNull();
+  const oldPhoto = meals[0].storageId;
+  if (!oldPhoto) throw new Error("Missing demo photo");
+  expect(await t.run((ctx) => ctx.storage.get(oldPhoto))).toBeNull();
   const checkins = await dev.query(api.checkins.range, {
     fromDay: "2026-07-01",
     toDay: "2026-10-13",

@@ -102,7 +102,7 @@ export default defineSchema({
   }).index("by_user", ["userId"]),
   meals: defineTable({
     userId: v.string(),
-    storageId: v.id("_storage"),
+    storageId: v.optional(v.id("_storage")),
     at: v.number(),
     description: v.string(),
     items: v.array(mealItem),
@@ -114,5 +114,6 @@ export default defineSchema({
     ),
   })
     .index("by_user_time", ["userId", "at"])
+    .index("by_user_status_time", ["userId", "analysis.status", "at"])
     .index("by_storage", ["storageId"]),
 });
