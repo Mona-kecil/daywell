@@ -29,6 +29,11 @@ vi.mock("convex/react", () => ({
     loadMore: () => {},
   }),
 }));
+// WebGL can't run under jsdom; the 3D body has its own lab page.
+vi.mock("../components/body3d", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../components/body3d")>()),
+  BodyModel: () => <div className="body3d" aria-hidden />,
+}));
 let overview: FunctionReturnType<typeof api.tracker.overview>;
 let entries: FunctionReturnType<typeof api.tracker.waterToday>;
 let meals: FunctionReturnType<typeof api.meals.today>;
