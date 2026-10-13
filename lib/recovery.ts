@@ -25,8 +25,8 @@ export function recovery(
   if (lastTrainedAt === null)
     return { kind: "never", fraction: 1, label: "Never trained" };
   const cooldownMs = cooldownHours * 3_600_000;
-  const elapsed = Math.max(0, now - lastTrainedAt);
-  const fraction = Math.min(1, elapsed / cooldownMs);
+  const elapsed = now - lastTrainedAt;
+  const fraction = Math.max(0, Math.min(1, elapsed / cooldownMs));
   if (fraction >= 1) return { kind: "ready", fraction, label: "Ready" };
   const minutes = Math.ceil((cooldownMs - elapsed) / 60_000);
   return {

@@ -37,7 +37,10 @@ describe("muscle recovery", () => {
       label: "Never trained",
     }));
   it("clamps future workouts to zero", () =>
-    expect(recovery(0, hour, 72).fraction).toBe(0));
+    expect(recovery(0, hour, 72)).toMatchObject({
+      fraction: 0,
+      label: "Ready in 73h 0m",
+    }));
   it("rounds remaining partial minutes up", () =>
     expect(recovery(59_999, 0, 1).label).toBe("Ready in 1h 0m"));
 });
