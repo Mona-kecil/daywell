@@ -22,6 +22,7 @@ import {
   type MealItem,
   type Macros,
 } from "@/lib/nutrients";
+import { AddMealOptions, RecentMeals } from "./meal-add";
 import { MacroSummary } from "./today";
 import { Empty, SectionTitle, useTask, timeLabel } from "./ui";
 type Meal = FunctionReturnType<typeof api.meals.today>[number];
@@ -58,15 +59,21 @@ function FoodItem({
       </div>
       {item.status === "matched" ? (
         <>
-          <p className="muted small">{item.foodDescription}</p>
-          <a
-            className="source-link"
-            href={`https://fdc.nal.usda.gov/food-details/${item.fdcId}/nutrients`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            USDA · FDC {item.fdcId}
-          </a>
+          {item.foodDescription !== item.name && (
+            <p className="muted small">{item.foodDescription}</p>
+          )}
+          {item.fdcId !== undefined ? (
+            <a
+              className="source-link"
+              href={`https://fdc.nal.usda.gov/food-details/${item.fdcId}/nutrients`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              USDA · FDC {item.fdcId}
+            </a>
+          ) : (
+            <p className="muted small">Entered by you</p>
+          )}
         </>
       ) : (
         <p className="unmatched small">
@@ -286,7 +293,9 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
             </span>
             <button
               className="icon-button"
-              aria-label="Delete meal and photo"
+              aria-label={
+                meal.photoUrl ? "Delete meal and photo" : "Delete meal"
+              }
               disabled={pending}
               onClick={() =>
                 run(() => remove({ id: meal._id }), "Meal deleted")
@@ -351,9 +360,12 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
                   placeholder="Describe what is on your plate"
                   required
                 />
-                <p className="muted small">
-                  Correct the description, then re-analyze to update the foods.
-                </p>
+                {meal.photoUrl && (
+                  <p className="muted small">
+                    Correct the description, then re-analyze to update the
+                    foods.
+                  </p>
+                )}
                 <div className="row">
                   <button
                     className="soft-button"
@@ -363,18 +375,20 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
                   >
                     Save description
                   </button>
-                  <button
-                    className="soft-button"
-                    name="intent"
-                    value="reanalyze"
-                    disabled={pending}
-                  >
-                    <RotateCw size={16} />
-                    Re-analyze
-                  </button>
+                  {meal.photoUrl && (
+                    <button
+                      className="soft-button"
+                      name="intent"
+                      value="reanalyze"
+                      disabled={pending}
+                    >
+                      <RotateCw size={16} />
+                      Re-analyze
+                    </button>
+                  )}
                 </div>
               </form>
-              {meal.analysis.status === "error" && (
+              {meal.analysis.status === "error" && meal.photoUrl && (
                 <div className="meal-error" role="alert">
                   <p>{meal.analysis.message}</p>
                   <button
@@ -511,7 +525,9 @@ export function Meals({
           <br />
           Review each food and portion before using the totals.
         </p>
+        <AddMealOptions />
       </section>
+      <RecentMeals />
       <section>
         <SectionTitle
           title="Today's meals"
