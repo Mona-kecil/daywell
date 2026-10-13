@@ -1,4 +1,13 @@
 import fixtures from "./fixtures/fdc-search.json";
+import barcodes from "./fixtures/fdc-barcodes.json";
+import { barcodeKey } from "./barcode";
+
+export function fixtureBarcode(code: string) {
+  return (
+    barcodes.cases.find((entry) => barcodeKey(entry.code) === barcodeKey(code))
+      ?.response ?? { foods: [] }
+  );
+}
 
 function words(query: string) {
   return query

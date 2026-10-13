@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as food from "../food.js";
 import type * as checkins from "../checkins.js";
 import type * as coach from "../coach.js";
 import type * as coachCron from "../coachCron.js";
@@ -41,6 +42,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  food: typeof food;
   checkins: typeof checkins;
   coach: typeof coach;
   coachCron: typeof coachCron;
