@@ -27,3 +27,51 @@ export async function ownedMeal(ctx: QueryCtx | MutationCtx, id: Id<"meals">) {
   if (!meal || meal.userId !== userId) throw new ConvexError("Meal not found.");
   return meal;
 }
+
+export async function createWorkout(
+  ctx: MutationCtx,
+  userId: string,
+  args: {
+    muscleIds: Id<"muscles">[];
+    trainedAt: number;
+    note: string;
+  },
+) {
+  validTimestamp(args.trainedAt);
+  const ids = [...new Set(args.muscleIds)];
+  if (!ids.length || ids.length > 11 || args.note.length > 2000)
+    throw new ConvexError(
+      "Choose muscles and keep the note under 2,000 characters.",
+    );
+  for (const id of ids) {
+    const muscle = await ctx.db.get(id);
+    if (!muscle || muscle.userId !== userId)
+      throw new ConvexError("Muscle not found.");
+  }
+  const workoutId = await ctx.db.insert("workouts", {
+    userId,
+    muscleIds: ids,
+    trainedAt: args.trainedAt,
+    note: args.note.trim(),
+  });
+  for (const muscleId of ids)
+    await ctx.db.insert("workoutMuscles", {
+      userId,
+      muscleId,
+      workoutId,
+      trainedAt: args.trainedAt,
+    });
+  return workoutId;
+}
+
+export function validLocalDay(day: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day))
+    throw new ConvexError("Use a valid YYYY-MM-DD day.");
+  const timestamp = Date.parse(`${day}T00:00:00Z`);
+  if (
+    !Number.isFinite(timestamp) ||
+    new Date(timestamp).toISOString().slice(0, 10) !== day
+  )
+    throw new ConvexError("Use a valid YYYY-MM-DD day.");
+  return timestamp;
+}

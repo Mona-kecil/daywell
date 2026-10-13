@@ -44,6 +44,7 @@ const menus = [
 export const run = action({
   args: {
     now: v.number(),
+    checkinDays: v.optional(v.array(v.string())),
     days: v.array(v.number()),
     photos: v.array(v.string()),
   },
@@ -56,6 +57,7 @@ export const run = action({
     water: number;
     meals: number;
     muscles: number;
+    checkins: number;
   }> => {
     await requireDevUser(ctx);
     if (
@@ -101,6 +103,7 @@ export const run = action({
       return await ctx.runMutation(internal.demo.replace, {
         now: args.now,
         days: args.days,
+        checkinDays: args.checkinDays,
         meals,
       });
     } catch (error) {

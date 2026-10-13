@@ -40,7 +40,7 @@ Open `http://localhost:3000/dev-login` to sign in as `dev-user`. The normal sign
 
 `dev:setup` bootstraps Convex if needed, generates an RSA keypair, and writes `DEV_AUTH=1` and `DEV_AUTH_PRIVATE_JWK` to the ignored `.env.local` with owner-only permissions. A second run reuses the key. It also creates or reuses VAPID keys, writes the public key for Next, and installs missing push configuration on local Convex. It sets `DEV_AUTH_JWKS`, `FDC_MODE=fixture`, and `MEAL_VISION_PROVIDER=fake` on Convex. It refuses cloud deployments and deployment-key overrides. These commands target local data; `seed:demo` replaces only the dev user's data and photos.
 
-The seed writes 14 calendar days relative to the machine's date: a push/pull/legs rotation with rest days, six drinks per day, and two to four ready meals per day. Each meal has a generated JPEG in Convex storage and grounded foods. Totals use the app's nutrient helpers. Repeating the seed preserves the record counts: 11 workouts, 84 drinks, 41 meals, and 11 muscles.
+The seed writes 14 calendar days relative to the machine's date: a push/pull/legs rotation with rest days, six drinks per day, and two to four ready meals per day. Each meal has a generated JPEG in Convex storage and grounded foods. Totals use the app's nutrient helpers. Repeating the seed preserves the record counts: 11 workouts with 108 strength sets, 25 exercises, 84 drinks, 41 meals, and 11 muscles. Strength weights rise across the two-week history. The seed also writes 81 body check-ins across 90 local calendar days, with gaps, a gentle weight trend, sleep, mood, and energy.
 
 `shots` and `e2e` require both dev servers to be running. Screenshots cover each navigation tab at 375×812 in light and dark mode, under `artifacts/shots/<tab>-<theme>.png`. There are four tabs and no separate Settings screen. The screenshot script discovers tabs from the navigation. The smoke test adds and deletes water, a back workout, and a photo meal; it checks recovery, grounded calories, and portion edits. Failure screenshots and traces live under `artifacts/e2e/`. All `artifacts/` files are ignored. Set `DAYWELL_URL` to use another local Next port. Browser checks use the `Asia/Jakarta` timezone; seed data uses the machine's timezone.
 
@@ -55,17 +55,23 @@ If port 3100 is in use, set `DAYWELL_PRODUCTION_PORT=3101` for `test:production`
 
 The unit test also checks the production guard, unsigned-cookie rejection, token lifetime, and logout. When neither auth path is configured, the setup screen remains. WorkOS behavior uses the original AuthKit bridge when dev auth is off.
 
-Convex's installed `src/server/authentication.ts` declares `customJwt.jwks` as a string, and `src/cli/lib/deployApi/types.ts` validates it with `z.string()`. The backend accepts the base64 data URI used here, as documented in the [Convex custom JWT guide](https://docs.convex.dev/auth/advanced/custom-jwt). Dev token signing is gated by Next's production `NODE_ENV`. Keep `DEV_AUTH_JWKS` on the anonymous local deployment; do not configure that issuer on a production Convex deployment.
+Convex's installed `src/server/authentication.ts` declares `customJwt.jwks` as a string, and `src/cli/lib/deployApi/types.ts` validates it with `z.string()`. The backend accepts the base64 data URI used here, as documented in the [Convex custom JWT guide](https://docs.convex.dev/auth/advanced/custom-jwt). Dev token signing is gated by Next's production `NODE_ENV`. The Convex dev JWT provider and demo seed require both `CONVEX_CLOUD_URL` and `CONVEX_SITE_URL` to be HTTP(S) URLs with an exact loopback hostname (`localhost`, `127.0.0.1`, or `[::1]`). Missing, malformed, or mixed cloud/local URLs disable the dev provider. WorkOS providers keep their existing behavior. Keep `DEV_AUTH_JWKS` on the anonymous local deployment.
 
 Fixture mode reads `lib/fixtures/fdc-search.json` through the same FDC parser as live mode. These are **hand-built search fixtures**, not captured live responses. Per-100 g nutrient values and FDC IDs come from the [USDA SR Legacy April 2018 CSV archive](https://fdc.nal.usda.gov/download-datasets/). Word matching handles query order and aliases; unknown foods remain unmatched. The fixture set covers rice, grilled chicken breast, broccoli, egg, oatmeal, banana, salmon, Greek yogurt, avocado, olive oil, whole-wheat bread, and cooked pasta. Rebuild it with `python3 scripts/build-fdc-fixtures.py`.
 
-Live FDC search stays the default. To switch the running local deployment:
+Live FDC search stays the default. `FDC_MODE=fixture` fails closed outside the same local deployment guard. Meal actions store the error "FDC_MODE=fixture requires a local Convex deployment. Set FDC_MODE=live for production." They do not return canned nutrition or call USDA in that state. Set `FDC_MODE=live` (or remove it) on production. To switch the running local deployment:
 
 ```sh
 CONVEX_AGENT_MODE=anonymous npx convex env set FDC_MODE live
 ```
 
-The seed uses fixture nutrients so it stays repeatable even if live mode is enabled. Its entry action checks `DEV_AUTH_JWKS`, subject `dev-user`, and issuer `https://daywell.dev.local`; the reset mutation repeats those checks and is internal. The CLI's impersonated identity cannot invoke an internal action, so the script calls the guarded action with `--identity`.
+The seed uses fixture nutrients so it stays repeatable even if live mode is enabled. Its entry action checks the local deployment URLs, `DEV_AUTH_JWKS`, subject `dev-user`, and issuer `https://daywell.dev.local`; the reset mutation repeats those checks and is internal. The CLI's impersonated identity cannot invoke an internal action, so the script calls the guarded action with `--identity`.
+
+### Verified local deployment signal
+
+On the running local Convex 1.46 backend, temporary internal query and action probes each returned `CONVEX_CLOUD_URL=http://127.0.0.1:3210` and `CONVEX_SITE_URL=http://127.0.0.1:3211`. A temporary top-level assertion in `auth.config.ts` required these exact values; `convex run --push` succeeded with the assertion active, proving both values were present during auth configuration evaluation. The probes and assertion were removed. A subsequent push and demo seed verified the guarded config. A signed RS256 dev token (without CLI impersonation) also read 25 exercises, 11 workouts, and 81 check-ins from the local backend after the guard was installed; an unauthenticated export request was rejected. No cloud deployment was changed or probed; non-local behavior is covered by tests.
+
+Convex documents these [system environment variables](https://docs.convex.dev/production/environment-variables) and supports [canonical URL overrides](https://docs.convex.dev/production/custom-domains). The guard assumes deployment administrators keep those URLs accurate; it does not protect against an administrator deliberately setting both production URLs to loopback.
 
 ## Connect WorkOS AuthKit
 
@@ -138,6 +144,14 @@ To add another provider, implement `MealVisionProvider` from `convex/mealVision/
 Coach settings, deterministic suggestions, and push reminders are available through Convex APIs. The UI integration contract is in [Coach API](docs/coach-api.md). Save an IANA time zone, register the browser subscription from a user click, then enable reminders. The check-in cron runs every 15 minutes. Each local day/slot sends at most once; DST gaps skip nonexistent times and repeated hours share one slot.
 
 Push defaults to a fake sender that records calls. For delivery, set `PUSH_PROVIDER=webpush`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` on Convex; set matching `NEXT_PUBLIC_VAPID_PUBLIC_KEY` on Next. Keep the private key off the client. `pnpm dev:setup` generates and retains local keys. `/sw.js` handles notifications and clicks; it does not cache the app.
+
+## Strength and body check-in APIs
+
+The backend supports an exercise library, custom exercises, ordered sets, session history, estimated strength PRs, weekly muscle set counts, and daily weight/sleep/mood/energy check-ins. The UI contract is in [Wave D API](docs/wave-d-api.md). Strength sessions create the same workout and recovery links as muscle-only tracking. Deleting a workout also removes its strength sets.
+
+## Data export
+
+`api.exportData.all({})` returns a versioned JSON snapshot of the signed-in user's settings, muscles, workouts and sets, custom exercises, drinks, meals with nutrition totals, and body check-ins. Photos, push subscriptions, and internal bookkeeping are excluded. The exact shape and download flow are in [Wave D API](docs/wave-d-api.md).
 
 ## Use the tracker
 
