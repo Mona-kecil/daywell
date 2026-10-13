@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  binBody,
   binDays,
+  bodySummary,
   bucketDays,
   dayWindow,
   streak,
@@ -124,5 +126,62 @@ describe("streaks and summary", () => {
       trainingDays: 0,
       trainingStreakWeeks: 1,
     });
+  });
+});
+
+describe("body check-in insights", () => {
+  const w = dayWindow(now, 8);
+  const days = (trained: string[] = []) =>
+    bucketDays(
+      w.days,
+      input({
+        workouts: trained.map((day) => ({
+          trainedAt: new Date(`${day}T12:00:00`).getTime(),
+          muscleIds: ["chest"],
+        })),
+      }),
+    );
+
+  it("averages a field per bin over logged days only", () => {
+    const byDay = new Map([
+      ["2026-10-12", { day: "2026-10-12", sleepHours: 6 }],
+      ["2026-10-13", { day: "2026-10-13", sleepHours: 8, weightKg: 80 }],
+    ]);
+    const [week] = binDays(days().slice(-7), 7);
+    expect(binBody(week, byDay, "sleepHours")).toBe(7);
+    expect(binBody(week, byDay, "weightKg")).toBe(80);
+    expect(binBody(week, byDay, "mood")).toBeNull();
+  });
+
+  it("summarises sleep and weight change inside the range", () => {
+    const s = bodySummary(days(), [
+      { day: "2026-10-01", weightKg: 90, sleepHours: 2 },
+      { day: "2026-10-07", weightKg: 81.5, sleepHours: 7 },
+      { day: "2026-10-10", sleepHours: 8 },
+      { day: "2026-10-13", weightKg: 80 },
+    ]);
+    expect(s.avgSleep).toBe(7.5);
+    expect(s.latestWeight).toBe(80);
+    expect(s.weightChange).toBeCloseTo(-1.5);
+    expect(s.restedMood).toBeNull();
+  });
+
+  it("compares mood after rested nights and energy on training days", () => {
+    const checkins = [
+      { day: "2026-10-06", sleepHours: 8, mood: 5, energy: 4 },
+      { day: "2026-10-07", sleepHours: 8, mood: 4, energy: 5 },
+      { day: "2026-10-08", sleepHours: 7, mood: 4, energy: 5 },
+      { day: "2026-10-09", sleepHours: 5, mood: 2, energy: 2 },
+      { day: "2026-10-10", sleepHours: 6, mood: 3, energy: 3 },
+      { day: "2026-10-11", sleepHours: 5.5, mood: 2, energy: 2 },
+    ];
+    const s = bodySummary(
+      days(["2026-10-06", "2026-10-07", "2026-10-08"]),
+      checkins,
+    );
+    expect(s.restedMood).toEqual({ rested: 13 / 3, short: 7 / 3 });
+    expect(s.trainedEnergy).toEqual({ trained: 14 / 3, rest: 7 / 3 });
+    // Fewer than three days on either side is not enough to compare.
+    expect(bodySummary(days(), checkins.slice(0, 5)).restedMood).toBeNull();
   });
 });

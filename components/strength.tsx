@@ -6,6 +6,7 @@ import { useEffect, useId, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Empty, Sheet, useTask } from "./ui";
+import { LineChart } from "./line-chart";
 
 export type Exercise = FunctionReturnType<
   typeof api.strength.exercises
@@ -19,6 +20,8 @@ export type EntryDraft = {
 };
 type MuscleRef = { _id: Id<"muscles">; name: string };
 
+const shortDay = (t: number) =>
+  new Date(t).toLocaleDateString([], { month: "short", day: "numeric" });
 export const kg = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const setLabel = (s: SetDraft) =>
@@ -497,7 +500,24 @@ function ExerciseHistory({ exerciseId }: { exerciseId: Id<"exercises"> }) {
         </div>
       )}
       {weighted && history.sessions.length > 1 && (
-        <E1rmChart sessions={history.sessions} prAt={history.prAt} />
+        <LineChart
+          className="e1rm-chart"
+          title={<span className="small">Estimated 1RM per session</span>}
+          points={history.sessions
+            .filter((s) => s.bestE1rm > 0)
+            .map((s) => ({ key: s.workoutId, t: s.trainedAt, v: s.bestE1rm }))
+            .sort((a, b) => a.t - b.t)}
+          format={kg}
+          summary={`Best ${kg(history.prE1rm)} kg`}
+          describe={(p) =>
+            `${shortDay(p.t)} · ${kg(p.v)} kg${p.t === history.prAt ? " · PR" : ""}`
+          }
+          label={`Estimated one-rep max per session; best ${kg(history.prE1rm)} kilograms.`}
+          highlight={
+            history.sessions.find((s) => s.trainedAt === history.prAt)
+              ?.workoutId
+          }
+        />
       )}
       <h3 className="sheet-subhead">Sessions</h3>
       <ul className="entry-list history-sessions">
@@ -532,145 +552,5 @@ function ExerciseHistory({ exerciseId }: { exerciseId: Id<"exercises"> }) {
         ⁄ 30)).
       </p>
     </>
-  );
-}
-
-type Session = FunctionReturnType<
-  typeof api.strength.exerciseHistory
->["sessions"][number];
-
-const W = 320;
-const H = 150;
-const PAD = { top: 16, right: 14, bottom: 24, left: 36 };
-
-function niceTicks(lo: number, hi: number) {
-  const span = Math.max(1, hi - lo);
-  const raw = span / 3;
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw)!;
-  const start = Math.floor(lo / step) * step;
-  const ticks = [];
-  for (let t = start; t <= hi + step * 0.001; t += step) ticks.push(t);
-  if (ticks[ticks.length - 1] < hi) ticks.push(ticks[ticks.length - 1] + step);
-  return ticks;
-}
-
-// One series over time: best estimated 1RM per session.
-function E1rmChart({
-  sessions,
-  prAt,
-}: {
-  sessions: Session[];
-  prAt: number | null;
-}) {
-  const points = [...sessions]
-    .filter((s) => s.bestE1rm > 0)
-    .sort((a, b) => a.trainedAt - b.trainedAt);
-  const [active, setActive] = useState<number | null>(null);
-  const values = points.map((p) => p.bestE1rm);
-  const ticks = niceTicks(Math.min(...values) * 0.95, Math.max(...values));
-  const lo = ticks[0];
-  const hi = ticks[ticks.length - 1];
-  const t0 = points[0].trainedAt;
-  const t1 = points[points.length - 1].trainedAt;
-  const x = (t: number) =>
-    PAD.left + ((t - t0) / Math.max(1, t1 - t0)) * (W - PAD.left - PAD.right);
-  const y = (v: number) =>
-    PAD.top + (1 - (v - lo) / (hi - lo)) * (H - PAD.top - PAD.bottom);
-  const path = points
-    .map((p, i) => `${i ? "L" : "M"}${x(p.trainedAt)},${y(p.bestE1rm)}`)
-    .join("");
-  const date = (t: number) =>
-    new Date(t).toLocaleDateString([], { month: "short", day: "numeric" });
-  const shown = active === null ? null : points[active];
-  return (
-    <figure className="e1rm-chart">
-      <figcaption className="chart-head">
-        <span className="small">Estimated 1RM per session</span>
-        <span className="small muted chart-readout" aria-live="polite">
-          {shown
-            ? `${date(shown.trainedAt)} · ${kg(shown.bestE1rm)} kg${shown.trainedAt === prAt ? " · PR" : ""}`
-            : `${date(t0)} – ${date(t1)}`}
-        </span>
-      </figcaption>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          const step =
-            e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-          if (!step) return;
-          e.preventDefault();
-          setActive((i) =>
-            Math.min(
-              points.length - 1,
-              Math.max(
-                0,
-                i === null ? (step > 0 ? 0 : points.length - 1) : i + step,
-              ),
-            ),
-          );
-        }}
-        onBlur={() => setActive(null)}
-        aria-label={`Estimated one-rep max went from ${kg(values[0])} to ${kg(values[values.length - 1])} kilograms over ${points.length} sessions. Use arrow keys to step through sessions.`}
-        onPointerLeave={() => setActive(null)}
-      >
-        {ticks.map((t) => (
-          <g key={t} className="chart-gridline">
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} />
-            <text x={PAD.left - 6} y={y(t)} dy="0.32em" textAnchor="end">
-              {kg(t)}
-            </text>
-          </g>
-        ))}
-        <text
-          className="chart-axis-label"
-          x={PAD.left}
-          y={H - 6}
-          textAnchor="start"
-        >
-          {date(t0)}
-        </text>
-        <text
-          className="chart-axis-label"
-          x={W - PAD.right}
-          y={H - 6}
-          textAnchor="end"
-        >
-          {date(t1)}
-        </text>
-        <path d={path} className="e1rm-line" />
-        {shown && (
-          <line
-            className="chart-crosshair"
-            x1={x(shown.trainedAt)}
-            x2={x(shown.trainedAt)}
-            y1={PAD.top}
-            y2={H - PAD.bottom}
-          />
-        )}
-        {points.map((p, i) => (
-          <g key={p.workoutId}>
-            <circle
-              className={`e1rm-dot ${p.trainedAt === prAt ? "pr" : ""} ${active === i ? "active" : ""}`}
-              cx={x(p.trainedAt)}
-              cy={y(p.bestE1rm)}
-              r={p.trainedAt === prAt ? 5.5 : 4}
-            />
-            {/* Hit target wider than the mark. */}
-            <rect
-              x={x(p.trainedAt) - 12}
-              y={PAD.top}
-              width={24}
-              height={H - PAD.top - PAD.bottom}
-              fill="transparent"
-              onPointerEnter={() => setActive(i)}
-              onClick={() => setActive(i)}
-            />
-          </g>
-        ))}
-      </svg>
-    </figure>
   );
 }

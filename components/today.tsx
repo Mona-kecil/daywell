@@ -11,6 +11,7 @@ import { BodyModel, muscleKey } from "./body3d";
 import { DayRings } from "./day-rings";
 import { Burst, useCrossing } from "./celebrate";
 import { CoachCard } from "./coach";
+import { CheckInCard } from "./checkin";
 
 // Ring targets when the user hasn't set their own in Settings.
 const PROTEIN_TARGET_G = 120;
@@ -220,6 +221,7 @@ export function Today({
           {pendingMeals > 0 ? ` · ${pendingMeals} awaiting analysis` : ""}
         </p>
       </section>
+      <CheckInCard now={now} />
       <section>
         <SectionTitle title="Quick actions" />
         <div className="quick-actions">

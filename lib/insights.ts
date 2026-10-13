@@ -47,7 +47,11 @@ export function dayWindow(now: Date, count: number) {
     start.setDate(first.getDate() + i);
     const end = new Date(start);
     end.setDate(start.getDate() + 1);
-    days.push({ key: dayKey(start), startMs: start.getTime(), endMs: end.getTime() });
+    days.push({
+      key: dayKey(start),
+      startMs: start.getTime(),
+      endMs: end.getTime(),
+    });
   }
   return { startMs: days[0].startMs, endMs: days[days.length - 1].endMs, days };
 }
@@ -157,4 +161,63 @@ function weeklyStreak(history: Day[]) {
     i++;
   }
   return n;
+}
+
+export type BodyCheckin = {
+  day: string;
+  weightKg?: number;
+  sleepHours?: number;
+  mood?: number;
+  energy?: number;
+};
+type BodyField = "weightKg" | "sleepHours" | "mood" | "energy";
+
+// Mean of one check-in field over a bin's days; null when none were logged.
+export function binBody(
+  bin: Bin,
+  byDay: Map<string, BodyCheckin>,
+  field: BodyField,
+) {
+  return mean(
+    bin.days.flatMap((d) => {
+      const v = byDay.get(d.key)?.[field];
+      return v === undefined ? [] : [v];
+    }),
+  );
+}
+
+// Two groups are compared only with at least three days on each side.
+function compare(a: number[], b: number[]) {
+  return a.length >= 3 && b.length >= 3 ? [mean(a)!, mean(b)!] : null;
+}
+
+export function bodySummary(days: Day[], checkins: BodyCheckin[]) {
+  const trained = new Map(days.map((d) => [d.key, d.trained.length > 0]));
+  const inRange = checkins.filter((c) => trained.has(c.day));
+  const weights = inRange.flatMap((c) =>
+    c.weightKg === undefined ? [] : [c.weightKg],
+  );
+  const sleeps = inRange.flatMap((c) =>
+    c.sleepHours === undefined ? [] : [c.sleepHours],
+  );
+  const moods = inRange.filter(
+    (c) => c.mood !== undefined && c.sleepHours !== undefined,
+  );
+  const energies = inRange.filter((c) => c.energy !== undefined);
+  const mood = compare(
+    moods.filter((c) => c.sleepHours! >= 7).map((c) => c.mood!),
+    moods.filter((c) => c.sleepHours! < 7).map((c) => c.mood!),
+  );
+  const energy = compare(
+    energies.filter((c) => trained.get(c.day)).map((c) => c.energy!),
+    energies.filter((c) => !trained.get(c.day)).map((c) => c.energy!),
+  );
+  return {
+    avgSleep: mean(sleeps),
+    latestWeight: weights.length ? weights[weights.length - 1] : null,
+    weightChange:
+      weights.length >= 2 ? weights[weights.length - 1] - weights[0] : null,
+    restedMood: mood && { rested: mood[0], short: mood[1] },
+    trainedEnergy: energy && { trained: energy[0], rest: energy[1] },
+  };
 }

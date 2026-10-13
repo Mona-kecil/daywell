@@ -6,21 +6,33 @@ import {
   type PointerEvent,
 } from "react";
 import { useQuery } from "convex/react";
-import { Droplets, Dumbbell, Flame, Sparkles, Table2 } from "lucide-react";
+import {
+  Droplets,
+  Dumbbell,
+  Flame,
+  Moon,
+  Scale,
+  Sparkles,
+  Table2,
+} from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import {
   HISTORY_DAYS,
   RANGES,
+  binBody,
   binDays,
+  bodySummary,
   bucketDays,
   dayKey,
   dayWindow,
   summarize,
   type Bin,
+  type BodyCheckin,
   type InsightsInput,
   type RangeId,
 } from "@/lib/insights";
 import { SectionTitle } from "./ui";
+import { LineChart } from "./line-chart";
 import {
   BodyModel,
   mix,
@@ -42,19 +54,27 @@ export function Insights({ now }: { now: number }) {
     startMs: period.startMs,
     endMs: period.endMs,
   });
-  if (!data)
+  const checkins = useQuery(api.checkins.range, {
+    fromDay: period.days[0].key,
+    toDay: period.days[period.days.length - 1].key,
+  });
+  if (!data || !checkins)
     return (
       <div className="card" role="status">
         Loading insights…
       </div>
     );
-  return <InsightsView data={data} period={period} />;
+  return <InsightsView data={data} period={period} checkins={checkins} />;
 }
 
 const litres = (ml: number) =>
   `${(ml / 1000).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 })} L`;
 const whole = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+const oneDp = (n: number) =>
+  n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+const signedKg = (n: number) =>
+  `${n > 0 ? "+" : n < 0 ? "−" : "±"}${oneDp(Math.abs(n))} kg`;
 
 function binLabel(bin: Bin) {
   const start = new Date(bin.startMs);
@@ -422,10 +442,16 @@ function TrainingBody({
 function DataTable({
   bins,
   muscles,
+  byDay,
 }: {
   bins: Bin[];
   muscles: InsightsInput["muscles"];
+  byDay: Map<string, BodyCheckin>;
 }) {
+  const body = (b: Bin, field: "sleepHours" | "weightKg", unit: string) => {
+    const v = binBody(b, byDay, field);
+    return v === null ? "–" : `${oneDp(v)} ${unit}`;
+  };
   const name = new Map(muscles.map((m) => [m._id, m.name]));
   const weekly = bins[0]?.days.length > 1;
   return (
@@ -443,6 +469,8 @@ function DataTable({
               <th scope="col">Protein</th>
               <th scope="col">Carbs</th>
               <th scope="col">Fat</th>
+              <th scope="col">Sleep</th>
+              <th scope="col">Weight</th>
               <th scope="col">Trained</th>
             </tr>
           </thead>
@@ -455,6 +483,8 @@ function DataTable({
                 <td>{b.macros ? `${whole(b.macros.protein)} g` : "–"}</td>
                 <td>{b.macros ? `${whole(b.macros.carbs)} g` : "–"}</td>
                 <td>{b.macros ? `${whole(b.macros.fat)} g` : "–"}</td>
+                <td>{body(b, "sleepHours", "h")}</td>
+                <td>{body(b, "weightKg", "kg")}</td>
                 <td className="capitalize">
                   {[...b.trained.keys()]
                     .map((id) => name.get(id) ?? "Muscle")
@@ -472,9 +502,11 @@ function DataTable({
 export function InsightsView({
   data,
   period,
+  checkins = [],
 }: {
   data: InsightsInput;
   period: ReturnType<typeof dayWindow>;
+  checkins?: BodyCheckin[];
 }) {
   const [range, setRange] = useState<RangeId>("7d");
   const [table, setTable] = useState(false);
@@ -483,6 +515,14 @@ export function InsightsView({
   const days = history.slice(-count);
   const bins = binDays(days, size);
   const stats = summarize(days, history, data);
+  const body = bodySummary(days, checkins);
+  const byDay = new Map(checkins.map((c) => [c.day, c]));
+  const dayStart = new Map(days.map((d) => [d.key, d.startMs]));
+  const weightPoints = checkins.flatMap((c) =>
+    c.weightKg !== undefined && dayStart.has(c.day)
+      ? [{ key: c.day, t: dayStart.get(c.day)!, v: c.weightKg }]
+      : [],
+  );
   const per = size > 1 ? "/day avg" : "";
 
   const notes: string[] = [];
@@ -498,13 +538,27 @@ export function InsightsView({
     notes.push(
       `Protein averaged ${whole(stats.avgProtein)} g across ${stats.mealDays} logged ${stats.mealDays === 1 ? "day" : "days"}.`,
     );
+  const { restedMood, trainedEnergy } = body;
+  if (restedMood && Math.abs(restedMood.rested - restedMood.short) >= 0.3)
+    notes.push(
+      `Mood averaged ${oneDp(restedMood.rested)}/5 after 7 h+ of sleep, ${oneDp(restedMood.short)}/5 after shorter nights.`,
+    );
+  if (
+    trainedEnergy &&
+    Math.abs(trainedEnergy.trained - trainedEnergy.rest) >= 0.3
+  )
+    notes.push(
+      `Energy averaged ${oneDp(trainedEnergy.trained)}/5 on training days, ${oneDp(trainedEnergy.rest)}/5 on rest days.`,
+    );
 
   return (
     <>
       <section className="page-heading">
         <div className="eyebrow">TRENDS</div>
         <h1>Insights.</h1>
-        <p className="muted">How your water, meals, and training add up.</p>
+        <p className="muted">
+          How your water, meals, training, and body add up.
+        </p>
       </section>
       <div className="insights-filters">
         <div className="segmented" role="group" aria-label="Date range">
@@ -565,6 +619,30 @@ export function InsightsView({
               ` · ${stats.trainingStreakWeeks}-week streak`}
           </span>
         </div>
+        {body.avgSleep !== null && (
+          <div className="stat">
+            <Moon size={18} className="blue-text" />
+            <strong>
+              {oneDp(body.avgSleep)}
+              <small> h</small>
+            </strong>
+            <span>Avg sleep</span>
+          </div>
+        )}
+        {body.latestWeight !== null && (
+          <div className="stat">
+            <Scale size={18} className="green-text" />
+            <strong>
+              {oneDp(body.latestWeight)}
+              <small> kg</small>
+            </strong>
+            <span>
+              Latest weight
+              {body.weightChange !== null &&
+                ` · ${signedKg(body.weightChange)}`}
+            </span>
+          </div>
+        )}
       </div>
       {notes.length > 0 && (
         <section className="card insight-notes">
@@ -580,7 +658,7 @@ export function InsightsView({
         </section>
       )}
       {table ? (
-        <DataTable bins={bins} muscles={data.muscles} />
+        <DataTable bins={bins} muscles={data.muscles} byDay={byDay} />
       ) : (
         <>
           <BarChart
@@ -650,6 +728,40 @@ export function InsightsView({
             }
             format={(v) => `${whole(v)}g`}
           />
+          {body.avgSleep !== null && (
+            <BarChart
+              title="Sleep"
+              unit="hours"
+              bins={bins}
+              series={[
+                {
+                  id: "sleep",
+                  label: "Sleep",
+                  value: (b) => binBody(b, byDay, "sleepHours"),
+                },
+              ]}
+              summary={`Avg ${oneDp(body.avgSleep)} h a night`}
+              describe={(b) => {
+                const h = binBody(b, byDay, "sleepHours");
+                return h === null ? "Not logged" : `${oneDp(h)} h${per}`;
+              }}
+              format={(v) => `${v}h`}
+              goal={{ value: 8, label: "8 h" }}
+            />
+          )}
+          {weightPoints.length >= 2 && (
+            <LineChart
+              className="card chart"
+              title={<h3>Weight</h3>}
+              points={weightPoints}
+              format={oneDp}
+              summary={`${oneDp(body.latestWeight!)} kg · ${signedKg(body.weightChange!)} in this range`}
+              describe={(p) =>
+                `${new Date(p.t).toLocaleDateString([], { month: "short", day: "numeric" })} · ${oneDp(p.v)} kg`
+              }
+              label={`Weight went from ${oneDp(weightPoints[0].v)} to ${oneDp(body.latestWeight!)} kilograms.`}
+            />
+          )}
           <TrainingBody bins={bins} muscles={data.muscles} />
           <TrainingMap bins={bins} muscles={data.muscles} />
         </>

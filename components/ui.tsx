@@ -124,15 +124,17 @@ export function SectionTitle({
   title,
   detail,
   action,
+  id,
 }: {
   title: string;
   detail?: string;
   action?: ReactNode;
+  id?: string;
 }) {
   return (
     <div className="section-heading">
       <div>
-        <h2>{title}</h2>
+        <h2 id={id}>{title}</h2>
         {detail && <p className="muted small">{detail}</p>}
       </div>
       {action}
