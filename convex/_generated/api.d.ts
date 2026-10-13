@@ -18,6 +18,7 @@ import type * as insights from "../insights.js";
 import type * as mealActions from "../mealActions.js";
 import type * as mealVision_fake from "../mealVision/fake.js";
 import type * as mealVision_index from "../mealVision/index.js";
+import type * as mealVision_openai from "../mealVision/openai.js";
 import type * as mealVision_types from "../mealVision/types.js";
 import type * as meals from "../meals.js";
 import type * as model from "../model.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   mealActions: typeof mealActions;
   "mealVision/fake": typeof mealVision_fake;
   "mealVision/index": typeof mealVision_index;
+  "mealVision/openai": typeof mealVision_openai;
   "mealVision/types": typeof mealVision_types;
   meals: typeof meals;
   model: typeof model;

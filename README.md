@@ -2,7 +2,7 @@
 
 Daywell tracks muscle recovery, water, and meals for one signed-in user. It has a Today overview and a bottom tab bar. Data lives in Convex. WorkOS AuthKit owns login.
 
-The app uses Next.js 16.4.0, the stable version returned by the registry during setup, React 19, strict TypeScript, Tailwind 4, and pnpm. The vision provider is `fake`. It returns sample foods and reads edited descriptions. It does not inspect image pixels.
+The app uses Next.js 16.4.0, the stable version returned by the registry during setup, React 19, strict TypeScript, Tailwind 4, and pnpm. The vision provider defaults to `fake`, which returns sample foods and reads edited descriptions. The optional `openai` provider analyzes meal photos through the Responses API.
 
 ## Run the app
 
@@ -115,39 +115,23 @@ Energy uses nutrient ID 1008, then 2047, then 2048. Energy must be in kcal and t
 
 Changing grams scales the stored nutrients without an API call. Re-searching an item calls USDA. Re-analysis sends the stored photo and edited description to the provider. Revision numbers prevent old analysis results from overwriting newer edits. If an action stops before completion, **Restart analysis** appears after 90 seconds.
 
-## Plugging in a real vision provider
+## OpenAI meal vision
 
-Add one file: `convex/mealVision/real.ts`.
-
-Export a provider that implements `MealVisionProvider` from `convex/mealVision/types.ts`. Its only method is:
-
-```ts
-analyze(input: { imageUrl: string; description?: string }): Promise<VisionResult>
-```
-
-Return this shape:
-
-```ts
-{
-  description: string;
-  items: {
-    name: string;
-    estimatedGrams: number;
-    searchQuery: string;
-  }
-  [];
-}
-```
-
-When `description` is supplied, treat that text as ground truth. Derive foods from the edited text. Keep the photo as context. The boundary validates the result with `visionResultSchema`.
-
-Import the provider in `convex/mealVision/index.ts` and add a `real` selection branch. Keep `fake` as an option. Set the deployment environment variable:
+Set these variables on Convex, where meal actions run:
 
 ```sh
-npx convex env set MEAL_VISION_PROVIDER real
+npx convex env set MEAL_VISION_PROVIDER openai
+npx convex env set OPENAI_API_KEY '<your OpenAI API key>'
+npx convex env set OPENAI_VISION_MODEL '<your chosen vision-capable model>'
 ```
 
-Set any provider credentials on Convex. No OpenAI, Anthropic, or other LLM SDK is installed. No real vision provider is implemented in this version.
+`OPENAI_VISION_MODEL` is required. Choose an available model that supports image input and structured outputs. No model name is hardcoded. Keep `OPENAI_API_KEY` on Convex; do not expose it through a `NEXT_PUBLIC_` variable. Switching back to `MEAL_VISION_PROVIDER=fake` requires neither OpenAI setting. `dev:setup` restores fake mode for local smoke tests.
+
+The provider fetches the stored photo and sends a base64 data URL to the [Responses API image input](https://developers.openai.com/api/docs/guides/images-vision). This also supports local Convex storage URLs that OpenAI cannot fetch. It sends the optional edited description as text and treats it as ground truth. The prompt asks for each food's estimated grams and generic USDA-friendly search terms. The request uses `store: false` and [strict structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), with JSON Schema derived from `visionResultSchema`. Zod validates the returned meal data before USDA grounding.
+
+Missing credentials or model, HTTP 401/429, model/request errors, incomplete or refused responses, invalid data, and a 45-second timeout produce messages in the existing meal error state. The timeout covers both the photo download and API request. The implementation uses raw `fetch`; no OpenAI SDK is installed. Contract tests stub every fetch. No live OpenAI call was made during implementation. Photo-based gram estimates remain estimates; users can edit portions through the existing meal workflow.
+
+To add another provider, implement `MealVisionProvider` from `convex/mealVision/types.ts` and select it in `convex/mealVision/index.ts`. Its method is `analyze({ imageUrl: string, description?: string }): Promise<VisionResult>`, returning `{ description: string, items: { name: string, estimatedGrams: number, searchQuery: string }[] }`. The provider boundary validates the result. Keep fake as a local test option.
 
 ## Coach and push reminders
 
