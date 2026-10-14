@@ -1,4 +1,5 @@
 "use client";
+import { BreathCard } from "./breath";
 import { ArrowRight, Camera, Dumbbell, Droplets, Leaf } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -266,6 +267,7 @@ export function Today({
         </p>
       </section>
       <CheckInCard now={now} />
+      <BreathCard />
       <DayTimeline
         now={now}
         water={water}

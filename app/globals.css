@@ -4988,3 +4988,96 @@ h1,
 .rep-pct {
   color: var(--muted);
 }
+/* Breathing */
+.breath-patterns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.breath-patterns .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  text-align: left;
+}
+.breath-patterns .chip strong {
+  font-size: 14px;
+}
+.breath-patterns .chip span {
+  font-size: 12px;
+  line-height: 1.3;
+}
+.breath-length {
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.breath-length .segmented button {
+  min-height: 44px;
+  padding: 0 12px;
+}
+.breath-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+}
+.breath-run {
+  --tone: var(--blue);
+  --tone-soft: var(--blue-soft);
+}
+.breath-run.done {
+  --tone-soft: var(--surface);
+}
+.breath-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: min(76vw, 300px);
+  aspect-ratio: 1;
+  margin-bottom: 8px;
+}
+/* The full-breath outline the orb grows into. */
+.breath-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px dashed color-mix(in srgb, var(--tone) 35%, transparent);
+  border-radius: 50%;
+}
+.breath-orb {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* Solid under the count for contrast, softer toward the rim. */
+  background: radial-gradient(
+    circle,
+    var(--tone) 45%,
+    color-mix(in srgb, var(--tone) 72%, var(--surface))
+  );
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+}
+.breath-count {
+  position: relative;
+  color: var(--surface);
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* A steady orb; the words and count carry the pace. */
+  .breath-orb {
+    transform: scale(0.8) !important;
+    transition: none;
+  }
+}
