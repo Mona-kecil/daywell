@@ -11,6 +11,11 @@
 import type * as achievements from "../achievements.js";
 import type * as checkins from "../checkins.js";
 import type * as coach from "../coach.js";
+import type * as coachChat from "../coachChat.js";
+import type * as coachChatProviders_fake from "../coachChatProviders/fake.js";
+import type * as coachChatProviders_index from "../coachChatProviders/index.js";
+import type * as coachChatProviders_openai from "../coachChatProviders/openai.js";
+import type * as coachChatProviders_types from "../coachChatProviders/types.js";
 import type * as coachCron from "../coachCron.js";
 import type * as coachData from "../coachData.js";
 import type * as crons from "../crons.js";
@@ -49,6 +54,11 @@ declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
   checkins: typeof checkins;
   coach: typeof coach;
+  coachChat: typeof coachChat;
+  "coachChatProviders/fake": typeof coachChatProviders_fake;
+  "coachChatProviders/index": typeof coachChatProviders_index;
+  "coachChatProviders/openai": typeof coachChatProviders_openai;
+  "coachChatProviders/types": typeof coachChatProviders_types;
   coachCron: typeof coachCron;
   coachData: typeof coachData;
   crons: typeof crons;

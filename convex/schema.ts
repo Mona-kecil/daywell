@@ -3,6 +3,33 @@ import { v } from "convex/values";
 import { mealItem, pushKeys, pushPayload } from "./validators";
 
 export default defineSchema({
+  coachChatLimits: defineTable({
+    userId: v.string(),
+    sentAt: v.array(v.number()),
+  }).index("by_user", ["userId"]),
+  coachMessages: defineTable(
+    v.union(
+      v.object({
+        userId: v.string(),
+        role: v.literal("user"),
+        text: v.string(),
+        at: v.number(),
+        status: v.literal("done"),
+      }),
+      v.object({
+        userId: v.string(),
+        role: v.literal("assistant"),
+        text: v.string(),
+        at: v.number(),
+        status: v.union(
+          v.literal("pending"),
+          v.literal("done"),
+          v.literal("error"),
+        ),
+        error: v.optional(v.string()),
+      }),
+    ),
+  ).index("by_user_time", ["userId", "at"]),
   settings: defineTable({
     userId: v.string(),
     waterGoal: v.number(),

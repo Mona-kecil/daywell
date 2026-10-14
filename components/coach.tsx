@@ -3,6 +3,7 @@ import { useConvex, useMutation, useQuery } from "convex/react";
 import {
   BellOff,
   BellRing,
+  MessageCircle,
   Download,
   Dumbbell,
   Droplets,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/push-client";
 import type { Suggestion } from "@/lib/coach";
 import { dayKey } from "@/lib/insights";
+import { CoachChatSheet } from "./coach-chat";
 import { Sheet, useTask } from "./ui";
 import type { Tab } from "./tracker";
 
@@ -52,6 +54,7 @@ export function CoachCard({
     now: minute,
     timeZone: deviceTimeZone(),
   });
+  const [chatting, setChatting] = useState(false);
   if (!suggestions) return null;
   return (
     <section className="card coach-card" aria-labelledby="coach-title">
@@ -60,7 +63,15 @@ export function CoachCard({
           <Sparkles size={16} />
         </span>
         <h2 id="coach-title">Coach</h2>
+        <button
+          type="button"
+          className="soft-button coach-ask"
+          onClick={() => setChatting(true)}
+        >
+          <MessageCircle size={15} /> Ask
+        </button>
       </div>
+      <CoachChatSheet open={chatting} onClose={() => setChatting(false)} />
       {suggestions.length === 0 ? (
         <p className="muted coach-clear">
           You’re on track. Nothing needs your attention right now.
