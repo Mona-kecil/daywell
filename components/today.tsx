@@ -18,6 +18,7 @@ import { Burst, useCrossing } from "./celebrate";
 import { CoachCard } from "./coach";
 import { QuickLogButton } from "./quick-log";
 import { CheckInCard } from "./checkin";
+import { HabitsCard } from "./habits";
 import { CaffeineCard } from "./caffeine";
 import { DayTimeline } from "./timeline";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -267,6 +268,7 @@ export function Today({
         </p>
       </section>
       <CheckInCard now={now} />
+      <HabitsCard now={now} />
       <BreathCard />
       <DayTimeline
         now={now}
