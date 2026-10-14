@@ -315,6 +315,36 @@ describe("coach chat", () => {
     );
   });
 
+  it.each([
+    ["2026-10-05", false],
+    ["2026-10-13", true],
+    ["2026-10-09", true],
+    ["2026-10-08", false],
+    ["2026-10-16", false],
+  ])(
+    "limits snapshot check-in %s to seven local days",
+    async (day, included) => {
+      const { t, alice } = setup();
+      // Jakarta is already on October 15 while UTC is still on October 14.
+      vi.setSystemTime(Date.UTC(2026, 9, 14, 18));
+      await alice.mutation(api.checkins.upsert, { day, weightKg: 70 });
+      const id = await alice.mutation(api.coachChat.send, args);
+      const source = await t.query(internal.coachChat.readReply, {
+        id,
+        timeZone: args.timeZone,
+      });
+      if (source?.kind !== "ready") throw new Error("Missing reply source");
+      expect(source.input.snapshot.local.day).toBe("2026-10-15");
+      expect(source.input.snapshot.last7Days.fromDay).toBe("2026-10-09");
+      expect(source.input.snapshot.latestCheckin).toEqual(
+        included
+          ? { day, weightKg: 70, sleepHours: null, mood: null, energy: null }
+          : null,
+      );
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    },
+  );
+
   it("loads at most twelve completed turns and only the owner's snapshot", async () => {
     const { t, alice } = setup();
     await t.run(async (ctx) => {

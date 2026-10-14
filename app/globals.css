@@ -9,7 +9,7 @@
   --green-soft: #e7f0e3;
   --blue: #3f788e;
   --blue-soft: #e8f2f6;
-  --amber: #ad7433;
+  --amber: #8f5c1f;
   --amber-soft: #f8f0df;
   --track: #edf0e9;
   --shadow: 0 3px 16px #18352704;
@@ -2063,8 +2063,9 @@ h1,
 .time-chips button {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  margin: -4px -6px -4px -4px;
   border: 0;
   border-radius: 99px;
   background: none;
@@ -3439,6 +3440,19 @@ h1,
   align-items: center;
   gap: 6px;
 }
+.proposal-text {
+  width: 100%;
+  resize: none;
+  field-sizing: content;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
 .proposal-amount input {
   width: 92px;
   min-height: 40px;
@@ -3454,6 +3468,16 @@ h1,
   list-style: none;
   padding: 0;
   margin: 0;
+}
+.meal-items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+}
+.meal-items .icon-button {
+  margin: -4px -10px -4px 0;
+  color: var(--muted);
 }
 .leftover {
   margin-bottom: 14px;

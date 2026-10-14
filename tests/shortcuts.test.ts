@@ -219,6 +219,7 @@ describe("shortcut HTTP actions", () => {
       ]) {
         const response = await t.fetch(path, { method, headers });
         expect(response.status).toBe(401);
+        expect(response.headers.get("cache-control")).toBe("no-store");
         expect(await response.json()).toEqual(unauthorized);
       }
     },
@@ -307,8 +308,173 @@ describe("shortcut HTTP actions", () => {
     const { t } = setup();
     const response = await t.fetch(path, { method });
     expect(response.status).toBe(405);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("Allow")).toBe(allow);
     expect(await response.json()).toEqual({ error: "Method not allowed." });
+  });
+
+  it.each(["5000", undefined, "1", "invalid"])(
+    "rejects a 5000-byte body before mutation with Content-Length %s",
+    async (contentLength) => {
+      const { t, alice } = setup();
+      const token = await alice.mutation(api.shortcuts.createToken, {});
+      const readData = () =>
+        t.run(async (ctx) => ({
+          tokens: await ctx.db.query("shortcutTokens").collect(),
+          limits: await ctx.db.query("shortcutLimits").collect(),
+          water: await ctx.db.query("water").collect(),
+          checkins: await ctx.db.query("bodyCheckins").collect(),
+        }));
+      const before = await readData();
+      for (const [path, payload] of [
+        ["/shortcuts/water", { amountMl: 250 }],
+        ["/shortcuts/checkin", { day: "2026-10-14", mood: 3 }],
+      ] as const) {
+        const bytes = new TextEncoder().encode(
+          JSON.stringify(payload).padEnd(5000, " "),
+        );
+        const cancel = vi.fn();
+        let offset = 0;
+        const pull = vi.fn(
+          (controller: ReadableStreamDefaultController<Uint8Array>) => {
+            if (offset === bytes.length) controller.close();
+            else {
+              controller.enqueue(bytes.slice(offset, offset + 2500));
+              offset += 2500;
+            }
+          },
+        );
+        const headers = new Headers(auth(token));
+        if (contentLength !== undefined)
+          headers.set("Content-Length", contentLength);
+        const init = {
+          method: "POST",
+          headers,
+          body: new ReadableStream({ pull, cancel }, { highWaterMark: 0 }),
+          duplex: "half",
+        };
+        const response = await t.fetch(path, init);
+        expect(response.status).toBe(413);
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        expect(await response.json()).toEqual({
+          error: "Request body is too large.",
+        });
+        expect(pull).toHaveBeenCalledTimes(contentLength === "5000" ? 0 : 2);
+        expect(cancel).toHaveBeenCalledTimes(contentLength === "5000" ? 0 : 1);
+        expect(await readData()).toEqual(before);
+      }
+    },
+  );
+
+  it("accepts a 4096-byte body and rejects a larger UTF-8 body by byte count", async () => {
+    const { t, alice } = setup();
+    const token = await alice.mutation(api.shortcuts.createToken, {});
+    const payload = JSON.stringify({
+      day: "2026-10-14",
+      note: "é".repeat(100),
+    });
+    const byteLength = new TextEncoder().encode(payload).byteLength;
+    const accepted = await t.fetch("/shortcuts/checkin", {
+      method: "POST",
+      headers: auth(token),
+      body: payload + " ".repeat(4096 - byteLength),
+    });
+    expect(accepted.status).toBe(200);
+    const before = await alice.query(api.checkins.get, { day: "2026-10-14" });
+    const rejected = await t.fetch("/shortcuts/checkin", {
+      method: "POST",
+      headers: auth(token),
+      body: payload.padEnd(4096, " "),
+    });
+    expect(rejected.status).toBe(413);
+    expect(await rejected.json()).toEqual({
+      error: "Request body is too large.",
+    });
+    expect(await alice.query(api.checkins.get, { day: "2026-10-14" })).toEqual(
+      before,
+    );
+  });
+
+  it("checks token format before reading the body", async () => {
+    const { t } = setup();
+    const pull = vi.fn();
+    const init = {
+      method: "POST",
+      headers: auth("invalid"),
+      body: new ReadableStream({ pull }, { highWaterMark: 0 }),
+      duplex: "half",
+    };
+    const response = await t.fetch("/shortcuts/water", init);
+    expect(response.status).toBe(401);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual(unauthorized);
+    expect(pull).not.toHaveBeenCalled();
+  });
+
+  it.each(["Bearer  ", "bEaReR\t \t"])(
+    "authenticates a trimmed header with scheme whitespace %j",
+    async (scheme) => {
+      const { t, alice } = setup();
+      const token = await alice.mutation(api.shortcuts.createToken, {});
+      const response = await t.fetch("/shortcuts/water", {
+        ...post(token, { amountMl: 250 }),
+        headers: { Authorization: `  ${scheme}${token} \t` },
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        ok: true,
+        id: expect.any(String),
+      });
+      expect(await t.run((ctx) => ctx.db.query("water").collect())).toEqual([
+        expect.objectContaining({ userId: "alice", amountMl: 250, at: now }),
+      ]);
+    },
+  );
+
+  it.each([
+    [now + hour, "Use a time no more than 5 minutes in the future."],
+    [now - 8 * 24 * hour, "Use a time within the last 7 days."],
+    [now + 5 * 60_000 + 1, "Use a time no more than 5 minutes in the future."],
+    [now - 7 * 24 * hour - 1, "Use a time within the last 7 days."],
+  ])("rejects out-of-window Shortcuts water time %s", async (at, error) => {
+    const { t, alice } = setup();
+    const token = await alice.mutation(api.shortcuts.createToken, {});
+    const response = await t.fetch(
+      "/shortcuts/water",
+      post(token, { amountMl: 250, at }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error });
+    expect(await t.run((ctx) => ctx.db.query("water").collect())).toEqual([]);
+  });
+
+  it.each([now - hour, now - 7 * 24 * hour, now + 5 * 60_000])(
+    "accepts Shortcuts water within the timestamp window: %s",
+    async (at) => {
+      const { t, alice } = setup();
+      const token = await alice.mutation(api.shortcuts.createToken, {});
+      const response = await t.fetch(
+        "/shortcuts/water",
+        post(token, { amountMl: 250, at }),
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        ok: true,
+        id: expect.any(String),
+      });
+      expect(await t.run((ctx) => ctx.db.query("water").collect())).toEqual([
+        expect.objectContaining({ userId: "alice", amountMl: 250, at }),
+      ]);
+    },
+  );
+
+  it("keeps the app's water timestamp behavior", async () => {
+    const { t, alice } = setup();
+    for (const at of [now + hour, now - 8 * 24 * hour])
+      await alice.mutation(api.tracker.addWater, { amountMl: 250, at });
+    expect(await t.run((ctx) => ctx.db.query("water").collect())).toHaveLength(
+      2,
+    );
   });
 
   it("shares a rolling 60-request user limit across routes and token rotation", async () => {

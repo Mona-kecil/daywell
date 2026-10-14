@@ -9,6 +9,7 @@ import {
   MicOff,
   Sparkles,
   Utensils,
+  X,
 } from "lucide-react";
 import {
   useEffect,
@@ -220,7 +221,8 @@ function QuickLog({ onDone }: { onDone: () => void }) {
   const chosen = drafts?.filter((d) => d.on) ?? [];
   const invalid = chosen.some(
     ({ proposal: p }) =>
-      p.kind === "water" && !(p.amountMl > 0 && p.amountMl <= 10_000),
+      (p.kind === "water" && !(p.amountMl > 0 && p.amountMl <= 10_000)) ||
+      (p.kind === "meal" && !p.description.trim()),
   );
   const logAll = () =>
     void run(async () => {
@@ -421,11 +423,35 @@ function Detail({
     case "meal":
       return (
         <>
-          <p className="small">{p.description}</p>
+          <textarea
+            rows={1}
+            className="proposal-text"
+            aria-label="Meal description"
+            maxLength={4000}
+            value={p.description}
+            onChange={(e) => onChange({ ...p, description: e.target.value })}
+          />
           <ul className="meal-items muted small">
             {p.items.map((item, i) => (
               <li key={i}>
-                {item.name} · {item.grams} g
+                <span>
+                  {item.name} · {item.grams} g
+                </span>
+                {p.items.length > 1 && (
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label={`Remove ${item.name}`}
+                    onClick={() =>
+                      onChange({
+                        ...p,
+                        items: p.items.filter((_, j) => j !== i),
+                      })
+                    }
+                  >
+                    <X size={15} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

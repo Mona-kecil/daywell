@@ -96,6 +96,25 @@ describe("coach chat", () => {
     );
   });
 
+  it("judges a stalled answer by the server clock, not the device's", async () => {
+    // This device runs 10 minutes ahead of the server.
+    vi.spyOn(Date, "now").mockReturnValue(at + 10 * 60_000);
+    mocks.mutation.mockResolvedValueOnce("a" as never);
+    const { rerender } = open();
+    await userEvent.type(screen.getByLabelText("Your question"), "Hi{Enter}");
+    mocks.messages = [
+      { _id: "u", role: "user", text: "Hi", at, status: "done" },
+      { _id: "a", role: "assistant", text: "", at, status: "pending" },
+    ];
+    rerender(
+      <FeedbackProvider>
+        <CoachChatSheet open onClose={() => {}} />
+      </FeedbackProvider>,
+    );
+    expect(screen.getByText("Coach is typing")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("shows a failed answer's reason", () => {
     mocks.messages = [
       { _id: "u", role: "user", text: "Hi", at, status: "done" },

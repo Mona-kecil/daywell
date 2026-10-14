@@ -4,6 +4,34 @@ import { internal } from "./_generated/api";
 import { hashToken } from "./shortcuts";
 
 const http = httpRouter();
+const noStoreHeaders = { "Cache-Control": "no-store" };
+const maxBodyBytes = 4096;
+
+async function readBody(request: Request): Promise<string | null> {
+  const contentLength = request.headers.get("Content-Length");
+  if (contentLength !== null && Number(contentLength) > maxBodyBytes)
+    return null;
+  if (!request.body) return "";
+
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let bytes = 0;
+  let body = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return body + decoder.decode();
+      bytes += value.byteLength;
+      if (bytes > maxBodyBytes) {
+        await reader.cancel();
+        return null;
+      }
+      body += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 for (const route of [
   { path: "/shortcuts/water", method: "POST", kind: "water" },
@@ -14,26 +42,32 @@ for (const route of [
     if (request.method !== route.method)
       return Response.json(
         { error: "Method not allowed." },
-        { status: 405, headers: { Allow: route.method } },
+        { status: 405, headers: { ...noStoreHeaders, Allow: route.method } },
       );
     const authorization = request.headers.get("Authorization");
-    const token = /^Bearer (dw_[A-Za-z0-9_-]{43})$/i.exec(
-      authorization ?? "",
+    const token = /^Bearer\s+(dw_[A-Za-z0-9_-]{43})$/i.exec(
+      authorization?.trim() ?? "",
     )?.[1];
     if (!token)
       return Response.json(
         { error: "Invalid or missing token." },
-        { status: 401 },
+        { status: 401, headers: noStoreHeaders },
+      );
+    const body = route.method === "POST" ? await readBody(request) : "";
+    if (body === null)
+      return Response.json(
+        { error: "Request body is too large." },
+        { status: 413, headers: noStoreHeaders },
       );
     const result = await ctx.runMutation(internal.shortcuts.request, {
       hash: await hashToken(token),
       kind: route.kind,
-      body: route.method === "POST" ? await request.text() : "",
+      body,
       timeZone: new URL(request.url).searchParams.get("timeZone") ?? undefined,
     });
     return Response.json(result.body, {
       status: result.status,
-      headers: { "Cache-Control": "no-store" },
+      headers: noStoreHeaders,
     });
   });
   for (const method of ROUTABLE_HTTP_METHODS)

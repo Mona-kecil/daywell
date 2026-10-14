@@ -13,6 +13,7 @@ import { requireUser } from "./model";
 import { validHistoryClock } from "./historyData";
 import { suggestionsFor } from "./coachData";
 import { localClock, normalizeTimeZone } from "../lib/coach-time";
+import { shiftDay } from "../lib/history";
 import {
   buildCoachSnapshot,
   COACH_HISTORY_WINDOW_MS,
@@ -172,6 +173,7 @@ export const readReply = internalQuery({
     const userId = message.userId;
     const start = Math.max(0, now - COACH_HISTORY_WINDOW_MS);
     const today = localClock(now, args.timeZone).localDay;
+    const fromDay = shiftDay(today, -6);
     const [storedSettings, water, meals, workouts, groups, checkin, recent] =
       await Promise.all([
         ctx.db
@@ -206,7 +208,7 @@ export const readReply = internalQuery({
         ctx.db
           .query("bodyCheckins")
           .withIndex("by_user_day", (q) =>
-            q.eq("userId", userId).lte("day", today),
+            q.eq("userId", userId).gte("day", fromDay).lte("day", today),
           )
           .order("desc")
           .first(),

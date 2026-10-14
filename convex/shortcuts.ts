@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { createWater, requireUser } from "./model";
+import { createWater, requireUser, validTimestamp } from "./model";
 import { upsertCheckin } from "./checkinModel";
 import { todayDataFor } from "./coachData";
 import { localClock, normalizeTimeZone } from "../lib/coach-time";
@@ -152,9 +152,17 @@ export const request = internalMutation({
       switch (args.kind) {
         case "water": {
           const input = waterInput.parse(JSON.parse(args.body));
+          const at = input.at ?? now;
+          validTimestamp(at);
+          if (at < now - 7 * 24 * 3_600_000)
+            throw new ConvexError("Use a time within the last 7 days.");
+          if (at > now + 5 * 60_000)
+            throw new ConvexError(
+              "Use a time no more than 5 minutes in the future.",
+            );
           const id = await createWater(ctx, userId, {
             amountMl: input.amountMl,
-            at: input.at ?? now,
+            at,
           });
           return { status: 200, body: { ok: true, id } };
         }

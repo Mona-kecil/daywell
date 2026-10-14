@@ -36,7 +36,18 @@ function CoachChat() {
   const [text, setText] = useState("");
   const [confirming, setConfirming] = useState(false);
   const log = useRef<HTMLDivElement>(null);
-  const now = useClock();
+  // Message times come from the server clock; learn this device's offset
+  // from our own question so a skewed clock can't misjudge a stalled reply.
+  const [sent, setSent] = useState<{ id: string; clientAt: number } | null>(
+    null,
+  );
+  const [skew, setSkew] = useState(0);
+  const mine = sent && messages?.find((m) => m._id === sent.id);
+  if (sent && mine) {
+    setSkew(mine.at - sent.clientAt);
+    setSent(null);
+  }
+  const now = useClock() + skew;
   const stalled = (m: { status: string; at: number }) =>
     m.status === "pending" && now - m.at >= COACH_PENDING_MS;
   const answering =
@@ -53,7 +64,9 @@ function CoachChat() {
   const ask = (question: string) => {
     if (!question.trim() || busy) return;
     void run(async () => {
-      await send({ text: question, timeZone: deviceTimeZone() });
+      const start = Date.now();
+      const id = await send({ text: question, timeZone: deviceTimeZone() });
+      setSent({ id, clientAt: (start + Date.now()) / 2 });
       setText("");
     });
   };
@@ -76,9 +89,9 @@ function CoachChat() {
             <Sparkles size={22} />
           </span>
           <p>
-            Ask about your day. Your coach sees the last week of what you log:
-            water, meals, training, recovery and check-ins like sleep and
-            weight. It doesn’t see your photos.
+            Ask about your day. Your coach sees today’s log, your last week of
+            water, meals and training, current muscle recovery and your latest
+            check-in from this week. It doesn’t see your photos.
           </p>
           <div className="chat-starters">
             {STARTERS.map((s) => (

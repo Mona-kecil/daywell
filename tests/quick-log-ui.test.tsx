@@ -146,6 +146,48 @@ describe("Quick log", () => {
     ).toBeTruthy();
   });
 
+  it("drops a meal item the parser got wrong", async () => {
+    call("quickLog:parse").mockResolvedValueOnce({
+      proposals: [
+        {
+          kind: "meal",
+          description: "2 eggs, flapped my wings",
+          at,
+          items: [
+            { name: "eggs", grams: 100, searchQuery: "egg" },
+            { name: "flapped my wings", grams: 150, searchQuery: "wings" },
+          ],
+        },
+      ],
+      leftover: [],
+    });
+    render(
+      <FeedbackProvider>
+        <QuickLogButton />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Tell Daywell/ }));
+    await userEvent.type(screen.getByLabelText("What did you do?"), "eggs");
+    await userEvent.click(screen.getByRole("button", { name: /Understand/ }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Remove flapped my wings" }),
+    );
+    expect(screen.queryByRole("button", { name: /Remove eggs/ })).toBeNull();
+    const description = screen.getByLabelText("Meal description");
+    await userEvent.clear(description);
+    expect(
+      (screen.getByRole("button", { name: "Log 1 entry" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    await userEvent.type(description, "2 eggs");
+    await userEvent.click(screen.getByRole("button", { name: "Log 1 entry" }));
+    expect(call("mealActions:createFromText")).toHaveBeenCalledWith({
+      description: "2 eggs",
+      at,
+      items: [{ name: "eggs", grams: 100, searchQuery: "egg" }],
+    });
+  });
+
   it("offers dictation only where the browser supports it", async () => {
     await openAndParse();
     expect(screen.queryByRole("button", { name: /Dictate/ })).toBeNull();
