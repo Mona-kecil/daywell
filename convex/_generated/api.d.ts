@@ -37,6 +37,7 @@ import type * as mealVision_openai from "../mealVision/openai.js";
 import type * as mealVision_types from "../mealVision/types.js";
 import type * as meals from "../meals.js";
 import type * as model from "../model.js";
+import type * as plan from "../plan.js";
 import type * as push from "../push.js";
 import type * as pushActions from "../pushActions.js";
 import type * as pushProviders_fake from "../pushProviders/fake.js";
@@ -92,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   "mealVision/types": typeof mealVision_types;
   meals: typeof meals;
   model: typeof model;
+  plan: typeof plan;
   push: typeof push;
   pushActions: typeof pushActions;
   "pushProviders/fake": typeof pushProviders_fake;

@@ -23,7 +23,7 @@ export function weekStart(ms: number, timeZone: string): string {
   return shiftDay(day, -weekday);
 }
 
-function localDayStart(day: string, timeZone: string): number {
+export function localDayStart(day: string, timeZone: string): number {
   const utc = dayNumber(day) * DAY_MS;
   let before = utc - DAY_MS;
   let after = utc + DAY_MS;
