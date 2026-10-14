@@ -4,12 +4,9 @@ import { coachSuggestions } from "../lib/coach";
 import { localClock } from "../lib/coach-time";
 import { mealTotals, sumNutrients } from "../lib/nutrients";
 
-export async function suggestionsFor(
+export async function todayDataFor(
   ctx: QueryCtx | MutationCtx,
-  settings: Pick<
-    Doc<"settings">,
-    "userId" | "waterGoal" | "kcalTarget" | "proteinTarget"
-  >,
+  userId: string,
   now: number,
   timeZone: string,
 ) {
@@ -20,18 +17,18 @@ export async function suggestionsFor(
     ctx.db
       .query("water")
       .withIndex("by_user_time", (q) =>
-        q.eq("userId", settings.userId).gte("at", start).lte("at", now),
+        q.eq("userId", userId).gte("at", start).lte("at", now),
       )
       .collect(),
     ctx.db
       .query("meals")
       .withIndex("by_user_time", (q) =>
-        q.eq("userId", settings.userId).gte("at", start).lte("at", now),
+        q.eq("userId", userId).gte("at", start).lte("at", now),
       )
       .collect(),
     ctx.db
       .query("muscles")
-      .withIndex("by_user", (q) => q.eq("userId", settings.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
   ]);
   const todayMeals = meals.filter(
@@ -42,10 +39,7 @@ export async function suggestionsFor(
       const last = await ctx.db
         .query("workoutMuscles")
         .withIndex("by_user_muscle_time", (q) =>
-          q
-            .eq("userId", settings.userId)
-            .eq("muscleId", m._id)
-            .lte("trainedAt", now),
+          q.eq("userId", userId).eq("muscleId", m._id).lte("trainedAt", now),
         )
         .order("desc")
         .first();
@@ -56,11 +50,9 @@ export async function suggestionsFor(
       };
     }),
   );
-  return coachSuggestions({
-    now,
+  return {
+    day: localDay,
     localMinutes,
-    timeZone,
-    waterGoal: settings.waterGoal,
     waterMl: water
       .filter((w) => localClock(w.at, timeZone).localDay === localDay)
       .reduce((sum, w) => sum + w.amountMl, 0),
@@ -70,10 +62,32 @@ export async function suggestionsFor(
         .map((m) => mealTotals(m.items)),
     ),
     mealCount: todayMeals.length,
+    muscles,
+  };
+}
+
+export async function suggestionsFor(
+  ctx: QueryCtx | MutationCtx,
+  settings: Pick<
+    Doc<"settings">,
+    "userId" | "waterGoal" | "kcalTarget" | "proteinTarget"
+  >,
+  now: number,
+  timeZone: string,
+) {
+  const today = await todayDataFor(ctx, settings.userId, now, timeZone);
+  return coachSuggestions({
+    now,
+    localMinutes: today.localMinutes,
+    timeZone,
+    waterGoal: settings.waterGoal,
+    waterMl: today.waterMl,
+    macros: today.macros,
+    mealCount: today.mealCount,
     targets: {
       kcalTarget: settings.kcalTarget,
       proteinTarget: settings.proteinTarget,
     },
-    muscles,
+    muscles: today.muscles,
   });
 }

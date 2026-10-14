@@ -3,6 +3,19 @@ import { v } from "convex/values";
 import { mealItem, pushKeys, pushPayload } from "./validators";
 
 export default defineSchema({
+  shortcutTokens: defineTable({
+    userId: v.string(),
+    hash: v.string(),
+    prefix: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_hash", ["hash"])
+    .index("by_user", ["userId"]),
+  shortcutLimits: defineTable({
+    userId: v.string(),
+    requestedAt: v.array(v.number()),
+  }).index("by_user", ["userId"]),
   coachChatLimits: defineTable({
     userId: v.string(),
     sentAt: v.array(v.number()),

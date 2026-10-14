@@ -9,6 +9,7 @@
  */
 
 import type * as achievements from "../achievements.js";
+import type * as checkinModel from "../checkinModel.js";
 import type * as checkins from "../checkins.js";
 import type * as coach from "../coach.js";
 import type * as coachChat from "../coachChat.js";
@@ -25,6 +26,7 @@ import type * as exerciseModel from "../exerciseModel.js";
 import type * as exportData from "../exportData.js";
 import type * as food from "../food.js";
 import type * as historyData from "../historyData.js";
+import type * as http from "../http.js";
 import type * as insights from "../insights.js";
 import type * as mealActions from "../mealActions.js";
 import type * as mealVision_fake from "../mealVision/fake.js";
@@ -38,6 +40,7 @@ import type * as pushActions from "../pushActions.js";
 import type * as pushProviders_fake from "../pushProviders/fake.js";
 import type * as pushProviders_types from "../pushProviders/types.js";
 import type * as pushProviders_webpush from "../pushProviders/webpush.js";
+import type * as shortcuts from "../shortcuts.js";
 import type * as strength from "../strength.js";
 import type * as tracker from "../tracker.js";
 import type * as validators from "../validators.js";
@@ -52,6 +55,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
+  checkinModel: typeof checkinModel;
   checkins: typeof checkins;
   coach: typeof coach;
   coachChat: typeof coachChat;
@@ -68,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   exportData: typeof exportData;
   food: typeof food;
   historyData: typeof historyData;
+  http: typeof http;
   insights: typeof insights;
   mealActions: typeof mealActions;
   "mealVision/fake": typeof mealVision_fake;
@@ -81,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "pushProviders/fake": typeof pushProviders_fake;
   "pushProviders/types": typeof pushProviders_types;
   "pushProviders/webpush": typeof pushProviders_webpush;
+  shortcuts: typeof shortcuts;
   strength: typeof strength;
   tracker: typeof tracker;
   validators: typeof validators;

@@ -75,3 +75,13 @@ export function validLocalDay(day: string) {
     throw new ConvexError("Use a valid YYYY-MM-DD day.");
   return timestamp;
 }
+
+export async function createWater(
+  ctx: MutationCtx,
+  userId: string,
+  args: { amountMl: number; at: number },
+) {
+  positive(args.amountMl, 10_000, "Water amount");
+  validTimestamp(args.at);
+  return ctx.db.insert("water", { userId, ...args });
+}

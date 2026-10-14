@@ -3240,3 +3240,93 @@ h1,
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* Apple Shortcuts token */
+.shortcuts .copy-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px 4px 4px 12px;
+}
+.shortcuts .copy-row code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  background: none;
+  padding: 0;
+}
+.token-reveal {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--amber-soft);
+}
+.token-reveal p {
+  margin: 0;
+}
+.token-status {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0 0;
+}
+.token-status svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--green);
+}
+.token-actions {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.token-actions .danger {
+  color: var(--amber);
+}
+.shortcut-guide {
+  margin-top: 10px;
+}
+.shortcut-guide summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  cursor: pointer;
+}
+.shortcut-guide ol {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+.shortcut-routes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.shortcut-routes li {
+  display: grid;
+  gap: 6px;
+}
+.shortcut-routes li > code {
+  overflow-wrap: anywhere;
+  background: none;
+  padding: 0;
+}
+.shortcuts .method {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--green-soft);
+  color: var(--green);
+}

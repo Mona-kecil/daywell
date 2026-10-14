@@ -25,6 +25,7 @@ import {
 import type { Suggestion } from "@/lib/coach";
 import { dayKey } from "@/lib/insights";
 import { CoachChatSheet } from "./coach-chat";
+import { ShortcutsSettings } from "./shortcuts";
 import { Sheet, useTask } from "./ui";
 import type { Tab } from "./tracker";
 
@@ -145,6 +146,7 @@ function SettingsBody() {
         enabled={settings.remindersEnabled}
         timeZone={settings.timeZone}
       />
+      <ShortcutsSettings />
       <ExportData />
     </>
   );

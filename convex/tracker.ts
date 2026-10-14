@@ -4,9 +4,9 @@ import { query, mutation } from "./_generated/server";
 import {
   requireUser,
   positive,
-  validTimestamp,
   validDay,
   createWorkout,
+  createWater,
 } from "./model";
 import { dayArgs } from "./validators";
 import { seedExercises } from "./exerciseModel";
@@ -131,9 +131,7 @@ export const addWater = mutation({
   args: { amountMl: v.number(), at: v.number() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    positive(args.amountMl, 10_000, "Water amount");
-    validTimestamp(args.at);
-    return ctx.db.insert("water", { userId, ...args });
+    return createWater(ctx, userId, args);
   },
 });
 export const setWaterGoal = mutation({
