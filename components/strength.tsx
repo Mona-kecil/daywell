@@ -6,24 +6,35 @@ import {
   Disc3,
   Minus,
   Plus,
+  RotateCcw,
   Search,
   Trash2,
+  TrendingDown,
+  TrendingUp,
   Trophy,
   X,
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Empty, Sheet, useTask } from "./ui";
+import { Empty, Sheet, useClock, useTask } from "./ui";
 import { LineChart } from "./line-chart";
 import { BAR_KG, loadBar } from "@/lib/plates";
 
 export type Exercise = FunctionReturnType<
   typeof api.strength.exercises
 >[number];
+const TARGET_ICON = {
+  start: Plus,
+  add_reps: Plus,
+  add_weight: TrendingUp,
+  deload: TrendingDown,
+  return: RotateCcw,
+};
+
 // `done` is a local check-off for the rest timer; it is never saved.
 export type SetDraft = { reps: number; weightKg: number; done?: boolean };
-// `fresh` entries take their sets from the last session once it loads.
+// `fresh` entries take their sets from the next target once it loads.
 export type EntryDraft = {
   exercise: Exercise;
   sets: SetDraft[];
@@ -131,11 +142,17 @@ export function EntryEditor({
     exerciseId: exercise._id,
     limit: 1,
   })?.sessions[0];
+  // Rounded up to 5 minutes so the subscription stays put between ticks.
+  const now = Math.ceil(useClock() / 300_000) * 300_000;
+  const target = useQuery(api.strength.nextTarget, {
+    exerciseId: exercise._id,
+    now,
+  });
   const fresh = entry.fresh;
   useEffect(() => {
-    if (fresh && last)
-      onChange(last.sets.map((s) => ({ reps: s.reps, weightKg: s.weightKg })));
-  }, [fresh, last, onChange]);
+    if (fresh && target) onChange(target.sets);
+  }, [fresh, target, onChange]);
+  const TargetIcon = target ? TARGET_ICON[target.kind] : Plus;
   const update = (i: number, patch: Partial<SetDraft>) =>
     onChange(sets.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   return (
@@ -176,6 +193,22 @@ export function EntryEditor({
             }
           >
             Repeat
+          </button>
+        </div>
+      )}
+      {target && (
+        <div className={`entry-target ${target.kind}`}>
+          <TargetIcon size={16} aria-hidden />
+          <span>
+            <strong>Target {setsSummary(target.sets)}</strong>
+            <span className="muted small">{target.reason}</span>
+          </span>
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => onChange(target.sets)}
+          >
+            Use
           </button>
         </div>
       )}

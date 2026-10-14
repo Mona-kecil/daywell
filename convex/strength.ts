@@ -7,7 +7,12 @@ import {
 } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { createWorkout, requireUser, validTimestamp } from "./model";
-import { summarizeSets } from "../lib/strength";
+import {
+  nextTarget as targetFromSessions,
+  repRange,
+  summarizeSets,
+  type StrengthSet,
+} from "../lib/strength";
 
 async function ownedExercise(
   ctx: QueryCtx | MutationCtx,
@@ -263,6 +268,41 @@ export const exerciseHistory = query({
       prWeightKg,
       prAt,
     };
+  },
+});
+
+export const nextTarget = query({
+  args: { exerciseId: v.id("exercises"), now: v.number() },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    const exercise = await ownedExercise(ctx, userId, args.exerciseId);
+    if (!Number.isFinite(args.now)) throw new ConvexError("Invalid timestamp.");
+    const rows = await ctx.db
+      .query("strengthSets")
+      .withIndex("by_user_exercise_time", (q) =>
+        q.eq("userId", userId).eq("exerciseId", args.exerciseId),
+      )
+      .order("desc")
+      .take(200);
+    const sessions = new Map<
+      Id<"workouts">,
+      { trainedAt: number; sets: StrengthSet[] }
+    >();
+    for (const row of rows
+      .reverse()
+      .sort((a, b) => a.trainedAt - b.trainedAt || a.order - b.order)) {
+      let entry = sessions.get(row.workoutId);
+      if (!entry) {
+        entry = { trainedAt: row.trainedAt, sets: [] };
+        sessions.set(row.workoutId, entry);
+      }
+      entry.sets.push({ reps: row.reps, weightKg: row.weightKg });
+    }
+    return targetFromSessions(
+      [...sessions.values()].slice(-2),
+      args.now,
+      repRange(exercise.name),
+    );
   },
 });
 

@@ -16,6 +16,7 @@ import { localDateTimeValue } from "@/lib/day";
 import { recovery } from "@/lib/recovery";
 import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
 import { RecoveryForecast } from "./forecast";
+import { RecoveryReplay } from "./replay";
 import {
   BodyModel,
   muscleKey,
@@ -365,6 +366,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           });
         }}
       />
+      <RecoveryReplay muscles={muscles} now={now} />
       <section>
         <SectionTitle
           title="Muscle recovery"

@@ -2,7 +2,13 @@ import { expect, it } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
 import { api } from "../convex/_generated/api";
-import { e1rm, summarizeSets, EXERCISE_DEFAULTS } from "../lib/strength";
+import {
+  e1rm,
+  summarizeSets,
+  EXERCISE_DEFAULTS,
+  nextTarget,
+  repRange,
+} from "../lib/strength";
 import { MUSCLE_DEFAULTS, recovery } from "../lib/recovery";
 
 const modules = import.meta.glob("../convex/**/*.{ts,js}");
@@ -279,4 +285,148 @@ it("rejects invalid sets, duplicate entries, timestamps and limits without inser
       })
     ).page,
   ).toEqual([]);
+});
+
+it("rejects unauthenticated and foreign exercise target requests", async () => {
+  const { t, alice, bob, bench } = await setup();
+  await expect(
+    t.query(api.strength.nextTarget, { exerciseId: bench._id, now: 1000 }),
+  ).rejects.toThrow("Sign in");
+  await expect(
+    bob.query(api.strength.nextTarget, { exerciseId: bench._id, now: 1000 }),
+  ).rejects.toThrow("Exercise not found");
+  expect(
+    await alice.query(api.strength.nextTarget, {
+      exerciseId: bench._id,
+      now: 1000,
+    }),
+  ).toBeNull();
+});
+
+it("rejects nonfinite target timestamps", async () => {
+  const { alice, bench } = await setup();
+  for (const now of [NaN, Infinity, -Infinity])
+    await expect(
+      alice.query(api.strength.nextTarget, { exerciseId: bench._id, now }),
+    ).rejects.toThrow("Invalid timestamp");
+});
+
+it("uses only the caller’s rows for a target even with a foreign row on their exercise", async () => {
+  const { t, alice, bench } = await setup();
+  const workoutId = await alice.mutation(api.strength.logSession, {
+    trainedAt: 1000,
+    note: "",
+    entries: [{ exerciseId: bench._id, sets: [{ reps: 6, weightKg: 60 }] }],
+  });
+  await t.run(async (ctx) => {
+    await ctx.db.insert("strengthSets", {
+      userId: "bob",
+      exerciseId: bench._id,
+      workoutId,
+      trainedAt: 2000,
+      muscleIds: [],
+      reps: 8,
+      weightKg: 100,
+      order: 0,
+    });
+  });
+  expect(
+    await alice.query(api.strength.nextTarget, {
+      exerciseId: bench._id,
+      now: 2000,
+    }),
+  ).toEqual(
+    nextTarget(
+      [{ trainedAt: 1000, sets: [{ reps: 6, weightKg: 60 }] }],
+      2000,
+      repRange(bench.name),
+    ),
+  );
+  await alice.mutation(api.tracker.deleteWorkout, { id: workoutId });
+  expect(
+    await alice.query(api.strength.nextTarget, {
+      exerciseId: bench._id,
+      now: 2000,
+    }),
+  ).toBeNull();
+});
+
+it("matches pure targets for logged history with warm-ups and sessions logged out of time order", async () => {
+  const { alice, bench } = await setup();
+  const sessions = [
+    { trainedAt: 3000, sets: [{ reps: 8, weightKg: 62.5 }] },
+    {
+      trainedAt: 1000,
+      sets: [
+        { reps: 10, weightKg: 20 },
+        { reps: 4, weightKg: 62.5 },
+      ],
+    },
+    {
+      trainedAt: 2000,
+      sets: [
+        { reps: 10, weightKg: 20 },
+        { reps: 4, weightKg: 62.5 },
+        { reps: 6, weightKg: 62.5 },
+      ],
+    },
+  ];
+  for (const session of sessions) {
+    await alice.mutation(api.strength.logSession, {
+      trainedAt: session.trainedAt,
+      note: "",
+      entries: [{ exerciseId: bench._id, sets: session.sets }],
+    });
+    const history = await alice.query(api.strength.exerciseHistory, {
+      exerciseId: bench._id,
+    });
+    const now = 4000;
+    expect(
+      await alice.query(api.strength.nextTarget, {
+        exerciseId: bench._id,
+        now,
+      }),
+    ).toEqual(
+      nextTarget(history.sessions.reverse(), now, repRange(bench.name)),
+    );
+  }
+  expect(
+    await alice.query(api.strength.nextTarget, {
+      exerciseId: bench._id,
+      now: 4000,
+    }),
+  ).toMatchObject({
+    kind: "add_weight",
+    basedOn: 3000,
+    sets: [{ reps: 5, weightKg: 65 }],
+  });
+});
+
+it("uses the two latest complete sessions when exercise history exceeds 200 rows", async () => {
+  const { alice, bench } = await setup();
+  for (let i = 11; i >= 0; i--)
+    await alice.mutation(api.strength.logSession, {
+      trainedAt: 1000 + i,
+      note: "",
+      entries: [
+        {
+          exerciseId: bench._id,
+          sets: [
+            { reps: 10, weightKg: 20 },
+            { reps: i >= 10 ? 4 : 8, weightKg: 62.5 },
+            ...Array.from({ length: 18 }, () => ({ reps: 8, weightKg: 62.5 })),
+          ],
+        },
+      ],
+    });
+  const target = await alice.query(api.strength.nextTarget, {
+    exerciseId: bench._id,
+    now: 2000,
+  });
+  expect(target).toMatchObject({
+    kind: "deload",
+    basedOn: 1011,
+    range: { min: 5, max: 8 },
+    sets: Array.from({ length: 19 }, () => ({ reps: 5, weightKg: 55 })),
+  });
 });
