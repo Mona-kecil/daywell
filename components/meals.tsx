@@ -24,6 +24,7 @@ import {
 } from "@/lib/nutrients";
 import { AddMealOptions, RecentMeals } from "./meal-add";
 import { CloseTheGap } from "./gap";
+import { PhotoWall } from "./photo-wall";
 import { MacroSummary } from "./today";
 import { Empty, SectionTitle, useTask, timeLabel } from "./ui";
 type Meal = FunctionReturnType<typeof api.meals.today>[number];
@@ -551,6 +552,7 @@ export function Meals({
           <MealCard key={meal._id} meal={meal} now={now} />
         ))}
       </section>
+      <PhotoWall />
       <p className="page-foot small">Nutrient data: USDA FoodData Central.</p>
     </>
   );
