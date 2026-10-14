@@ -45,15 +45,26 @@ export const range = query({
         )
         .collect(),
     ]);
-    const earlier = await ctx.db
-      .query("workouts")
-      .withIndex("by_user_time", (q) =>
-        q.eq("userId", userId).lt("trainedAt", startMs),
+    // Muscles with a session before the range, so replay can tell a rested
+    // muscle from one that hadn't been trained yet.
+    const trainedBefore = (
+      await Promise.all(
+        muscles.map((m) =>
+          ctx.db
+            .query("workoutMuscles")
+            .withIndex("by_user_muscle_time", (q) =>
+              q
+                .eq("userId", userId)
+                .eq("muscleId", m._id)
+                .lt("trainedAt", startMs),
+            )
+            .first(),
+        ),
       )
-      .first();
+    ).flatMap((row) => (row ? [row.muscleId] : []));
     return {
       waterGoal: settings?.waterGoal ?? 2500,
-      trainedBefore: earlier !== null,
+      trainedBefore,
       muscles: muscles.map((m) => ({ _id: m._id, name: m.name })),
       water: water.map((w) => ({ at: w.at, amountMl: w.amountMl })),
       meals: meals

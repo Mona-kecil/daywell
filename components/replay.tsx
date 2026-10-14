@@ -73,7 +73,11 @@ export function RecoveryReplay({
 
   const at = endMs - hoursAgo * HOUR;
   const workouts = data?.workouts ?? [];
-  const states = statesAt(muscles, workouts, at, data?.trainedBefore ?? true);
+  // Until the range loads, treat every trained muscle as trained before it.
+  const trainedBefore = new Set(
+    data?.trainedBefore ?? muscles.map((m) => m._id),
+  );
+  const states = statesAt(muscles, workouts, at, trainedBefore);
   const keyed: Partial<Record<MuscleKey, MuscleState>> = {};
   for (const m of muscles) {
     const key = muscleKey(m.name);

@@ -282,14 +282,20 @@ describe("insights range", () => {
       { trainedAt: 2000, muscleIds: [muscles[0]._id] },
     ]);
     expect(mine.muscles).toHaveLength(11);
-    expect(mine.trainedBefore).toBe(false);
+    expect(mine.trainedBefore).toEqual([]);
+    // Only muscles with a session before the range count as trained then.
+    await alice.mutation(api.tracker.addWorkout, {
+      muscleIds: [muscles[1]._id],
+      trainedAt: 3000,
+      note: "",
+    });
     expect(
       (await alice.query(api.insights.range, { ...span, startMs: 2001 }))
         .trainedBefore,
-    ).toBe(true);
+    ).toEqual([muscles[0]._id]);
     const theirs = await bob.query(api.insights.range, span);
     expect(theirs.water).toEqual([]);
     expect(theirs.workouts).toEqual([]);
-    expect(theirs.trainedBefore).toBe(false);
+    expect(theirs.trainedBefore).toEqual([]);
   });
 });

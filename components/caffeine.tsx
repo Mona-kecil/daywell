@@ -30,9 +30,10 @@ const mg = (n: number) => `${Math.round(n).toLocaleString()} mg`;
 export function CaffeineCard() {
   const now = useClock();
   const { startMs: dayStart, endMs: dayEnd } = localDayRange(new Date(now));
-  // Yesterday evening's coffee still counts this morning.
+  // Yesterday's coffee still counts this morning. A full day back (the
+  // query's 48 h limit) leaves under 2% of any dose unread.
   const doses = useQuery(api.caffeine.list, {
-    startMs: dayStart - 12 * HOUR,
+    startMs: dayStart - 24 * HOUR,
     endMs: dayEnd,
   });
   const add = useMutation(api.caffeine.add),

@@ -12,7 +12,11 @@ const mocks = vi.hoisted(() => ({
   calls: [] as [string, unknown][],
 }));
 vi.mock("convex/react", () => ({
-  useQuery: () => mocks.doses,
+  // Answers like the backend: only doses inside the asked-for range.
+  useQuery: (_: unknown, args: { startMs: number; endMs: number }) =>
+    (mocks.doses as { at: number }[]).filter(
+      (d) => d.at >= args.startMs && d.at < args.endMs,
+    ),
   useMutation: (ref: unknown) => {
     const name = getFunctionName(ref as never);
     return async (args: unknown) => {
@@ -93,6 +97,26 @@ describe("Caffeine card", () => {
         .getAllByRole("listitem")
         .map((li) => li.querySelector("strong")!.textContent),
     ).toEqual(["Brewed coffee"]);
+  });
+
+  it("counts a big dose from yesterday's lunch in tonight's sleep-ready time", () => {
+    // 12 h before midnight is noon; a 400 mg dose a minute earlier still
+    // leaves about 25 mg at 8 AM, enough to push a small coffee past 50 mg.
+    const lunch = dose(
+      "c0",
+      "Cold brew",
+      400,
+      new Date(2026, 9, 13, 11, 59).getTime(),
+    );
+    const morning = new Date(2026, 9, 14, 8).getTime();
+    vi.spyOn(Date, "now").mockReturnValue(morning);
+    mocks.doses = [lunch, dose("c1", "Coffee", 35, morning)];
+    show();
+    const sleep = sleepReadyAt(mocks.doses as never, morning)!;
+    expect(sleep).toBeGreaterThan(morning);
+    expect(
+      screen.getByText(new RegExp(`sleep-ready by ${timeLabel(sleep)}$`)),
+    ).toBeTruthy();
   });
 
   it("names the peak while a fresh dose is still absorbing", () => {
