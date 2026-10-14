@@ -4389,3 +4389,219 @@ h1,
   gap: 12px;
   margin-top: 14px;
 }
+/* Week story */
+.story {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top)) 16px
+    max(20px, env(safe-area-inset-bottom));
+  border: 0;
+  background: var(--green);
+  color: var(--surface);
+  overscroll-behavior: contain;
+}
+.story[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fade-in 200ms ease-out;
+}
+.story::backdrop {
+  background: var(--green);
+}
+.story-progress {
+  display: flex;
+  gap: 4px;
+}
+.story-progress > span {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+  overflow: hidden;
+}
+.story-progress > .done,
+.story-progress > span > span {
+  background: currentColor;
+}
+.story-progress > span > span {
+  display: block;
+  height: 100%;
+  animation: story-fill linear forwards;
+}
+@keyframes story-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.story-bar-top {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.story-bar-top button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+.story-bar-top button:active {
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+.story-stage {
+  position: relative;
+  flex: 1;
+  display: grid;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.story-slide {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 8px 12vh;
+  animation: story-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes story-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.story-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.story-eyebrow {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.story-big {
+  margin: 0;
+  font-size: clamp(38px, 11vw, 56px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.story-text {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  max-width: 30ch;
+}
+.story-note {
+  font-size: 15px;
+  line-height: 1.4;
+  opacity: 0.9;
+  max-width: 32ch;
+}
+.story-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.story-dots i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+.story-dots i.on {
+  background: currentColor;
+}
+.story-bar {
+  width: min(100%, 320px);
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, currentColor 25%, transparent);
+  overflow: hidden;
+}
+.story-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: currentColor;
+}
+.story-tap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 0;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.story-tap.prev {
+  left: 0;
+  width: 33%;
+}
+.story-tap.next {
+  right: 0;
+  width: 67%;
+}
+.story-tap:disabled {
+  pointer-events: none;
+}
+.story-tap:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -6px;
+  border-radius: 16px;
+}
+.story-end {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+}
+.story-end > button {
+  flex: 1;
+}
+.story .primary-button {
+  background: var(--surface);
+  color: var(--green);
+}
+.story .soft-button {
+  background: color-mix(in srgb, var(--surface) 18%, transparent);
+  color: var(--surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story[open],
+  .story-slide {
+    animation: none;
+  }
+  .story-progress > span > span {
+    animation: none;
+    width: 100%;
+  }
+}
+.week-play {
+  width: 100%;
+  margin-top: 12px;
+}

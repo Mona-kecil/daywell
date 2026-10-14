@@ -13,6 +13,7 @@ import {
   Medal,
   Mountain,
   PersonStanding,
+  Play,
   TrendingUp,
   Trophy,
   Utensils,
@@ -23,6 +24,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { deviceTimeZone } from "./coach";
 import { SectionTitle } from "./ui";
+import { WeekStory } from "./week-story";
 
 type Achievement = FunctionReturnType<typeof api.achievements.list>[number];
 
@@ -53,6 +55,7 @@ export function WeeklyReview({ now }: { now: number }) {
       timeZone: deviceTimeZone(),
     }),
   );
+  const [playing, setPlaying] = useState(false);
   if (!review) return null;
   const water = Math.min(100, review.waterGoalPercent);
   return (
@@ -126,6 +129,20 @@ export function WeeklyReview({ now }: { now: number }) {
           <span style={{ width: `${water}%` }} />
         </div>
       </div>
+      <button
+        type="button"
+        className="soft-button week-play"
+        onClick={() => setPlaying(true)}
+      >
+        <Play size={16} aria-hidden /> Play your week
+      </button>
+      {playing && (
+        <WeekStory
+          review={review}
+          now={now}
+          onClose={() => setPlaying(false)}
+        />
+      )}
     </section>
   );
 }
