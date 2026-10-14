@@ -118,6 +118,7 @@ export function RestTimer({
     localStorage.setItem(KEY, String(total / 1000));
     // Shortening past the end finishes now, so "Go!" still shows and chimes.
     onChange({
+      ...rest,
       endsAt: Math.max(Date.now(), rest.endsAt + (total - rest.total)),
       total,
     });

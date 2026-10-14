@@ -158,6 +158,7 @@ export function WeekStory({
   const [paused, setPaused] = useState(false);
   const [held, setHeld] = useState(false);
   const pressedAt = useRef(0);
+  const pressing = useRef(false);
   // Set when a press was long enough to count as a hold, so the click that
   // follows it doesn't also turn the page. Keyboard clicks never set it.
   const wasHold = useRef(false);
@@ -182,7 +183,16 @@ export function WeekStory({
     else go(step);
   };
   const release = () => {
-    if (held) wasHold.current = Date.now() - pressedAt.current > HOLD_MS;
+    if (pressing.current)
+      wasHold.current = Date.now() - pressedAt.current > HOLD_MS;
+    pressing.current = false;
+    setHeld(false);
+  };
+  // A press that slides off the page or is cancelled is no tap to swallow.
+  // Touch fires pointerleave after pointerup, which must keep the hold.
+  const letGo = () => {
+    if (pressing.current) wasHold.current = false;
+    pressing.current = false;
     setHeld(false);
   };
   const close = () => {
@@ -245,11 +255,12 @@ export function WeekStory({
         className="story-stage"
         onPointerDown={() => {
           pressedAt.current = Date.now();
+          pressing.current = true;
           setHeld(true);
         }}
         onPointerUp={release}
-        onPointerCancel={release}
-        onPointerLeave={release}
+        onPointerCancel={letGo}
+        onPointerLeave={letGo}
       >
         <article key={slide.key} className="story-slide" aria-live="polite">
           <span className="story-icon">

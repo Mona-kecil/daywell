@@ -107,10 +107,11 @@ export function InstallCard() {
             onClick={async () => {
               const event = deferred;
               if (!event) return;
+              // The event can only be used once, so a second tap while the
+              // browser dialog opens does nothing.
+              deferred = null;
               await event.prompt();
               const { outcome } = await event.userChoice;
-              // The event can only be used once.
-              deferred = null;
               if (outcome === "dismissed") dismiss();
               else emit();
             }}

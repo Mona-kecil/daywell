@@ -8,7 +8,9 @@ export function warmupSets(
   const barKg = opts?.barKg ?? BAR_KG;
   if (
     !Number.isFinite(workKg) ||
-    !Number.isFinite(workReps) ||
+    !Number.isInteger(workReps) ||
+    workReps < 1 ||
+    workReps > 100 ||
     !Number.isFinite(barKg) ||
     barKg <= 0 ||
     workKg <= 0 ||
