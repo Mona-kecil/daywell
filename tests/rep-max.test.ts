@@ -39,6 +39,10 @@ describe("rep targets", () => {
     expect(loadable(16 - 8 * ulp(15.9), 1)).toBe(16);
     expect(loadable(16 - 9 * ulp(15.9), 1)).toBe(15);
     expect(loadable(49.99999999999992)).toBe(47.5);
+    // Just under 2^20, log2 rounds up to 20, but the spacing there is 2^-33.
+    expect(loadable(2 ** 20 - 8 * 2 ** -33, 1)).toBe(2 ** 20);
+    expect(loadable(2 ** 20 - 9 * 2 ** -33, 1)).toBe(2 ** 20 - 1);
+    expect(loadable((2 ** 20 - 9 * 2 ** -33) * 2.5)).toBe(2_621_437.5);
   });
 
   it("lists weights and percentages from a one-rep max", () => {

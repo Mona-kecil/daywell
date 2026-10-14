@@ -15,7 +15,11 @@ export const repWeight = (oneRepKg: number, reps: number) =>
 export function loadable(kg: number, step = LOAD_STEP_KG) {
   const steps = kg / step;
   const near = Math.round(steps);
-  const ulp = 2 ** (Math.floor(Math.log2(Math.abs(steps))) - 52);
+  // log2 can round up to the next power of two just below it, where the
+  // spacing is half as wide.
+  let exponent = Math.floor(Math.log2(Math.abs(steps)));
+  if (2 ** exponent > Math.abs(steps)) exponent--;
+  const ulp = 2 ** (exponent - 52);
   const reached = Math.abs(steps - near) <= 8 * ulp;
   return (reached ? near : Math.floor(steps)) * step;
 }

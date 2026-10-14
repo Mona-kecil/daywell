@@ -147,6 +147,13 @@ describe("progress photo uploads", () => {
     expect(
       await context.t.run((ctx) => ctx.db.get(uploaded.ticketId)),
     ).not.toBeNull();
+    // A ticket is spent at its expiry time, not a millisecond later.
+    await context.t.run((ctx) =>
+      ctx.db.patch(uploaded.ticketId, { expiresAt: now }),
+    );
+    await expect(
+      context.alice.mutation(api.progress.add, { ...uploaded, ...photoFields }),
+    ).rejects.toThrow(expiredMessage);
     await context.t.run((ctx) =>
       ctx.db.patch(uploaded.ticketId, { expiresAt: now - 1 }),
     );

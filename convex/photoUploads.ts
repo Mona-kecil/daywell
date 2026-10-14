@@ -23,7 +23,7 @@ export async function uploadedPhoto(
   args: { ticketId: Id<"uploads">; storageId: string },
 ) {
   const ticket = await ctx.db.get(args.ticketId);
-  if (!ticket || ticket.userId !== userId || ticket.expiresAt < Date.now())
+  if (!ticket || ticket.userId !== userId || ticket.expiresAt <= Date.now())
     throw new ConvexError(
       "Photo upload expired. Please choose the photo again.",
     );

@@ -5451,6 +5451,11 @@ h1,
 .progress-photos > .segmented {
   margin: 4px 0 12px;
 }
+.progress-photos > .segmented button,
+.progress-new .segmented button {
+  min-height: 44px;
+  padding: 0 12px;
+}
 .progress-grid {
   list-style: none;
   margin: 0;
