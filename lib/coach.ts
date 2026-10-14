@@ -1,4 +1,5 @@
 import { readyAt } from "./forecast";
+import { localClock } from "./coach-time";
 import { recovery } from "./recovery";
 import type { Macros } from "./nutrients";
 
@@ -10,7 +11,7 @@ export const PROTEIN_FOODS = [
 ];
 export type Suggestion = {
   id: string;
-  kind: "water" | "food" | "train" | "rest";
+  kind: "water" | "food" | "train" | "rest" | "habit";
   priority: 1 | 2 | 3;
   title: string;
   body: string;
@@ -24,6 +25,13 @@ export type CoachInput = {
   macros: Macros;
   targets: { kcalTarget?: number; proteinTarget?: number };
   mealCount: number;
+  habits?: {
+    id: string;
+    name: string;
+    order: number;
+    archivedAt?: number;
+  }[];
+  habitLogs?: { habitId: string; day: string }[];
   muscles: {
     name: string;
     cooldownHours: number;
@@ -131,6 +139,29 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
         140,
       ),
     });
+  }
+  if (localMinutes >= 18 * 60 && input.habits?.length) {
+    const { localDay } = localClock(now, input.timeZone ?? "UTC");
+    const done = new Set(
+      (input.habitLogs ?? [])
+        .filter((log) => log.day === localDay)
+        .map((log) => log.habitId),
+    );
+    const remaining = input.habits
+      .filter((habit) => habit.archivedAt === undefined && !done.has(habit.id))
+      .sort((a, b) => a.order - b.order);
+    if (remaining.length) {
+      const names = remaining.slice(0, 3).map((habit) => habit.name);
+      if (remaining.length > 3) names.push(`+${remaining.length - 3} more`);
+      suggestions.push({
+        // The existing ID tie-break puts recovery before habits, then routine training.
+        id: "today:habits",
+        kind: "habit",
+        priority: 3,
+        title: `${remaining.length} ${remaining.length === 1 ? "habit" : "habits"} left today`,
+        body: `${names.join(", ")}.`,
+      });
+    }
   }
   return suggestions
     .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id, "en"))
