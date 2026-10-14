@@ -44,13 +44,18 @@ export function weeklySummary(input: HistoryInput) {
     (habit) => habit.archivedAt === undefined && habit.createdAt <= data.now,
   );
   const activeIds = new Set(activeHabits.map((habit) => habit._id));
-  const habitsDone = (data.habitLogs ?? []).filter(
+  const doneLogs = (data.habitLogs ?? []).filter(
     (log) => activeIds.has(log.habitId) && log.day >= fromDay,
-  ).length;
+  );
+  const habitsDone = doneLogs.length;
   const habitsPossible = activeHabits.reduce((sum, habit) => {
-    const createdDay = localClock(habit.createdAt, data.timeZone).localDay;
-    const firstDay = createdDay > fromDay ? createdDay : fromDay;
-    return sum + dayNumber(toDay) - dayNumber(firstDay) + 1;
+    // A day ticked off before the habit was made still had a chance.
+    const firstDay = [
+      localClock(habit.createdAt, data.timeZone).localDay,
+      ...doneLogs.filter((l) => l.habitId === habit._id).map((l) => l.day),
+    ].reduce((a, b) => (b < a ? b : a));
+    const startDay = firstDay > fromDay ? firstDay : fromDay;
+    return sum + dayNumber(toDay) - dayNumber(startDay) + 1;
   }, 0);
   return {
     ...(data.habits === undefined ? {} : { habitsDone, habitsPossible }),

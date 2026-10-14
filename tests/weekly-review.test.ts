@@ -282,3 +282,22 @@ it("counts creation dates across DST, excludes archived and future habits, and l
     weeklyReviewText(weeklySummary(empty)),
   );
 });
+
+it("counts a day ticked before the habit was created as possible", () => {
+  // Made on Sunday, then the five days before it filled in.
+  const days = ["13", "14", "15", "16", "17", "18"].map((d) => `2026-10-${d}`);
+  const summary = weeklySummary({
+    ...empty,
+    habits: [
+      { _id: "late", createdAt: now },
+      { _id: "plain", createdAt: now },
+    ],
+    habitLogs: days.map((day, i) => ({
+      habitId: "late",
+      day,
+      _creationTime: now - 50 + i,
+    })),
+  });
+  expect(summary).toMatchObject({ habitsDone: 6, habitsPossible: 7 });
+  expect(weeklyReviewText(summary).body).toMatch(/ Habits 6\/7 done\.$/);
+});
