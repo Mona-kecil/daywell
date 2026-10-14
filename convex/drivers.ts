@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { query } from "./_generated/server";
-import { requireUser } from "./model";
-import { localClock, normalizeTimeZone } from "../lib/coach-time";
+import { dayZone, requireUser } from "./model";
+import { localClock } from "../lib/coach-time";
 import { DAY_MS, shiftDay } from "../lib/history";
 import { drivers, type DayRow, type Finding } from "../lib/drivers";
 import { mealTotals } from "../lib/nutrients";
@@ -18,8 +18,7 @@ export type DriversResult = {
 const LOG_LIMIT = 10_000;
 
 export const list = query({
-  // timeZone: the device zone check-in days were dated in; the saved zone
-  // only initialises once, so it goes stale when the user travels.
+  // timeZone: the device zone check-in days were dated in (see dayZone).
   args: { days: v.number(), timeZone: v.optional(v.string()) },
   handler: async (ctx, args): Promise<DriversResult> => {
     const { days } = args;
@@ -30,14 +29,7 @@ export const list = query({
       .query("settings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
-    let timeZone: string;
-    try {
-      timeZone = normalizeTimeZone(
-        args.timeZone ?? settings?.timeZone ?? "UTC",
-      );
-    } catch {
-      throw new ConvexError("Unknown time zone.");
-    }
+    const timeZone = dayZone(args.timeZone, settings?.timeZone);
     const now = Date.now();
     const today = localClock(now, timeZone).localDay;
     const firstDay = shiftDay(today, 1 - days);

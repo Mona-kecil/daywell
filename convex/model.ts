@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type { Auth } from "convex/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { normalizeTimeZone } from "../lib/coach-time";
 export async function requireUser(ctx: { auth: Auth }) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new ConvexError("Sign in to continue.");
@@ -84,4 +85,14 @@ export async function createWater(
   positive(args.amountMl, 10_000, "Water amount");
   validTimestamp(args.at);
   return ctx.db.insert("water", { userId, ...args });
+}
+
+// The device zone the client dates its days in wins over the saved zone,
+// which is set once and goes stale when the user travels.
+export function dayZone(device: string | undefined, saved: string | undefined) {
+  try {
+    return normalizeTimeZone(device ?? saved ?? "UTC");
+  } catch {
+    throw new ConvexError("Unknown time zone.");
+  }
 }

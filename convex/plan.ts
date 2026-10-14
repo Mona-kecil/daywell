@@ -1,6 +1,6 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query } from "./_generated/server";
-import { requireUser } from "./model";
+import { dayZone, requireUser } from "./model";
 import { DAY_MS, dayNumber, shiftDay } from "../lib/history";
 import { weeklyVolume, weekStart } from "../lib/volume";
 import { planWeek, type WeekPlan } from "../lib/week-plan";
@@ -8,8 +8,8 @@ import { planWeek, type WeekPlan } from "../lib/week-plan";
 const LIMIT = 5000;
 
 export const week = query({
-  args: {},
-  handler: async (ctx): Promise<WeekPlan> => {
+  args: { timeZone: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<WeekPlan> => {
     const userId = await requireUser(ctx);
     const now = Date.now();
     const [settings, muscles] = await Promise.all([
@@ -22,7 +22,7 @@ export const week = query({
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
     ]);
-    const timeZone = settings?.timeZone ?? "UTC";
+    const timeZone = dayZone(args.timeZone, settings?.timeZone);
     const oldest = shiftDay(weekStart(now, timeZone), -7);
     // Match volume.weekly's two-week read window and UTC slack.
     const startMs = dayNumber(oldest) * DAY_MS - DAY_MS;

@@ -18,6 +18,7 @@ import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
 import { RecoveryForecast } from "./forecast";
 import { RecoveryReplay } from "./replay";
 import { useWeeklyVolume, VolumeCard } from "./volume";
+import { WeekPlanCard } from "./week-plan";
 import {
   BodyModel,
   muscleKey,
@@ -191,6 +192,16 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   );
   const { run, pending } = useTask();
   const toast = useToast();
+  // Select a group of muscles in the log form, from the forecast or the plan.
+  const pick = (ids: Id<"muscles">[], label: string) => {
+    setSelected(ids);
+    toast(`${label} muscles selected`);
+    document.getElementById("log-workout")?.scrollIntoView({
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  };
   const toggle = (id: Id<"muscles">) =>
     setSelected((ids) =>
       ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
@@ -416,21 +427,10 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           onClose={() => setHistoryFor(null)}
         />
       </section>
-      <RecoveryForecast
-        muscles={muscles}
-        now={now}
-        onPlan={(ids, label) => {
-          setSelected(ids);
-          toast(`${label} muscles selected`);
-          document.getElementById("log-workout")?.scrollIntoView({
-            behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-              ? "instant"
-              : "smooth",
-          });
-        }}
-      />
+      <RecoveryForecast muscles={muscles} now={now} onPlan={pick} />
       <RecoveryReplay muscles={muscles} now={now} />
       <VolumeCard onOpen={(id) => setDetailId(id as Id<"muscles">)} />
+      <WeekPlanCard muscles={muscles} now={now} onStart={pick} />
       <section>
         <SectionTitle
           title="Muscle recovery"

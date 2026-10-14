@@ -10,12 +10,16 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { VOLUME_HIGH, VOLUME_LOW, type WeeklyVolume } from "@/lib/volume";
+import { deviceTimeZone } from "./coach";
 import { SectionTitle } from "./ui";
 
 // The Train card, muscle cards and muscle sheet share one subscription.
 export const VOLUME_WEEKS = 8;
 export const useWeeklyVolume = () =>
-  useQuery(api.volume.weekly, { weeks: VOLUME_WEEKS });
+  useQuery(api.volume.weekly, {
+    weeks: VOLUME_WEEKS,
+    timeZone: deviceTimeZone(),
+  });
 
 type Row = WeeklyVolume["muscles"][number];
 

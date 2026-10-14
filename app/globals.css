@@ -4107,3 +4107,66 @@ h1,
 .volume-empty {
   margin: 12px 0 0;
 }
+/* Week plan */
+.plan-summary {
+  margin: 0;
+}
+.plan-days {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+}
+.plan-days li {
+  display: grid;
+  grid-template-columns: 76px 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.plan-days li:first-child {
+  border-top: 0;
+}
+.plan-when,
+.plan-what {
+  display: grid;
+  gap: 2px;
+}
+.plan-when strong {
+  font-size: 14px;
+}
+.plan-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.plan-days li.rest .plan-icon {
+  background: var(--track);
+  color: var(--muted);
+}
+.plan-days li.rest .plan-what strong {
+  color: var(--muted);
+}
+.plan-start {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 99px;
+  background: var(--green);
+  color: var(--surface);
+  font-weight: 600;
+  font-size: 14px;
+}
+.plan-start:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.plan-short,
+.plan-done {
+  margin: 12px 0 0;
+}
