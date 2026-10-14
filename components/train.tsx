@@ -66,7 +66,12 @@ function MuscleCard({
 }) {
   const setCooldown = useMutation(api.tracker.setCooldown);
   const { run, pending } = useTask();
-  const status = recovery(now, muscle.lastTrainedAt, muscle.cooldownHours);
+  const status = recovery(
+    now,
+    muscle.lastTrainedAt,
+    muscle.cooldownHours,
+    muscle.soreUntil,
+  );
   const dark = useIsDark();
   const readyAt =
     status.kind === "recovering" && muscle.lastTrainedAt !== null
@@ -152,7 +157,7 @@ function MuscleCard({
 // Soonest-ready recovering muscles first, then ready, then never trained.
 function byReadiness(muscles: Muscle[], now: number) {
   const rank = (m: Muscle) => {
-    const status = recovery(now, m.lastTrainedAt, m.cooldownHours);
+    const status = recovery(now, m.lastTrainedAt, m.cooldownHours, m.soreUntil);
     if (status.kind === "recovering")
       return m.lastTrainedAt! + m.cooldownHours * 3_600_000 - now;
     return status.kind === "ready" ? Number.MAX_SAFE_INTEGER : Infinity;
@@ -220,7 +225,12 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   );
   const states = Object.fromEntries(
     [...byKey].map(([key, m]) => {
-      const state = recovery(now, m.lastTrainedAt, m.cooldownHours);
+      const state = recovery(
+        now,
+        m.lastTrainedAt,
+        m.cooldownHours,
+        m.soreUntil,
+      );
       if (bodyMap === "recovery") return [key, state];
       const n = weekSets.get(m._id) ?? 0;
       return [

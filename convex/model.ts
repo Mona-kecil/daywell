@@ -55,13 +55,15 @@ export async function createWorkout(
     trainedAt: args.trainedAt,
     note: args.note.trim(),
   });
-  for (const muscleId of ids)
+  for (const muscleId of ids) {
+    await ctx.db.patch(muscleId, { soreUntil: undefined });
     await ctx.db.insert("workoutMuscles", {
       userId,
       muscleId,
       workoutId,
       trainedAt: args.trainedAt,
     });
+  }
   return workoutId;
 }
 

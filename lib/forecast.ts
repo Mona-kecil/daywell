@@ -15,19 +15,25 @@ type ForecastMuscle = {
   name: string;
   lastTrainedAt: number | null;
   cooldownHours: number;
+  soreUntil?: number | null;
 };
 
-export const readyAt = (m: ForecastMuscle) =>
-  m.lastTrainedAt === null
-    ? null
-    : m.lastTrainedAt + m.cooldownHours * 3_600_000;
+export function readyAt(m: ForecastMuscle, now = -Infinity): number | null {
+  const cooldownEnd =
+    m.lastTrainedAt === null
+      ? null
+      : m.lastTrainedAt + m.cooldownHours * 3_600_000;
+  return m.soreUntil != null && m.soreUntil > now
+    ? Math.max(cooldownEnd ?? -Infinity, m.soreUntil)
+    : cooldownEnd;
+}
 
 // Recovering muscles soonest first, plus when each split is fully ready.
 // Splits ready at the same time favour the one rested longest.
 export function forecast<M extends ForecastMuscle>(muscles: M[], now: number) {
   const recovering = muscles
     .flatMap((muscle) => {
-      const at = readyAt(muscle);
+      const at = readyAt(muscle, now);
       return at !== null && at > now ? [{ muscle, at }] : [];
     })
     .sort((a, b) => a.at - b.at);
@@ -41,7 +47,7 @@ export function forecast<M extends ForecastMuscle>(muscles: M[], now: number) {
         id: split.id,
         label: split.label,
         members,
-        at: Math.max(now, ...members.map((m) => readyAt(m) ?? now)),
+        at: Math.max(now, ...members.map((m) => readyAt(m, now) ?? now)),
         lastTrainedAt: Math.max(0, ...members.map((m) => m.lastTrainedAt ?? 0)),
       },
     ];

@@ -1,6 +1,7 @@
 import { localClock } from "./coach-time";
 import { DAY_MS, shiftDay } from "./history";
 import { mealTotals, sumNutrients, type MealItem } from "./nutrients";
+import { readyAt } from "./forecast";
 import { recovery } from "./recovery";
 import type { CoachInput, Suggestion } from "./coach";
 
@@ -92,7 +93,12 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
       omittedMeals: Math.max(0, todayMeals.length - 6),
     },
     muscles: input.muscles.map((m) => {
-      const state = recovery(now, m.lastTrainedAt, m.cooldownHours);
+      const state = recovery(
+        now,
+        m.lastTrainedAt,
+        m.cooldownHours,
+        m.soreUntil,
+      );
       return {
         name: m.name.slice(0, 40),
         status:
@@ -100,13 +106,9 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
             ? ("recovering" as const)
             : ("ready" as const),
         hoursUntilReady:
-          state.kind === "recovering" && m.lastTrainedAt !== null
-            ? Math.ceil(
-                Math.max(
-                  0,
-                  m.lastTrainedAt + m.cooldownHours * 3_600_000 - now,
-                ) / 360_000,
-              ) / 10
+          state.kind === "recovering"
+            ? Math.ceil(Math.max(0, (readyAt(m, now) ?? now) - now) / 360_000) /
+              10
             : 0,
       };
     }),

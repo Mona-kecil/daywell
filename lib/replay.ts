@@ -43,7 +43,7 @@ export function statesAt<M extends ReplayMuscle>(
         m._id,
         m.lastTrainedAt === null || !trainedBefore.has(m._id)
           ? recovery(at, null, m.cooldownHours)
-          : { kind: "ready", fraction: 1, label: "Ready" },
+          : { kind: "ready", fraction: 1, label: "Ready", sore: false },
       ];
     }),
   );

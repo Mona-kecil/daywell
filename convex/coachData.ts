@@ -46,6 +46,7 @@ export async function todayDataFor(
       return {
         name: m.name,
         cooldownHours: m.cooldownHours,
+        soreUntil: m.soreUntil ?? null,
         lastTrainedAt: last?.trainedAt ?? null,
       };
     }),

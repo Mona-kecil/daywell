@@ -5,12 +5,18 @@ import {
   requireUser,
   positive,
   validDay,
+  validTimestamp,
   createWorkout,
   createWater,
 } from "./model";
 import { dayArgs } from "./validators";
 import { seedExercises } from "./exerciseModel";
-import { MUSCLE_DEFAULTS } from "../lib/recovery";
+import { readyAt } from "../lib/forecast";
+import {
+  MUSCLE_DEFAULTS,
+  SORE_EXTEND_HOURS,
+  SORE_MAX_HOURS,
+} from "../lib/recovery";
 
 export const initialize = mutation({
   args: {},
@@ -50,7 +56,11 @@ export const overview = query({
           )
           .order("desc")
           .first();
-        return { ...group, lastTrainedAt: last?.trainedAt ?? null };
+        return {
+          ...group,
+          lastTrainedAt: last?.trainedAt ?? null,
+          soreUntil: group.soreUntil ?? null,
+        };
       }),
     );
     return { waterGoal: settings?.waterGoal ?? 2500, muscles };
@@ -65,6 +75,48 @@ export const setCooldown = mutation({
     if (!muscle || muscle.userId !== userId)
       throw new ConvexError("Muscle not found.");
     await ctx.db.patch(args.id, { cooldownHours: args.hours });
+  },
+});
+export const reportSore = mutation({
+  args: { muscleId: v.id("muscles"), now: v.number() },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    validTimestamp(args.now);
+    const muscle = await ctx.db.get(args.muscleId);
+    if (!muscle || muscle.userId !== userId)
+      throw new ConvexError("Muscle not found.");
+    const last = await ctx.db
+      .query("workoutMuscles")
+      .withIndex("by_user_muscle_time", (q) =>
+        q.eq("userId", userId).eq("muscleId", muscle._id),
+      )
+      .order("desc")
+      .first();
+    const currentReadyAt =
+      readyAt(
+        {
+          ...muscle,
+          lastTrainedAt: last?.trainedAt ?? null,
+        },
+        args.now,
+      ) ?? args.now;
+    const soreUntil = Math.min(
+      Math.max(currentReadyAt, args.now) + SORE_EXTEND_HOURS * 3_600_000,
+      args.now + SORE_MAX_HOURS * 3_600_000,
+    );
+    await ctx.db.patch(muscle._id, { soreUntil });
+    return soreUntil;
+  },
+});
+export const clearSore = mutation({
+  args: { muscleId: v.id("muscles") },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    const muscle = await ctx.db.get(args.muscleId);
+    if (!muscle || muscle.userId !== userId)
+      throw new ConvexError("Muscle not found.");
+    await ctx.db.patch(muscle._id, { soreUntil: undefined });
+    return null;
   },
 });
 export const addWorkout = mutation({

@@ -79,6 +79,7 @@ export const all = query({
         id: m._id,
         name: m.name,
         cooldownHours: m.cooldownHours,
+        soreUntil: m.soreUntil ?? null,
       })),
       workouts: workouts.map((w) => ({
         id: w._id,
