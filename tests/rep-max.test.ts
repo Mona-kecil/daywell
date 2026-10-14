@@ -18,6 +18,9 @@ describe("rep targets", () => {
     const [single] = repTable(49.999999999);
     expect(single.weightKg).toBeLessThanOrEqual(49.999999999);
     expect(single.weightKg).toBe(47.5);
+    // Closer still, but well past float error: still under the step.
+    expect(loadable(49.99999999999)).toBe(47.5);
+    expect(loadable(2.49999999999975)).toBe(0);
   });
 
   it("keeps a lifted weight that float error leaves a hair under", () => {
