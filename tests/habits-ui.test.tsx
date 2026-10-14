@@ -69,6 +69,12 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+const dayText = (y: number, m: number, d: number) =>
+  new Date(y, m, d).toLocaleDateString([], {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
 const flush = () => act(() => Promise.resolve());
 const calls = (name: string) =>
   state.calls.filter(([n]: Call) => n === name).map(([, a]) => a);
@@ -105,15 +111,17 @@ describe("habits card", () => {
     render(<HabitsCard now={now} />);
     expect(screen.getByText("1 of 2 done today.")).toBeTruthy();
 
-    const done = screen.getByRole("button", { name: /Vitamins/ });
+    const done = screen.getByRole("button", { name: /^Vitamins(?!:)/ });
     expect(done.ariaPressed).toBe("true");
     expect(done.textContent).toContain("4 days in a row · best 9");
     expect(done.querySelector(".habit-streak svg")).toBeTruthy();
     expect(
-      screen.getByRole("img", { name: "Done 6 of the last 7 days" }),
+      screen.getByRole("button", {
+        name: "Vitamins: done 6 of the last 7 days. Change past days",
+      }),
     ).toBeTruthy();
 
-    const todo = screen.getByRole("button", { name: /Read/ });
+    const todo = screen.getByRole("button", { name: /^Read(?!:)/ });
     expect(todo.ariaPressed).toBe("false");
     // Two in a row is not worth a flame yet.
     expect(todo.querySelector(".habit-streak svg")).toBeNull();
@@ -145,6 +153,70 @@ describe("habits card", () => {
     expect(list[0]).toMatchObject({ doneToday: false, streak: 3, best: 9 });
     expect(list[0].last7.at(-1)).toBe(false);
     expect(list[1].doneToday).toBe(true);
+  });
+
+  it("ticks off a missed day from the week", () => {
+    state.habits = [vitamins, read];
+    render(<HabitsCard now={now} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Vitamins: done 6 of the last 7/ }),
+    );
+    const sheet = screen.getByRole("dialog", { name: "Vitamins" });
+    expect(
+      within(sheet).getByText(
+        "4 days in a row · best 9. Tap a day you did it but forgot to tick.",
+      ),
+    ).toBeTruthy();
+    // Newest first, with the one missed day (Saturday the 10th) open.
+    const rows = within(sheet)
+      .getAllByRole("button")
+      .filter((b) => b.hasAttribute("aria-pressed"));
+    expect(rows.map((b) => [b.textContent, b.ariaPressed])).toEqual([
+      ["Today", "true"],
+      ["Yesterday", "true"],
+      [dayText(2026, 9, 13), "true"],
+      [dayText(2026, 9, 12), "true"],
+      [dayText(2026, 9, 11), "true"],
+      [dayText(2026, 9, 10), "false"],
+      [dayText(2026, 9, 9), "true"],
+    ]);
+    fireEvent.click(rows[5]);
+    expect(calls("habits:toggle")).toEqual([
+      { id: "Vitamins", day: "2026-10-10" },
+    ]);
+  });
+
+  it("fills a past day without guessing the streak", () => {
+    state.habits = [read];
+    render(<HabitsCard now={now} />);
+    let list = [vitamins, read];
+    const store = {
+      getQuery: (_: unknown, args: unknown) => {
+        // The card's own query, whichever day is ticked.
+        expect(args).toEqual({ today: "2026-10-15" });
+        return list;
+      },
+      setQuery: (_: unknown, __: unknown, next: typeof list) => {
+        list = next;
+      },
+    };
+    state.updater!(store, { id: "Vitamins", day: "2026-10-10" });
+    expect(list[0]).toMatchObject({
+      doneToday: true,
+      streak: 4,
+      best: 9,
+      last7: [true, true, true, true, true, true, true],
+    });
+    state.updater!(store, { id: "Read", day: "2026-10-14" });
+    expect(list[1]).toMatchObject({
+      doneToday: false,
+      streak: 2,
+      last7: [false, false, false, false, false, true, false],
+    });
+    // Older than the week shown: left to the server.
+    const before = list;
+    state.updater!(store, { id: "Read", day: "2026-10-01" });
+    expect(list).toBe(before);
   });
 
   it("celebrates finishing the day, not loading a finished one", () => {

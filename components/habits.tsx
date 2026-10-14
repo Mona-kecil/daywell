@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
-import { HABIT_ICONS, MAX_HABITS, NAME_MAX } from "@/lib/habits";
+import { HABIT_ICONS, lastDays, MAX_HABITS, NAME_MAX } from "@/lib/habits";
 import { dayKey } from "@/lib/insights";
 import { Burst, useCrossing } from "./celebrate";
 import { ActionLink, SectionTitle, Sheet, useTask } from "./ui";
@@ -57,23 +57,28 @@ export function HabitsCard({ now }: { now: number }) {
 
 // Mounted with data, so a day that loads already complete stays quiet.
 function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
+  const week = lastDays(today, 7);
   const toggle = useMutation(api.habits.toggle).withOptimisticUpdate(
     (store, { id, day }) => {
-      const list = store.getQuery(api.habits.list, { today: day });
-      if (!list) return;
+      const list = store.getQuery(api.habits.list, { today });
+      const index = week.indexOf(day);
+      if (!list || index < 0) return;
       store.setQuery(
         api.habits.list,
-        { today: day },
+        { today },
         list.map((h) => {
           if (h.id !== id) return h;
-          const done = !h.doneToday;
+          const done = !h.last7[index];
+          const last7 = h.last7.map((on, i) => (i === index ? done : on));
+          // An earlier day can join or split a run; the server works that out.
+          if (day !== today) return { ...h, last7 };
           const streak = Math.max(0, h.streak + (done ? 1 : -1));
           return {
             ...h,
             doneToday: done,
             streak,
             best: Math.max(h.best, streak),
-            last7: [...h.last7.slice(0, 6), done],
+            last7,
           };
         }),
       );
@@ -81,6 +86,8 @@ function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
   );
   const { run } = useTask();
   const [editing, setEditing] = useState(false);
+  const [daysFor, setDaysFor] = useState<Habit["id"] | null>(null);
+  const daysHabit = habits.find((h) => h.id === daysFor);
   const done = habits.filter((h) => h.doneToday).length;
   const allDone = !!habits.length && done === habits.length;
   const celebrations = useCrossing(allDone);
@@ -137,7 +144,7 @@ function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
                     </span>
                   </span>
                 </button>
-                <WeekDots last7={h.last7} />
+                <WeekDots habit={h} onOpen={() => setDaysFor(h.id)} />
               </li>
             );
           })}
@@ -159,22 +166,87 @@ function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
       >
         <HabitEditor habits={habits} />
       </Sheet>
+      <Sheet
+        open={!!daysHabit}
+        onClose={() => setDaysFor(null)}
+        title={daysHabit?.name ?? ""}
+      >
+        {daysHabit && (
+          <HabitDays
+            habit={daysHabit}
+            week={week}
+            onToggle={(day) =>
+              void run(() => toggle({ id: daysHabit.id, day }))
+            }
+          />
+        )}
+      </Sheet>
     </section>
   );
 }
 
-function WeekDots({ last7 }: { last7: boolean[] }) {
-  const count = last7.filter(Boolean).length;
+function WeekDots({ habit, onOpen }: { habit: Habit; onOpen: () => void }) {
+  const count = habit.last7.filter(Boolean).length;
   return (
-    <span
+    <button
+      type="button"
       className="habit-week"
-      role="img"
-      aria-label={`Done ${count} of the last 7 days`}
+      aria-label={`${habit.name}: done ${count} of the last 7 days. Change past days`}
+      onClick={onOpen}
     >
-      {last7.map((on, i) => (
+      {habit.last7.map((on, i) => (
         <i key={i} className={on ? "on" : undefined} />
       ))}
-    </span>
+    </button>
+  );
+}
+
+const dayName = (day: string, i: number) => {
+  if (i === 0) return "Today";
+  if (i === 1) return "Yesterday";
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString([], {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+// The last week, newest first, for ticking off a day that was missed.
+function HabitDays({
+  habit,
+  week,
+  onToggle,
+}: {
+  habit: Habit;
+  week: string[];
+  onToggle: (day: string) => void;
+}) {
+  const newestFirst = week
+    .map((day, i) => ({ day, on: habit.last7[i] }))
+    .reverse();
+  return (
+    <>
+      <p className="muted small">
+        {streakLabel(habit)}. Tap a day you did it but forgot to tick.
+      </p>
+      <ul className="habit-days">
+        {newestFirst.map(({ day, on }, i) => (
+          <li key={day}>
+            <button
+              type="button"
+              aria-pressed={on}
+              onClick={() => onToggle(day)}
+            >
+              <span>{dayName(day, i)}</span>
+              <span className="habit-day-mark" aria-hidden>
+                {on && <Check size={16} strokeWidth={3} />}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
