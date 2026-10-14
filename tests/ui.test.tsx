@@ -14,22 +14,29 @@ import { Today } from "../components/today";
 import { Train } from "../components/train";
 import { Water } from "../components/water";
 import { Meals } from "../components/meals";
+import { DayTimeline } from "../components/timeline";
 import { Brand, FeedbackProvider } from "../components/ui";
 import { mealTotals } from "../lib/nutrients";
 const mocks = vi.hoisted(() => ({
   mutation: vi.fn(async () => {}),
   action: vi.fn(async () => {}),
+  history: {
+    results: [] as {
+      _id: string;
+      trainedAt: number;
+      muscleIds: string[];
+      note: string;
+    }[],
+    status: "Exhausted",
+    loadMore: vi.fn(),
+  },
 }));
 vi.mock("convex/react", () => ({
   useMutation: () => mocks.mutation,
   useAction: () => mocks.action,
   // Live queries stay loading; screens under test receive their data as props.
   useQuery: () => undefined,
-  usePaginatedQuery: () => ({
-    results: [],
-    status: "Exhausted",
-    loadMore: () => {},
-  }),
+  usePaginatedQuery: () => mocks.history,
 }));
 // WebGL can't run under jsdom; the 3D body has its own lab page.
 vi.mock("../components/body3d", async (importOriginal) => ({
@@ -91,6 +98,9 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  mocks.mutation.mockReset();
+  vi.unstubAllGlobals();
+  Object.assign(mocks.history, { results: [], status: "Exhausted" });
 });
 describe("screen actions", () => {
   it("opens Train from the Today action", async () => {
@@ -142,6 +152,91 @@ describe("screen actions", () => {
     expect(mocks.mutation).toHaveBeenLastCalledWith({ id: "water-1" });
     expect(await screen.findByText("Undone")).toBeTruthy();
     expect(screen.queryByText("Undo")).toBeNull();
+  });
+  it("undoes Today's quick drink", async () => {
+    mocks.mutation.mockResolvedValueOnce("water-2" as never);
+    render(
+      <FeedbackProvider>
+        <Today
+          now={now}
+          overview={overview}
+          waterMl={500}
+          totals={mealTotals(meals[0].items)}
+          mealCount={1}
+          water={[]}
+          meals={[]}
+          pendingMeals={0}
+          onTab={() => {}}
+        />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "+ 250 ml" }));
+    await userEvent.click(await screen.findByText("Undo"));
+    expect(mocks.mutation).toHaveBeenLastCalledWith({ id: "water-2" });
+    expect(await screen.findByText("Undone")).toBeTruthy();
+  });
+  it("undoes a saved workout", async () => {
+    vi.stubGlobal("matchMedia", () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    mocks.mutation.mockResolvedValueOnce("workout-1" as never);
+    render(
+      <FeedbackProvider>
+        <Train muscles={overview.muscles} now={now} />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: overview.muscles[1].name,
+        pressed: false,
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save workout" }));
+    expect(await screen.findByText("Workout saved")).toBeTruthy();
+    await userEvent.click(screen.getByText("Undo"));
+    expect(mocks.mutation).toHaveBeenLastCalledWith({ id: "workout-1" });
+    expect(await screen.findByText("Undone")).toBeTruthy();
+  });
+  it("shows why an undo failed", async () => {
+    mocks.mutation
+      .mockResolvedValueOnce("water-3" as never)
+      .mockRejectedValueOnce(new Error("Water entry not found."));
+    render(
+      <FeedbackProvider>
+        <Water entries={entries} goal={2500} now={now} />
+      </FeedbackProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /250 ml/ }));
+    await userEvent.click(await screen.findByText("Undo"));
+    const toast = await screen.findByText("Water entry not found.");
+    expect(toast.closest(".toast")?.classList.contains("error")).toBe(true);
+    expect(screen.queryByText("Undone")).toBeNull();
+  });
+  it("loads workout history until it reaches before today", () => {
+    const at = (h: number) => new Date(2026, 9, 13, h).getTime();
+    const day = new Date(2026, 9, 13, 23).getTime();
+    const workout = (id: string, trainedAt: number) => ({
+      _id: id,
+      trainedAt,
+      muscleIds: [overview.muscles[0]._id],
+      note: "",
+    });
+    Object.assign(mocks.history, {
+      results: [workout("w1", at(9)), workout("w2", at(7))],
+      status: "CanLoadMore",
+    });
+    const props = { now: day, water: [], meals: [], muscles: overview.muscles };
+    const view = render(<DayTimeline {...props} />);
+    expect(mocks.history.loadMore).toHaveBeenCalledWith(8);
+    mocks.history.loadMore.mockClear();
+    Object.assign(mocks.history, {
+      results: [...mocks.history.results, workout("w0", at(-3))],
+    });
+    view.rerender(<DayTimeline {...props} />);
+    expect(mocks.history.loadMore).not.toHaveBeenCalled();
+    expect(screen.getAllByText(/^Trained /)).toHaveLength(2);
   });
   it("offers no photo restart for a stalled photo-less meal", () => {
     const stalled = {

@@ -1,6 +1,6 @@
 "use client";
 import type { Id } from "@/convex/_generated/dataModel";
-import { FORECAST_MS, forecast, midnights } from "@/lib/forecast";
+import { FORECAST_MS, ceilHour, forecast, midnights } from "@/lib/forecast";
 import { recoveryHex, useIsDark } from "./body3d";
 import { SectionTitle } from "./ui";
 
@@ -14,9 +14,8 @@ type Muscle = {
 const HOUR = 3_600_000;
 const pct = (ms: number) => (ms / FORECAST_MS) * 100;
 
-// Rounded up to the hour, so "by 5 PM" is never early.
 function hourLabel(at: number, now: number) {
-  const by = new Date(Math.ceil(at / HOUR) * HOUR);
+  const by = new Date(ceilHour(at));
   const today = by.toDateString() === new Date(now).toDateString();
   return by.toLocaleString(
     [],

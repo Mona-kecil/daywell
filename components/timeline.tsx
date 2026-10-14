@@ -2,6 +2,7 @@
 import { usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Droplets, Dumbbell, Utensils } from "lucide-react";
+import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { localDayRange } from "@/lib/day";
@@ -45,12 +46,16 @@ export function DayTimeline({
   muscles: { _id: Id<"muscles">; name: string }[];
 }) {
   const { startMs } = localDayRange(new Date(now));
-  // Newest first, so today's workouts are at the top of the first page.
-  const { results } = usePaginatedQuery(
+  // Newest first: keep paging until the history reaches before today.
+  const { results, status, loadMore } = usePaginatedQuery(
     api.tracker.workoutHistory,
     {},
     { initialNumItems: 8 },
   );
+  const pastToday = (results.at(-1)?.trainedAt ?? Infinity) < startMs;
+  useEffect(() => {
+    if (status === "CanLoadMore" && !pastToday) loadMore(8);
+  }, [status, pastToday, loadMore]);
   const names = new Map(muscles.map((m) => [m._id, m.name]));
   const events = dayTimeline({
     water,

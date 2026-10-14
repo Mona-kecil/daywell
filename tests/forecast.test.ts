@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { FORECAST_MS, forecast, midnights } from "../lib/forecast";
+import { afterEach, describe, expect, it } from "vitest";
+import { FORECAST_MS, ceilHour, forecast, midnights } from "../lib/forecast";
 
 const h = 3_600_000;
 const now = new Date(2026, 9, 14, 9, 30).getTime();
@@ -39,11 +39,7 @@ describe("recovery forecast", () => {
 
   it("suggests the earliest split, then the one rested longest", () => {
     const { next } = forecast(
-      [
-        muscle("chest", 50),
-        muscle("back", 80),
-        muscle("quads", 10, 72),
-      ],
+      [muscle("chest", 50), muscle("back", 80), muscle("quads", 10, 72)],
       now,
     );
     expect(next?.id).toBe("pull");
@@ -66,5 +62,21 @@ describe("recovery forecast", () => {
     expect(midnights(new Date(2026, 9, 14).getTime(), FORECAST_MS)).toEqual([
       new Date(2026, 9, 15).getTime(),
     ]);
+  });
+});
+
+describe("ceilHour", () => {
+  const tz = process.env.TZ;
+  afterEach(() => {
+    process.env.TZ = tz;
+  });
+  it("rounds up to the local hour in a half-hour time zone", () => {
+    process.env.TZ = "Asia/Kolkata";
+    // 09:20 IST rounds to 10:00 IST, not 09:30 (the next UTC hour).
+    const by = new Date(ceilHour(Date.UTC(2026, 0, 1, 3, 50)));
+    expect([by.getHours(), by.getMinutes()]).toEqual([10, 0]);
+    // 10:00 IST is already on the hour.
+    const exact = Date.UTC(2026, 0, 1, 4, 30);
+    expect(ceilHour(exact)).toBe(exact);
   });
 });

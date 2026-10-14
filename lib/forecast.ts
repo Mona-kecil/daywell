@@ -53,6 +53,15 @@ export function forecast<M extends ForecastMuscle>(muscles: M[], now: number) {
   return { recovering, splits, next };
 }
 
+// Rounded up to the next local hour, so "by 5 PM" is never early, even in
+// half-hour time zones.
+export function ceilHour(at: number) {
+  const d = new Date(at);
+  if (d.getMinutes() || d.getSeconds() || d.getMilliseconds())
+    d.setMinutes(60, 0, 0);
+  return d.getTime();
+}
+
 // Local midnights strictly inside the forecast window.
 export function midnights(now: number, spanMs = FORECAST_MS) {
   const out: number[] = [];

@@ -2,18 +2,23 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BarcodeSheet, ManualMealSheet } from "../components/meal-add";
+import {
+  BarcodeSheet,
+  ManualMealSheet,
+  RecentMeals,
+} from "../components/meal-add";
 import { FeedbackProvider } from "../components/ui";
 import { manualMealSchema, mealSummary } from "../lib/manual-meal";
 
 const mocks = vi.hoisted(() => ({
   mutation: vi.fn(async () => {}),
   action: vi.fn(async () => null),
+  query: undefined as unknown,
 }));
 vi.mock("convex/react", () => ({
   useMutation: () => mocks.mutation,
   useAction: () => mocks.action,
-  useQuery: () => undefined,
+  useQuery: () => mocks.query,
 }));
 
 beforeAll(() => {
@@ -27,6 +32,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  mocks.query = undefined;
   vi.unstubAllGlobals();
   delete window.BarcodeDetector;
 });
@@ -110,5 +116,25 @@ describe("manual meal form", () => {
     expect(
       manualMealSchema.shape.description.safeParse(description).success,
     ).toBe(true);
+  });
+});
+
+describe("recent meals", () => {
+  it("undoes a repeated meal", async () => {
+    mocks.query = [
+      { id: "meal-1", description: "Oats", kcal: 380, at: Date.now() },
+    ];
+    mocks.mutation.mockResolvedValueOnce("meal-2" as never);
+    sheet(<RecentMeals />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /Log Oats again/ }),
+    );
+    expect(mocks.mutation).toHaveBeenCalledWith(
+      expect.objectContaining({ mealId: "meal-1" }),
+    );
+    expect(await screen.findByText("Logged Oats")).toBeTruthy();
+    await userEvent.click(screen.getByText("Undo"));
+    expect(mocks.mutation).toHaveBeenLastCalledWith({ id: "meal-2" });
+    expect(await screen.findByText("Undone")).toBeTruthy();
   });
 });
