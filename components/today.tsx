@@ -13,6 +13,7 @@ import { ShareDayButton } from "./share-day";
 import { dayKey } from "@/lib/insights";
 import { Burst, useCrossing } from "./celebrate";
 import { CoachCard } from "./coach";
+import { QuickLogButton } from "./quick-log";
 import { CheckInCard } from "./checkin";
 import { DayTimeline } from "./timeline";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -131,6 +132,7 @@ export function Today({
           <span>{accent}</span>
         </h1>
       </section>
+      <QuickLogButton />
       <CoachCard now={now} onTab={onTab} />
       <section className="card burst-anchor rings-card">
         <SectionTitle

@@ -120,3 +120,59 @@ export const research = action({
     }
   },
 });
+
+export const createFromText = action({
+  args: {
+    description: v.string(),
+    at: v.number(),
+    items: v.array(
+      v.object({
+        name: v.string(),
+        grams: v.number(),
+        searchQuery: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args): Promise<Id<"meals">> => {
+    await requireUser(ctx);
+    const id = await ctx.runMutation(internal.meals.registerText, args);
+    const revision = await ctx.runMutation(internal.meals.begin, { id });
+    try {
+      const items = [];
+      const mode = fdcMode(process.env);
+      for (const [index, item] of args.items.entries())
+        items.push(
+          await groundFood(
+            {
+              ...item,
+              name: item.name.trim(),
+              searchQuery: item.searchQuery.trim(),
+              id: `${revision}:${index}`,
+            },
+            process.env.USDA_FDC_API_KEY,
+            mode,
+          ),
+        );
+      await ctx.runMutation(internal.meals.complete, {
+        id,
+        revision,
+        result: {
+          status: "ready",
+          description: args.description.trim(),
+          items,
+        },
+      });
+    } catch {
+      // Fetch errors can contain USDA URLs with credentials; never persist them.
+      await ctx.runMutation(internal.meals.complete, {
+        id,
+        revision,
+        result: {
+          status: "error",
+          message: "Food search failed. Please retry later.",
+        },
+      });
+    }
+    return id;
+  },
+});

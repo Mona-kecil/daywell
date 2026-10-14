@@ -3330,3 +3330,138 @@ h1,
   background: var(--green-soft);
   color: var(--green);
 }
+/* Quick log */
+.quick-log-bar {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -10px 0 18px;
+  padding: 0 16px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: left;
+}
+.quick-log-bar span {
+  flex: 1;
+}
+.quick-log-bar svg:first-child {
+  color: var(--green);
+}
+.quick-log-compose textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  resize: none;
+  field-sizing: content;
+}
+.quick-log .mic.live {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.quick-log .mic.live svg {
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick-log .mic.live svg {
+    animation: none;
+  }
+}
+.quick-log-note {
+  margin-top: 10px;
+}
+.quick-log-results {
+  margin-top: 20px;
+}
+.proposals {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 10px;
+}
+.proposals > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: opacity 0.15s;
+}
+.proposals > li.off {
+  opacity: 0.5;
+}
+.proposal-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.proposal-body .row {
+  margin: 0;
+}
+.proposal-toggle {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  color: transparent;
+}
+.proposal-toggle[aria-pressed="true"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--surface);
+}
+.proposal-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.proposal-amount input {
+  width: 92px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+.meal-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.leftover {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--amber-soft);
+}
+.leftover ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}

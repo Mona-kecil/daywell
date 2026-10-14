@@ -14,6 +14,7 @@ import {
 } from "./model";
 import { dayArgs, mealItem, macros } from "./validators";
 import { mealItemSchema, mealTotals } from "../lib/nutrients";
+import { textMealSchema } from "../lib/quick-log";
 import { manualMealSchema } from "../lib/manual-meal";
 
 export const today = query({
@@ -297,6 +298,37 @@ export const addManual = mutation({
         foodDescription: item.name,
         status: "matched",
       })),
+    });
+  },
+});
+
+export const registerText = internalMutation({
+  args: {
+    description: v.string(),
+    at: v.number(),
+    items: v.array(
+      v.object({
+        name: v.string(),
+        grams: v.number(),
+        searchQuery: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    validTimestamp(args.at);
+    const parsed = textMealSchema.safeParse(args);
+    if (!parsed.success)
+      throw new ConvexError(
+        "Use a description of 1–4,000 characters and 1–30 items; names and search queries 1–200 characters, grams >0–10,000.",
+      );
+    return ctx.db.insert("meals", {
+      userId,
+      at: parsed.data.at,
+      description: parsed.data.description,
+      items: [],
+      revision: 0,
+      analysis: { status: "analyzing", startedAt: Date.now() },
     });
   },
 });

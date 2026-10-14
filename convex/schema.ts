@@ -16,6 +16,10 @@ export default defineSchema({
     userId: v.string(),
     requestedAt: v.array(v.number()),
   }).index("by_user", ["userId"]),
+  quickLogLimits: defineTable({
+    userId: v.string(),
+    sentAt: v.array(v.number()),
+  }).index("by_user", ["userId"]),
   coachChatLimits: defineTable({
     userId: v.string(),
     sentAt: v.array(v.number()),
