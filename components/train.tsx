@@ -20,6 +20,7 @@ import { RecoveryForecast } from "./forecast";
 import { RecoveryReplay } from "./replay";
 import { useWeeklyVolume, VolumeCard } from "./volume";
 import { WeekPlanCard } from "./week-plan";
+import { LiftTrendsCard } from "./lift-trends";
 import {
   BodyModel,
   FREQUENCY_HUE,
@@ -485,6 +486,13 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
       <RecoveryReplay muscles={muscles} now={now} />
       <VolumeCard onOpen={(id) => setDetailId(id as Id<"muscles">)} />
       <WeekPlanCard muscles={muscles} now={now} onStart={pick} />
+      <LiftTrendsCard
+        now={now}
+        onOpen={(id) => {
+          const exercise = exercises?.find((e) => e._id === id);
+          if (exercise) setHistoryFor(exercise);
+        }}
+      />
       <section>
         <SectionTitle
           title="Muscle recovery"
