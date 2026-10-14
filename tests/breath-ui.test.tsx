@@ -152,4 +152,20 @@ describe("Breathing", () => {
     // Hold is silent; out, then the next in.
     expect(tones).toEqual([440, 330, 440]);
   });
+
+  it("stops ticking once the session is done", () => {
+    render(<BreathCard />);
+    fireEvent.click(screen.getByRole("button", { name: "1 min" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start 4-7-8" }));
+    tick(57_000);
+    expect(word()).toBe("Done");
+    expect(vi.getTimerCount()).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Again" }));
+    expect(vi.getTimerCount()).toBe(1);
+    tick(4000);
+    expect(word()).toBe("Hold");
+    fireEvent.click(screen.getByRole("button", { name: "Stop breathing" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });

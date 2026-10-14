@@ -119,4 +119,29 @@ describe("photo wall", () => {
       screen.queryByRole("button", { name: "Show older photos" }),
     ).toBeNull();
   });
+
+  it("keeps the open photo when newer meals push it off the page", () => {
+    const first = Array.from({ length: 24 }, (_, i) =>
+      photo(`meal-${i}`, { description: `Meal ${i}` }),
+    );
+    page.results = first;
+    const { rerender } = render(<PhotoWall />);
+    const tiles = within(screen.getByRole("list")).getAllByRole("button");
+    fireEvent.click(tiles[23]);
+    expect(screen.getByRole("heading", { name: "Meal 23" })).toBeTruthy();
+
+    page.results = [
+      photo("new", { description: "New meal" }),
+      ...first.slice(0, 23),
+    ];
+    rerender(<PhotoWall />);
+    expect(screen.getByRole("heading", { name: "Meal 23" })).toBeTruthy();
+
+    // Still follows live edits while it is on the page.
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(within(screen.getByRole("list")).getAllByRole("button")[1]);
+    page.results = [photo("new"), photo("meal-0", { description: "Edited" })];
+    rerender(<PhotoWall />);
+    expect(screen.getByRole("heading", { name: "Edited" })).toBeTruthy();
+  });
 });

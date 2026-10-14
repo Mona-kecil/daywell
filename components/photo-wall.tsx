@@ -26,8 +26,10 @@ export function PhotoWall() {
     {},
     { initialNumItems: PAGE },
   );
-  const [openId, setOpenId] = useState<Photo["id"] | null>(null);
-  const open = results.find((p) => p.id === openId);
+  // Kept whole, so a photo pushed off the loaded pages by newer meals stays
+  // open; the live copy wins while it is still there.
+  const [picked, setPicked] = useState<Photo | null>(null);
+  const open = picked && (results.find((p) => p.id === picked.id) ?? picked);
   if (status === "LoadingFirstPage") return null;
   return (
     <section className="card photo-wall" aria-labelledby="photo-wall-title">
@@ -54,7 +56,7 @@ export function PhotoWall() {
               <button
                 type="button"
                 aria-label={`${p.description || "Meal"}, ${dayLabel(p.at)} ${timeLabel(p.at)}, ${kcalLabel(p.kcal)}`}
-                onClick={() => setOpenId(p.id)}
+                onClick={() => setPicked(p)}
               >
                 {p.photoUrl ? (
                   <Image
@@ -92,7 +94,7 @@ export function PhotoWall() {
       )}
       <Sheet
         open={!!open}
-        onClose={() => setOpenId(null)}
+        onClose={() => setPicked(null)}
         title={open?.description || "Meal"}
       >
         {open && <PhotoDetail photo={open} />}

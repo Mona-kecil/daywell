@@ -145,9 +145,13 @@ describe("Interval timer", () => {
     expect(phaseText()).toBe("Done");
     expect(live()).toBe("Done. Nice work.");
     expect(tones.at(-1)).toBe(1320);
+    // Nothing left to count, so the timer stops.
+    expect(vi.getTimerCount()).toBe(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Again" }));
     expect(phaseText()).toBe(" Get ready");
+    tick(1000);
+    expect(clockText()).toBe("0:04");
     fireEvent.click(screen.getByRole("button", { name: "Stop timer" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });

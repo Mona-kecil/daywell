@@ -14,6 +14,20 @@ describe("rep targets", () => {
     expect(loadable(2.4)).toBe(0);
   });
 
+  it("never goes over a max that sits just under a step", () => {
+    const [single] = repTable(49.999999999);
+    expect(single.weightKg).toBeLessThanOrEqual(49.999999999);
+    expect(single.weightKg).toBe(47.5);
+  });
+
+  it("keeps a lifted weight that float error leaves a hair under", () => {
+    for (let kg = 20; kg <= 300; kg += 2.5)
+      for (const reps of [2, 3, 4, 5, 6, 8, 10, 12, 15])
+        expect(loadable(repWeight(e1rm({ reps, weightKg: kg }), reps))).toBe(
+          kg,
+        );
+  });
+
   it("lists weights and percentages from a one-rep max", () => {
     const table = repTable(100);
     expect(table.map((r) => r.reps)).toEqual([1, 2, 3, 4, 5, 6, 8, 10, 12, 15]);

@@ -176,6 +176,8 @@ export function BreathRun({
       const t = Date.now();
       setNow(t);
       const step = breathAt(pattern.steps, cycles, elapsed(timing, t));
+      // Nothing left to count; Again starts a fresh interval.
+      if (!step) clearInterval(id);
       const index = step ? step.index : Infinity;
       if (index === cue.current) return;
       cue.current = index;

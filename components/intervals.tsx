@@ -191,6 +191,8 @@ export function IntervalRun({
       const t = Date.now();
       setNow(t);
       const at = phaseAt(list, elapsed(timing, t));
+      // Nothing left to count; Again starts a fresh interval.
+      if (!at) clearInterval(id);
       const index = at ? at.index : list.length;
       if (index !== cue.current.index) {
         cue.current = { index, second: -1 };

@@ -10,9 +10,10 @@ export const repWeight = (oneRepKg: number, reps: number) =>
   reps === 1 ? oneRepKg : oneRepKg / (1 + reps / 30);
 
 // Rounded down to a weight standard plates load, so a target is never
-// heavier than the estimate.
+// heavier than the estimate. The tiny relative slack only absorbs float error
+// from running e1rm() backwards, so 25 kg × 10 still comes back as 25 kg.
 export const loadable = (kg: number, step = LOAD_STEP_KG) =>
-  Math.floor(kg / step + 1e-9) * step;
+  Math.floor((kg / step) * (1 + 1e-12)) * step;
 
 export function repTable(oneRepKg: number) {
   if (!Number.isFinite(oneRepKg) || oneRepKg <= 0) return [];
