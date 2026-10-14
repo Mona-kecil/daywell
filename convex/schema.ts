@@ -1,8 +1,23 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { mealItem, pushKeys, pushPayload } from "./validators";
+import { habitIcon, mealItem, pushKeys, pushPayload } from "./validators";
 
 export default defineSchema({
+  habits: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    icon: habitIcon,
+    order: v.number(),
+    createdAt: v.number(),
+    archivedAt: v.optional(v.number()),
+  }).index("by_user", ["userId"]),
+  habitLogs: defineTable({
+    userId: v.string(),
+    habitId: v.id("habits"),
+    day: v.string(),
+  })
+    .index("by_user_habit_day", ["userId", "habitId", "day"])
+    .index("by_user_day", ["userId", "day"]),
   shortcutTokens: defineTable({
     userId: v.string(),
     hash: v.string(),

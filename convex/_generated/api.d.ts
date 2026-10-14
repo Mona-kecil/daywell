@@ -27,6 +27,7 @@ import type * as drivers from "../drivers.js";
 import type * as exerciseModel from "../exerciseModel.js";
 import type * as exportData from "../exportData.js";
 import type * as food from "../food.js";
+import type * as habits from "../habits.js";
 import type * as historyData from "../historyData.js";
 import type * as http from "../http.js";
 import type * as insights from "../insights.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   exerciseModel: typeof exerciseModel;
   exportData: typeof exportData;
   food: typeof food;
+  habits: typeof habits;
   historyData: typeof historyData;
   http: typeof http;
   insights: typeof insights;

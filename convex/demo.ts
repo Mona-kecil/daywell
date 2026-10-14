@@ -8,6 +8,7 @@ import { requireUser, createWorkout, validLocalDay } from "./model";
 import { MUSCLE_DEFAULTS } from "../lib/recovery";
 import { isLocalDeployment } from "../lib/local-deployment";
 import { DEV_ISSUER, DEV_USER } from "../lib/dev-auth-config";
+import { HABIT_ICONS, lastDays } from "../lib/habits";
 
 export async function requireDevUser(ctx: { auth: Auth }) {
   if (
@@ -94,6 +95,14 @@ export const replace = internalMutation({
         .withIndex("by_user_time", (q) => q.eq("userId", userId))
         .collect()),
       ...(await ctx.db
+        .query("habits")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect()),
+      ...(await ctx.db
+        .query("habitLogs")
+        .withIndex("by_user_day", (q) => q.eq("userId", userId))
+        .collect()),
+      ...(await ctx.db
         .query("uploads")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect()),
@@ -105,6 +114,24 @@ export const replace = internalMutation({
         ? priorSettings.timeZone
         : undefined;
     await ctx.db.insert("settings", { userId, waterGoal: 2500, timeZone });
+    const habitDays = lastDays(checkinDays[0], 28);
+    const demoHabits = [
+      { name: "Vitamins", icon: "pill" },
+      { name: "Stretch 10 min", icon: "stretch" },
+      { name: "Read", icon: "book" },
+    ] satisfies { name: string; icon: (typeof HABIT_ICONS)[number] }[];
+    for (const [order, habit] of demoHabits.entries()) {
+      const habitId = await ctx.db.insert("habits", {
+        userId,
+        ...habit,
+        order,
+        createdAt: new Date(`${habitDays[0]}T00:00:00Z`).getTime(),
+      });
+      for (const [index, day] of habitDays.entries()) {
+        if ((index + order * 2) % (7 - order) === 0) continue;
+        await ctx.db.insert("habitLogs", { userId, habitId, day });
+      }
+    }
     const muscles = new Map<string, Id<"muscles">>();
     for (const muscle of MUSCLE_DEFAULTS)
       muscles.set(
