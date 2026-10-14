@@ -4005,7 +4005,7 @@ h1,
 }
 .volume-key.avg {
   width: 2px;
-  height: 14px;
+  height: 8px;
   border-radius: 1px;
   background: var(--text);
 }
@@ -4035,22 +4035,28 @@ h1,
 .volume-list li > button:focus-visible {
   outline: 2px solid var(--green);
 }
-.volume-head,
-.volume-meta {
+.volume-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
-}
-.volume-head {
   font-size: 15px;
+}
+.volume-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+}
+.volume-count {
+  white-space: nowrap;
 }
 .volume-bar {
   position: relative;
   display: block;
-  height: 10px;
-  margin: 6px 0;
-  border-radius: 5px;
+  height: 8px;
+  margin: 6px 0 10px;
+  border-radius: 4px;
   background: var(--track);
 }
 .volume-band {
@@ -4061,29 +4067,30 @@ h1,
 }
 .volume-fill {
   position: absolute;
-  inset-block: 2px;
+  inset-block: 0;
   left: 0;
-  border-radius: 0 4px 4px 0;
+  border-radius: 4px;
   background: var(--green);
 }
 .volume-list li.low .volume-fill,
 .volume-list li.high .volume-fill {
   background: var(--amber);
 }
+/* The usual week sits just under the bar so it never splits the fill. */
 .volume-avg {
   position: absolute;
-  top: -3px;
-  bottom: -3px;
+  top: calc(100% + 2px);
   width: 2px;
+  height: 6px;
   margin-left: -1px;
   border-radius: 1px;
   background: var(--text);
-  box-shadow: 0 0 0 2px var(--surface);
 }
 .volume-status {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  font-size: 13px;
   font-weight: 600;
 }
 .volume-status.on-track {

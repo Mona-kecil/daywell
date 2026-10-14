@@ -82,11 +82,11 @@ describe("Weekly volume", () => {
       "1 of 5 muscles in range this week",
     );
     expect(rows()).toEqual([
-      "back12 setsIn rangeUsually 11 sets",
-      "chest3 setsBehind pace for 10Usually 9 sets",
-      "quads24 setsAbove 20Usually 18 sets",
-      "abs4 setsOn pace for 10Usually under 1",
-      "calves0 setsNone since MondayUsually 6 sets",
+      "backIn range12 sets · usually 11",
+      "chestBehind pace3 sets · usually 9",
+      "quadsAbove 2024 sets · usually 18",
+      "absOn pace4 sets · usually under 1",
+      "calvesNone yet0 sets · usually 6",
     ]);
     // Muscles idle for the whole window collapse into one line.
     expect(screen.getByText(/No sets in 8 weeks/).textContent).toBe(
@@ -98,10 +98,10 @@ describe("Weekly volume", () => {
     mocks.data = volume([row({ current: 1, average: 0 })]);
     const onOpen = vi.fn();
     render(<VolumeCard onOpen={onOpen} />);
-    expect(rows()).toEqual(["back1 setOn pace for 10New this week"]);
+    expect(rows()).toEqual(["backOn pace1 set · new"]);
     await userEvent.click(
       screen.getByRole("button", {
-        name: "back: 1 set this week, on pace for 10. Open details",
+        name: "back: 1 set this week, new, on pace. Open details",
       }),
     );
     expect(onOpen).toHaveBeenCalledWith("back");

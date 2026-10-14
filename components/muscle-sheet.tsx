@@ -170,7 +170,7 @@ function WeeklySets({ muscleId }: { muscleId: Id<"muscles"> }) {
       <div className="week-axis" aria-hidden>
         <span>{weekLabel(weeks[0].start)}</span>
         <span>
-          {VOLUME_LOW}–{VOLUME_HIGH} band
+          Shaded {VOLUME_LOW}–{VOLUME_HIGH}
         </span>
         <span>This week</span>
       </div>

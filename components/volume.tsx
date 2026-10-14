@@ -29,15 +29,13 @@ const STATUS: Record<Row["status"], { icon: LucideIcon; tone: string }> = {
 export function statusLabel(row: Row) {
   switch (row.status) {
     case "none":
-      return "None since Monday";
+      return "None yet";
     case "low":
-      return `Behind pace for ${VOLUME_LOW}`;
+      return "Behind pace";
     case "high":
       return `Above ${VOLUME_HIGH}`;
     default:
-      return row.current >= VOLUME_LOW
-        ? "In range"
-        : `On pace for ${VOLUME_LOW}`;
+      return row.current >= VOLUME_LOW ? "In range" : "On pace";
   }
 }
 
@@ -51,7 +49,8 @@ export function weekLabel(start: string) {
 const sets = (n: number) => `${n} ${n === 1 ? "set" : "sets"}`;
 
 // Working sets per muscle this week against the 10–20 range most people
-// grow on. "Behind pace" is judged against how much of the week is left.
+// grow on. "Behind pace" is judged against how much of the week is left,
+// and the tick under each bar marks the user's own usual week.
 export function VolumeCard({ onOpen }: { onOpen?: (id: string) => void }) {
   const data = useWeeklyVolume();
   if (!data) return null;
@@ -90,20 +89,30 @@ export function VolumeCard({ onOpen }: { onOpen?: (id: string) => void }) {
           </p>
           <p className="small muted volume-legend" aria-hidden>
             <span className="volume-key band" /> {VOLUME_LOW}–{VOLUME_HIGH}
-            <span className="volume-key avg" /> Your {VOLUME_WEEKS - 1}-week
-            average
+            <span className="volume-key avg" /> Usual week ({VOLUME_WEEKS - 1}
+            -week average)
           </p>
           <ul className="volume-list">
             {active.map((m) => {
               const { icon: Icon, tone } = STATUS[m.status];
               const average = Math.round(m.average);
+              const usual =
+                m.average > 0
+                  ? `usually ${average < 1 ? "under 1" : average}`
+                  : "new";
               const body = (
                 <>
                   <span className="volume-head">
-                    <strong className="capitalize">{m.name}</strong>
-                    <span>
-                      <strong>{m.current}</strong>{" "}
-                      {m.current === 1 ? "set" : "sets"}
+                    <span className="volume-name">
+                      <strong className="capitalize">{m.name}</strong>
+                      <span className={`volume-status ${tone}`}>
+                        <Icon size={14} aria-hidden />
+                        {statusLabel(m)}
+                      </span>
+                    </span>
+                    <span className="volume-count">
+                      <strong>{sets(m.current)}</strong>
+                      <span className="muted small"> · {usual}</span>
                     </span>
                   </span>
                   <span className="volume-bar" aria-hidden>
@@ -127,17 +136,6 @@ export function VolumeCard({ onOpen }: { onOpen?: (id: string) => void }) {
                       />
                     )}
                   </span>
-                  <span className="volume-meta small">
-                    <span className={`volume-status ${tone}`}>
-                      <Icon size={14} aria-hidden />
-                      {statusLabel(m)}
-                    </span>
-                    <span className="muted">
-                      {m.average > 0
-                        ? `Usually ${average < 1 ? "under 1" : sets(average)}`
-                        : "New this week"}
-                    </span>
-                  </span>
                 </>
               );
               return (
@@ -146,7 +144,7 @@ export function VolumeCard({ onOpen }: { onOpen?: (id: string) => void }) {
                     <button
                       type="button"
                       onClick={() => onOpen(m.id)}
-                      aria-label={`${m.name}: ${sets(m.current)} this week, ${statusLabel(m).toLowerCase()}. Open details`}
+                      aria-label={`${m.name}: ${sets(m.current)} this week, ${usual}, ${statusLabel(m).toLowerCase()}. Open details`}
                     >
                       {body}
                     </button>
