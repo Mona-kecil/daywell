@@ -21,6 +21,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Empty, Sheet, useClock, useTask } from "./ui";
 import { LineChart } from "./line-chart";
 import { BAR_KG, loadBar } from "@/lib/plates";
+import { RepTargets } from "./rep-targets";
 import { warmupSets } from "@/lib/warmup";
 import type { NextSet } from "./rest-timer";
 
@@ -370,7 +371,7 @@ function Warmup({
 }
 
 // One side of an Olympic bar, loaded from the collar out.
-function Plates({ totalKg }: { totalKg: number }) {
+export function Plates({ totalKg }: { totalKg: number }) {
   const { perSide, remainderKg } = loadBar(totalKg);
   const starts = perSide.reduce<number[]>(
     (xs, _, i) => [
@@ -720,6 +721,12 @@ function ExerciseHistory({ exerciseId }: { exerciseId: Id<"exercises"> }) {
             history.sessions.find((s) => s.trainedAt === history.prAt)
               ?.workoutId
           }
+        />
+      )}
+      {weighted && (
+        <RepTargets
+          bestKg={history.prE1rm}
+          lastKg={history.sessions[0].bestE1rm}
         />
       )}
       <h3 className="sheet-subhead">Sessions</h3>
