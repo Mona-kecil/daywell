@@ -112,6 +112,34 @@ describe("cardio mutations", () => {
     },
   );
 
+  it("accepts 0.005 km as 0.01 km and rejects 0.001 km on add", async () => {
+    const { t, alice } = setup();
+    const id = await alice.mutation(api.cardio.add, {
+      ...fields,
+      distanceKm: 0.005,
+    });
+    expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+      distanceKm: 0.01,
+    });
+    await expect(
+      alice.mutation(api.cardio.add, { ...fields, distanceKm: 0.001 }),
+    ).rejects.toThrow("Distance must be up to 1000 km.");
+  });
+
+  it("rejects 0.004 km on update and preserves the stored distance", async () => {
+    const { t, alice } = setup();
+    const id = await alice.mutation(api.cardio.add, {
+      ...fields,
+      distanceKm: 5,
+    });
+    await expect(
+      alice.mutation(api.cardio.update, { id, ...fields, distanceKm: 0.004 }),
+    ).rejects.toThrow("Distance must be up to 1000 km.");
+    expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+      distanceKm: 5,
+    });
+  });
+
   it("rounds fractions, trims notes, allows tomorrow and a leap day, and stores other distance", async () => {
     const { t, alice } = setup();
     const id = await alice.mutation(api.cardio.add, {
@@ -450,6 +478,30 @@ describe("cardio week", () => {
     expect(
       (await bob.query(api.cardio.week, { today: TODAY })).sessions[0].kcal,
     ).toBeNull();
+  });
+
+  it("returns null kcal for each session day when a weight is beyond 400 newer check-ins", async () => {
+    const { t, alice } = setup();
+    await alice.mutation(api.cardio.add, { ...fields, day: MONDAY });
+    await alice.mutation(api.cardio.add, fields);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("bodyCheckins", {
+        userId: "alice",
+        day: addDays(TODAY, -500),
+        weightKg: 80,
+      });
+      for (let i = 0; i < 401; i++)
+        await ctx.db.insert("bodyCheckins", {
+          userId: "alice",
+          day: addDays(TODAY, -i),
+          energy: 4,
+        });
+    });
+    const result = await alice.query(api.cardio.week, { today: TODAY });
+    expect(result.sessions.map((session) => session.kcal)).toEqual([
+      null,
+      null,
+    ]);
   });
 
   it("includes Sunday and excludes either side of the selected week", async () => {

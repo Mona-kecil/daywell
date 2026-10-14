@@ -32,27 +32,3 @@ export async function* cardioHistory(
     after = lastDay;
   }
 }
-
-export async function weightOnOrBefore(
-  ctx: QueryCtx,
-  userId: string,
-  day: string,
-) {
-  let before = day;
-  let inclusive = true;
-  while (true) {
-    const rows = await ctx.db
-      .query("bodyCheckins")
-      .withIndex("by_user_day", (q) => {
-        const owned = q.eq("userId", userId);
-        return inclusive ? owned.lte("day", before) : owned.lt("day", before);
-      })
-      .order("desc")
-      .take(100);
-    const weight = rows.find((row) => row.weightKg !== undefined)?.weightKg;
-    if (weight !== undefined) return weight;
-    if (rows.length < 100) return null;
-    before = rows[rows.length - 1].day;
-    inclusive = false;
-  }
-}

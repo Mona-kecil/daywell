@@ -3,11 +3,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireUser, validLocalDay } from "./model";
 import { cardioKind, cardioEffort } from "./validators";
-import {
-  cardioHistory,
-  MAX_SESSIONS_PER_DAY,
-  weightOnOrBefore,
-} from "./cardioModel";
+import { cardioHistory, MAX_SESSIONS_PER_DAY } from "./cardioModel";
 import {
   ACTIVE_MINUTES_GOAL,
   activeMinutes,
@@ -41,11 +37,12 @@ async function validatedSession(
     throw new ConvexError("That day is in the future.");
   if (!Number.isFinite(args.minutes) || args.minutes < 1 || args.minutes > 600)
     throw new ConvexError("Duration must be from 1–600 minutes.");
+  const distanceKm =
+    args.distanceKm == null ? undefined : twoDp(args.distanceKm);
   if (
-    args.distanceKm != null &&
-    (!Number.isFinite(args.distanceKm) ||
-      args.distanceKm <= 0 ||
-      args.distanceKm > 1000)
+    (args.distanceKm != null && args.distanceKm > 1000) ||
+    (distanceKm !== undefined &&
+      (!Number.isFinite(distanceKm) || distanceKm <= 0))
   )
     throw new ConvexError("Distance must be up to 1000 km.");
   const note = args.note?.trim() || undefined;
@@ -65,7 +62,7 @@ async function validatedSession(
     effort: args.effort,
     day: args.day,
     minutes: oneDp(args.minutes),
-    distanceKm: args.distanceKm == null ? undefined : twoDp(args.distanceKm),
+    distanceKm,
     note,
   };
 }
@@ -133,12 +130,21 @@ export const week = query({
     const current = rows
       .filter((row) => row.day >= weekStart)
       .sort((a, b) => b.day.localeCompare(a.day) || b.createdAt - a.createdAt);
+    const checkins = await ctx.db
+      .query("bodyCheckins")
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", userId).lte("day", weekEnd),
+      )
+      .order("desc")
+      .take(400);
     const weights = new Map(
-      await Promise.all(
-        [...new Set(current.map((row) => row.day))].map(
-          async (day) =>
-            [day, await weightOnOrBefore(ctx, userId, day)] as const,
-        ),
+      [...new Set(current.map((row) => row.day))].map(
+        (day) =>
+          [
+            day,
+            checkins.find((row) => row.day <= day && row.weightKg !== undefined)
+              ?.weightKg ?? null,
+          ] as const,
       ),
     );
     const days = Array.from({ length: 7 }, (_, i) => {
