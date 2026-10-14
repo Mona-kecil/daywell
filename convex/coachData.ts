@@ -77,6 +77,19 @@ export async function suggestionsFor(
   timeZone: string,
 ) {
   const today = await todayDataFor(ctx, settings.userId, now, timeZone);
+  const [habits, habitLogs] = await Promise.all([
+    ctx.db
+      .query("habits")
+      .withIndex("by_user", (q) => q.eq("userId", settings.userId))
+      .filter((q) => q.eq(q.field("archivedAt"), undefined))
+      .collect(),
+    ctx.db
+      .query("habitLogs")
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", settings.userId).eq("day", today.day),
+      )
+      .collect(),
+  ]);
   return coachSuggestions({
     now,
     localMinutes: today.localMinutes,
@@ -90,5 +103,11 @@ export async function suggestionsFor(
       proteinTarget: settings.proteinTarget,
     },
     muscles: today.muscles,
+    habits: habits.map((habit) => ({
+      id: habit._id,
+      name: habit.name,
+      order: habit.order,
+    })),
+    habitLogs,
   });
 }

@@ -8,6 +8,7 @@ import {
   Dumbbell,
   Droplets,
   Moon,
+  ListChecks,
   Plus,
   Sparkles,
   Utensils,
@@ -37,6 +38,7 @@ const KIND = {
   food: { Icon: Utensils, tone: "amber", tab: "meals", cta: "Log a meal" },
   train: { Icon: Dumbbell, tone: "green", tab: "train", cta: "Log workout" },
   rest: { Icon: Moon, tone: "green", tab: "train", cta: "See recovery" },
+  habit: { Icon: ListChecks, tone: "green", tab: "today", cta: "See habits" },
 } satisfies Record<
   Suggestion["kind"],
   { Icon: typeof Droplets; tone: string; tab: Tab; cta: string }
