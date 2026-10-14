@@ -3574,3 +3574,60 @@ h1,
   background: var(--amber-soft);
   color: var(--amber);
 }
+.routines .chip-row {
+  align-items: center;
+}
+.routine-chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.routine-chip:disabled {
+  opacity: 0.55;
+}
+.routine-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+}
+.routine-chip[aria-pressed="true"] .routine-count {
+  background: color-mix(in srgb, var(--surface) 22%, transparent);
+  color: var(--surface);
+}
+.routine-save {
+  justify-self: center;
+}
+.routine-rename {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.routine-rename input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+}
+.routine-preview {
+  list-style: decimal;
+  margin: 0 0 16px;
+  padding-left: 22px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.routine-preview li::marker {
+  color: var(--muted);
+}
+.routine-new {
+  margin-top: 14px;
+}
+.routine-new button {
+  margin-top: 12px;
+}

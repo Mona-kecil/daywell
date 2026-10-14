@@ -94,6 +94,15 @@ export const deleteExercise = mutation({
     if (referenced)
       throw new ConvexError("Delete the workouts using this exercise first.");
     await ctx.db.delete(args.id);
+    const routines = await ctx.db
+      .query("routines")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const routine of routines)
+      if (routine.exerciseIds.includes(args.id))
+        await ctx.db.patch(routine._id, {
+          exerciseIds: routine.exerciseIds.filter((id) => id !== args.id),
+        });
     return null;
   },
 });

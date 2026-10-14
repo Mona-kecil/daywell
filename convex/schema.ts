@@ -104,6 +104,13 @@ export default defineSchema({
     muscleIds: v.array(v.id("muscles")),
     custom: v.boolean(),
   }).index("by_user", ["userId"]),
+  routines: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    exerciseIds: v.array(v.id("exercises")),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  }).index("by_user", ["userId"]),
   strengthSets: defineTable({
     userId: v.string(),
     workoutId: v.id("workouts"),

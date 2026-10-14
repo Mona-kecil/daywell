@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -34,6 +34,13 @@ import {
 } from "./strength";
 import { MuscleSheet } from "./muscle-sheet";
 import { RestTimer, startRest, type Rest } from "./rest-timer";
+import {
+  ManageRoutinesSheet,
+  RoutineChips,
+  SaveRoutineButton,
+  SaveRoutineSheet,
+  type Routine,
+} from "./routines";
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
@@ -153,11 +160,27 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const [historyFor, setHistoryFor] = useState<Exercise | null>(null);
   const [detailId, setDetailId] = useState<Id<"muscles"> | null>(null);
   const [rest, setRest] = useState<Rest | null>(null);
+  const [routineId, setRoutineId] = useState<Id<"routines"> | null>(null);
+  const [routineSheet, setRoutineSheet] = useState<"save" | "manage" | null>(
+    null,
+  );
+  const addButton = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    // The save button that opened the sheet is gone once the routine matches.
+    if (routineSheet === null && refocus.current) {
+      refocus.current = false;
+      addButton.current?.focus();
+    }
+  }, [routineSheet]);
   const detail = muscles.find((m) => m._id === detailId) ?? null;
   const addWorkout = useMutation(api.tracker.addWorkout),
     logSession = useMutation(api.strength.logSession),
-    deleteWorkout = useMutation(api.tracker.deleteWorkout);
+    deleteWorkout = useMutation(api.tracker.deleteWorkout),
+    markUsed = useMutation(api.routines.markUsed);
   const exercises = useQuery(api.strength.exercises, {});
+  const routines = useQuery(api.routines.list, {});
+  const routine = routines?.find((r) => r._id === routineId) ?? null;
   // Sets logged this minute still count: the window ends at the next minute.
   const weekly = useQuery(api.strength.weeklyMuscleSets, {
     now: Math.ceil(now / 60_000) * 60_000,
@@ -195,6 +218,19 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
       .filter((m) => exercise.muscles.includes(m.name))
       .map((m) => m._id);
     setSelected((cur) => [...new Set([...cur, ...ids])]);
+  };
+  const startRoutine = (r: Routine) => {
+    const have = new Set(entries.map((en) => en.exercise._id));
+    const add = r.exercises
+      .filter((e) => !have.has(e._id))
+      .slice(0, 25 - entries.length);
+    add.forEach(addEntry);
+    setRoutineId(r._id);
+    toast(
+      add.length
+        ? `Started ${r.name} · ${add.length} ${add.length === 1 ? "exercise" : "exercises"}`
+        : `${r.name} is already in this workout`,
+    );
   };
   const setCount = entries.reduce((n, e) => n + e.sets.length, 0);
   const selectedKeys = [...byKey]
@@ -239,8 +275,10 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                 (id) => deleteWorkout({ id }),
               )
             ) {
+              if (routine) void markUsed({ id: routine._id }).catch(() => {});
               setSelected([]);
               setEntries([]);
+              setRoutineId(null);
               form.reset();
             }
           }}
@@ -274,6 +312,12 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
             <legend>
               Exercises <span className="muted">(optional)</span>
             </legend>
+            <RoutineChips
+              routines={routines ?? []}
+              activeId={routineId}
+              onStart={startRoutine}
+              onManage={() => setRoutineSheet("manage")}
+            />
             {entries.map((en, i) => (
               <EntryEditor
                 key={en.exercise._id}
@@ -295,6 +339,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
             ))}
             <button
               type="button"
+              ref={addButton}
               className="soft-button full"
               disabled={!exercises || entries.length >= 25}
               aria-haspopup="dialog"
@@ -302,6 +347,11 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
             >
               <Plus size={17} /> Add exercise
             </button>
+            <SaveRoutineButton
+              exercises={entries.map((en) => en.exercise)}
+              active={routine}
+              onClick={() => setRoutineSheet("save")}
+            />
           </fieldset>
           <label htmlFor="workout-at">When</label>
           <input
@@ -340,6 +390,21 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
           muscles={muscles}
           chosen={entries.map((en) => en.exercise._id)}
           onPick={addEntry}
+        />
+        <SaveRoutineSheet
+          open={routineSheet === "save"}
+          onClose={() => setRoutineSheet(null)}
+          exercises={entries.map((en) => en.exercise)}
+          active={routine}
+          onSaved={(id) => {
+            setRoutineId(id);
+            refocus.current = true;
+          }}
+        />
+        <ManageRoutinesSheet
+          open={routineSheet === "manage"}
+          onClose={() => setRoutineSheet(null)}
+          routines={routines ?? []}
         />
         <MuscleSheet
           muscle={detail}
