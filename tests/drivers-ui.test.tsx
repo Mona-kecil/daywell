@@ -92,6 +92,23 @@ describe("What goes with your energy", () => {
     expect(screen.getByText(/not proof of cause/)).toBeTruthy();
   });
 
+  it("reveals clear patterns past the first four", async () => {
+    mocks.data = {
+      days: 90,
+      checkInDays: 60,
+      needed: 0,
+      findings: (
+        ["sleepHours", "waterMl", "proteinG", "kcal", "trained"] as const
+      ).map((factor) => finding({ factor })),
+    };
+    render(<DriversCard />);
+    expect(items()).toHaveLength(4);
+    await userEvent.click(screen.getByRole("button", { name: "Show all 5" }));
+    expect(items()).toHaveLength(5);
+    await userEvent.click(screen.getByRole("button", { name: "Show fewer" }));
+    expect(items()).toHaveLength(4);
+  });
+
   it("says when nothing moves the outcome by much", async () => {
     mocks.data = {
       days: 90,

@@ -18,8 +18,11 @@ export type DriversResult = {
 const LOG_LIMIT = 10_000;
 
 export const list = query({
-  args: { days: v.number() },
-  handler: async (ctx, { days }): Promise<DriversResult> => {
+  // timeZone: the device zone check-in days were dated in; the saved zone
+  // only initialises once, so it goes stale when the user travels.
+  args: { days: v.number(), timeZone: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<DriversResult> => {
+    const { days } = args;
     const userId = await requireUser(ctx);
     if (!Number.isInteger(days) || days < 14 || days > 120)
       throw new ConvexError("Choose a whole number of days from 14–120.");
@@ -27,7 +30,14 @@ export const list = query({
       .query("settings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
-    const timeZone = normalizeTimeZone(settings?.timeZone ?? "UTC");
+    let timeZone: string;
+    try {
+      timeZone = normalizeTimeZone(
+        args.timeZone ?? settings?.timeZone ?? "UTC",
+      );
+    } catch {
+      throw new ConvexError("Unknown time zone.");
+    }
     const now = Date.now();
     const today = localClock(now, timeZone).localDay;
     const firstDay = shiftDay(today, 1 - days);

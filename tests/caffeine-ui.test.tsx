@@ -13,10 +13,13 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("convex/react", () => ({
   // Answers like the backend: only doses inside the asked-for range.
-  useQuery: (_: unknown, args: { startMs: number; endMs: number }) =>
-    (mocks.doses as { at: number }[]).filter(
+  useQuery: (_: unknown, args: { startMs: number; endMs: number }) => {
+    if (args.endMs - args.startMs > 48 * 3_600_000)
+      throw new Error("Use a time range of at most 48 hours.");
+    return (mocks.doses as { at: number }[]).filter(
       (d) => d.at >= args.startMs && d.at < args.endMs,
-    ),
+    );
+  },
   useMutation: (ref: unknown) => {
     const name = getFunctionName(ref as never);
     return async (args: unknown) => {
@@ -117,6 +120,28 @@ describe("Caffeine card", () => {
     expect(
       screen.getByText(new RegExp(`sleep-ready by ${timeLabel(sleep)}$`)),
     ).toBeTruthy();
+  });
+
+  it("stays inside the 48-hour read limit on a 25-hour fall-back day", () => {
+    const zone = process.env.TZ;
+    process.env.TZ = "America/New_York";
+    try {
+      const morning = Date.parse("2026-11-01T08:00:00-05:00");
+      vi.spyOn(Date, "now").mockReturnValue(morning);
+      // 300 mg at 11 PM the night before still delays sleep-ready.
+      mocks.doses = [
+        dose("y", "Espresso", 300, Date.parse("2026-10-31T23:00:00-04:00")),
+      ];
+      show();
+      const sleep = sleepReadyAt(mocks.doses as never, morning)!;
+      expect(sleep).toBeGreaterThan(morning);
+      expect(
+        screen.getByText(new RegExp(`sleep-ready by ${timeLabel(sleep)}$`)),
+      ).toBeTruthy();
+    } finally {
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
   });
 
   it("names the peak while a fresh dose is still absorbing", () => {

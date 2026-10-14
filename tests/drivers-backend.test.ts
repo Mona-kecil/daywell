@@ -124,6 +124,48 @@ describe("drivers backend", () => {
       ),
     });
   });
+  it("buckets by the device zone the check-ins were dated in, not a stale saved zone", async () => {
+    const { t, alice } = setup();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        userId: "alice",
+        waterGoal: 2500,
+        timeZone: "Asia/Tokyo",
+      });
+      for (let i = 0; i < 12; i++) {
+        const day = shiftDay("2026-10-02", i);
+        await ctx.db.insert("bodyCheckins", {
+          userId: "alice",
+          day,
+          mood: 1 + Math.floor(i / 3),
+          energy: 4,
+        });
+        await ctx.db.insert("water", {
+          userId: "alice",
+          at: Date.parse(`${day}T23:30:00-07:00`),
+          amountMl: (i + 1) * 100,
+        });
+      }
+    });
+    const result = await alice.query(api.drivers.list, {
+      days: 14,
+      timeZone: "America/Los_Angeles",
+    });
+    expect(
+      result.findings.find(
+        (f) => f.factor === "waterMl" && f.outcome === "mood" && f.lag === 0,
+      ),
+    ).toMatchObject({
+      n: 12,
+      split: 650,
+      highMean: 3.5,
+      lowMean: 1.5,
+      rho: spearman(
+        Array.from({ length: 12 }, (_, i) => i),
+        Array.from({ length: 12 }, (_, i) => 1 + Math.floor(i / 3)),
+      ),
+    });
+  });
   it("uses Tokyo's current local date, clips window edges, and ignores future logs", async () => {
     const { t, alice } = setup();
     // NOW is already October 15 in Tokyo: the window starts October 2.

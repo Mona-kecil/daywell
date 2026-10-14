@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isClear, summarize, type FactorId, type Finding } from "@/lib/drivers";
+import { deviceTimeZone } from "./coach";
 import { Progress, SectionTitle } from "./ui";
 
 const DAYS = 90;
@@ -33,7 +34,11 @@ type Outcome = Finding["outcome"];
 // Which logged habits go with better or worse mood and energy, from the
 // user's own last 90 days. Correlation only, and the copy says so.
 export function DriversCard() {
-  const data = useQuery(api.drivers.list, { days: DAYS });
+  // Check-ins are dated on this device, so bucket the other logs the same way.
+  const data = useQuery(api.drivers.list, {
+    days: DAYS,
+    timeZone: deviceTimeZone(),
+  });
   const [outcome, setOutcome] = useState<Outcome>("energy");
   const [all, setAll] = useState(false);
   if (!data) return null;
@@ -41,7 +46,8 @@ export function DriversCard() {
   const matching = data.findings.filter((f) => f.outcome === outcome);
   const clear = matching.filter(isClear);
   const shown = all ? matching : clear.slice(0, SHOWN);
-  const hidden = matching.length - shown.length;
+  // Anything past the default view: weak findings, or clear ones past SHOWN.
+  const more = matching.length > Math.min(clear.length, SHOWN);
 
   return (
     <section className="card drivers-card" aria-labelledby="drivers-title">
@@ -108,14 +114,14 @@ export function DriversCard() {
                 : `Not enough varied days to compare with your ${outcome} yet.`}
             </p>
           )}
-          {(hidden > 0 || all) && matching.length > clear.length && (
+          {more && (
             <button
               type="button"
               className="text-button"
               aria-expanded={all}
               onClick={() => setAll(!all)}
             >
-              {all ? "Show clear patterns only" : `Show all ${matching.length}`}
+              {all ? "Show fewer" : `Show all ${matching.length}`}
             </button>
           )}
         </>
