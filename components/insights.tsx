@@ -35,6 +35,7 @@ import {
 import { SectionTitle } from "./ui";
 import { LineChart } from "./line-chart";
 import { ConsistencyCalendar } from "./consistency";
+import { DriversCard } from "./drivers";
 import { Achievements, WeeklyReview } from "./review";
 import {
   BodyModel,
@@ -69,7 +70,12 @@ export function Insights({ now }: { now: number }) {
     );
   return (
     <>
-      <InsightsView data={data} period={period} checkins={checkins}>
+      <InsightsView
+        data={data}
+        period={period}
+        checkins={checkins}
+        patterns={<DriversCard />}
+      >
         <WeeklyReview now={now} />
       </InsightsView>
       <Achievements now={now} />
@@ -514,11 +520,13 @@ export function InsightsView({
   period,
   checkins = [],
   children,
+  patterns,
 }: {
   data: InsightsInput;
   period: ReturnType<typeof dayWindow>;
   checkins?: BodyCheckin[];
   children?: ReactNode;
+  patterns?: ReactNode;
 }) {
   const [range, setRange] = useState<RangeId>("7d");
   const [table, setTable] = useState(false);
@@ -670,6 +678,7 @@ export function InsightsView({
           </ul>
         </section>
       )}
+      {patterns}
       <ConsistencyCalendar
         days={history}
         waterGoal={data.waterGoal}

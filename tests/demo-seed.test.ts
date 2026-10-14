@@ -16,7 +16,7 @@ const input = {
 };
 afterEach(() => vi.unstubAllEnvs());
 
-it("demo seed replaces fourteen days, deletes old photos, and preserves other users", async () => {
+it("demo seed replaces thirty-six days, deletes old photos, and preserves other users", async () => {
   vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
   vi.stubEnv("CONVEX_SITE_URL", "http://127.0.0.1:3211");
   vi.stubEnv("DEV_AUTH_JWKS", "configured");
@@ -42,10 +42,10 @@ it("demo seed replaces fourteen days, deletes old photos, and preserves other us
   const second = await dev.action(api.demoSeed.run, input);
   expect(second).toEqual(first);
   expect(second).toEqual({
-    days: 14,
-    meals: 41,
-    water: 84,
-    workouts: 11,
+    days: 36,
+    meals: 108,
+    water: 216,
+    workouts: 27,
     muscles: 11,
     checkins: 81,
   });

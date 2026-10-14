@@ -3873,3 +3873,99 @@ h1,
 .caffeine-list {
   margin-top: 10px;
 }
+
+/* What goes with your energy */
+.drivers-outcome {
+  margin-top: 12px;
+}
+.drivers-outcome button {
+  min-height: 44px;
+}
+.drivers-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.drivers-list li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.drivers-list p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.drivers-icon {
+  margin-top: 1px;
+  color: var(--muted);
+}
+.drivers-scale {
+  position: relative;
+  height: 14px;
+  margin: 8px 7px 4px;
+  background: linear-gradient(var(--track), var(--track)) center / 100% 2px
+    no-repeat;
+}
+.drivers-span {
+  position: absolute;
+  top: 5px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--green) 35%, transparent);
+}
+.drivers-list li.down .drivers-span {
+  background: color-mix(in srgb, var(--amber) 35%, transparent);
+}
+.drivers-dot {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.drivers-dot.low {
+  background: var(--surface);
+  border: 2px solid var(--muted);
+}
+.drivers-dot.high {
+  background: var(--green);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.drivers-list li.down .drivers-dot.high {
+  background: var(--amber);
+}
+.drivers-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.drivers-legend .drivers-dot {
+  position: static;
+  width: 12px;
+  height: 12px;
+  margin: 0 0 0 8px;
+}
+.drivers-legend .drivers-dot:first-child {
+  margin-left: 0;
+}
+.drivers-legend .drivers-dot.high {
+  box-shadow: none;
+}
+.drivers-empty {
+  margin-top: 12px;
+}
+.drivers-empty p,
+.drivers-none {
+  margin: 8px 0 0;
+}
+.drivers-note {
+  margin: 12px 0 0;
+}

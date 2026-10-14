@@ -77,7 +77,12 @@ export const run = action({
     const stored: Id<"_storage">[] = [];
     try {
       const meals = [];
-      for (const [offset, start] of args.days.entries()) {
+      // Keep the caller's recent civil-day starts; add history for patterns.
+      const days = Array.from(
+        { length: 36 },
+        (_, i) => args.days[i] ?? args.days[0] - i * 86_400_000,
+      );
+      for (const [offset, start] of days.entries()) {
         const count = 2 + (offset % 3);
         for (let slot = 0; slot < count; slot++) {
           const menuIndex = (slot + offset) % menus.length;

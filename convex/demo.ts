@@ -99,7 +99,12 @@ export const replace = internalMutation({
         .collect()),
     ];
     for (const record of records) await ctx.db.delete(record._id);
-    await ctx.db.insert("settings", { userId, waterGoal: 2500 });
+    const priorSettings = records.find((record) => "waterGoal" in record);
+    const timeZone =
+      priorSettings && "timeZone" in priorSettings
+        ? priorSettings.timeZone
+        : undefined;
+    await ctx.db.insert("settings", { userId, waterGoal: 2500, timeZone });
     const muscles = new Map<string, Id<"muscles">>();
     for (const muscle of MUSCLE_DEFAULTS)
       muscles.set(
@@ -147,7 +152,11 @@ export const replace = internalMutation({
     }[];
     let workouts = 0,
       water = 0;
-    for (const [offset, start] of args.days.entries()) {
+    const days = Array.from(
+      { length: 36 },
+      (_, i) => args.days[i] ?? args.days[0] - i * 86_400_000,
+    );
+    for (const [offset, start] of days.entries()) {
       if (offset % 4 !== 3) {
         const session = rotation[(offset - Math.floor(offset / 4)) % 3];
         const muscleIds = session.names.map((name) => {
@@ -162,7 +171,8 @@ export const replace = internalMutation({
           note: `${session.label} · 3 sets per exercise, steady effort`,
         });
         let order = 0;
-        for (const [name, baseWeight] of session.exercises) {
+        // Preserve the existing fourteen-day strength history.
+        for (const [name, baseWeight] of offset < 14 ? session.exercises : []) {
           const exercise = exercises.find((row) => row.name === name);
           if (!exercise || typeof baseWeight !== "number")
             throw new ConvexError("Missing demo exercise.");
@@ -184,6 +194,17 @@ export const replace = internalMutation({
         }
         workouts++;
       }
+      // The following day's energy follows the same thirteen-day sleep cycle.
+      // Late doses go with lower next-day energy; this is synthetic correlation.
+      const nextEnergy = 2 + Math.floor(((offset + 12) % 13) / 4);
+      const mg = (5 - nextEnergy) * 50;
+      if (offset > 0 && mg > 0)
+        await ctx.db.insert("caffeine", {
+          userId,
+          at: start + 15 * 3_600_000,
+          mg,
+          label: "Afternoon coffee",
+        });
       for (const [index, hour] of [7, 10, 13, 16, 19, 21].entries()) {
         const at =
           offset === 0
@@ -214,14 +235,14 @@ export const replace = internalMutation({
           Math.round((75 + offset * 0.012 + Math.sin(offset) * 0.18) * 10) / 10,
         sleepHours: 5.5 + (offset % 13) * 0.25,
         mood: 3 + (offset % 3),
-        energy: 2 + (offset % 4),
+        energy: 2 + Math.floor((offset % 13) / 4),
         ...(offset % 12 === 0 ? { note: "Steady training and meals." } : {}),
       });
       checkins++;
     }
     return {
       checkins,
-      days: args.days.length,
+      days: days.length,
       workouts,
       water,
       meals: args.meals.length,

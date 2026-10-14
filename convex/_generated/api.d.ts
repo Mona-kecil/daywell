@@ -23,6 +23,7 @@ import type * as coachData from "../coachData.js";
 import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as demoSeed from "../demoSeed.js";
+import type * as drivers from "../drivers.js";
 import type * as exerciseModel from "../exerciseModel.js";
 import type * as exportData from "../exportData.js";
 import type * as food from "../food.js";
@@ -76,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   demo: typeof demo;
   demoSeed: typeof demoSeed;
+  drivers: typeof drivers;
   exerciseModel: typeof exerciseModel;
   exportData: typeof exportData;
   food: typeof food;
