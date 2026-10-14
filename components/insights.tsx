@@ -36,6 +36,7 @@ import { SectionTitle } from "./ui";
 import { LineChart } from "./line-chart";
 import { ConsistencyCalendar } from "./consistency";
 import { DriversCard } from "./drivers";
+import { EatingWindowCard } from "./eating";
 import { Achievements, WeeklyReview } from "./review";
 import {
   BodyModel,
@@ -683,6 +684,11 @@ export function InsightsView({
         days={history}
         waterGoal={data.waterGoal}
         checkinDays={new Set(checkins.map((c) => c.day))}
+      />
+      <EatingWindowCard
+        meals={data.meals}
+        days={period.days}
+        today={period.days.at(-1)!.key}
       />
       {table ? (
         <DataTable bins={bins} muscles={data.muscles} byDay={byDay} />

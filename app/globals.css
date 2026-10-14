@@ -4170,3 +4170,66 @@ h1,
 .plan-done {
   margin: 12px 0 0;
 }
+/* Eating window */
+.eating-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0 0 14px;
+}
+.eating-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.eating-stats dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.eating-stats dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.eating-empty {
+  margin: 0 0 12px;
+}
+.eating-chart {
+  margin: 0;
+}
+.eating-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+.eating-chart svg:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.eating-hit {
+  fill: transparent;
+}
+.eating-row.active .eating-hit {
+  fill: color-mix(in srgb, var(--muted) 12%, transparent);
+}
+.eating-day {
+  font-size: 10px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.eating-row.today .eating-day,
+.eating-row.active .eating-day {
+  fill: var(--text);
+  font-weight: 600;
+}
+.eating-span {
+  fill: color-mix(in srgb, var(--amber) 35%, transparent);
+}
+.eating-meal {
+  fill: var(--amber);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
