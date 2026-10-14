@@ -19,6 +19,7 @@ export const all = query({
       habitLogs,
       meals,
       checkins,
+      progressPhotos,
     ] = await Promise.all([
       ctx.db
         .query("settings")
@@ -62,6 +63,10 @@ export const all = query({
         .collect(),
       ctx.db
         .query("bodyCheckins")
+        .withIndex("by_user_day", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("progressPhotos")
         .withIndex("by_user_day", (q) => q.eq("userId", userId))
         .collect(),
     ]);
@@ -139,6 +144,11 @@ export const all = query({
         totals: mealTotals(m.items),
         status: m.analysis.status,
         ...(m.analysis.status === "error" ? { error: m.analysis.message } : {}),
+      })),
+      progressPhotos: progressPhotos.map((photo) => ({
+        pose: photo.pose,
+        day: photo.day,
+        takenAt: photo.takenAt,
       })),
       checkins: checkins.map((c) => ({
         id: c._id,

@@ -17,6 +17,7 @@ import { dayArgs, mealItem, macros } from "./validators";
 import { mealItemSchema, mealTotals } from "../lib/nutrients";
 import { textMealSchema } from "../lib/quick-log";
 import { manualMealSchema } from "../lib/manual-meal";
+import { createPhotoUpload, uploadedPhoto } from "./photoUploads";
 
 export const today = query({
   args: dayArgs,
@@ -44,14 +45,7 @@ export const uploadUrl = mutation({
   args: { sha256: v.string() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    if (!/^[A-Za-z0-9+/]{43}=$/.test(args.sha256))
-      throw new ConvexError("Invalid photo digest.");
-    const ticketId = await ctx.db.insert("uploads", {
-      userId,
-      sha256: args.sha256,
-      expiresAt: Date.now() + 10 * 60_000,
-    });
-    return { ticketId, url: await ctx.storage.generateUploadUrl() };
+    return createPhotoUpload(ctx, userId, args.sha256);
   },
 });
 export const register = internalMutation({
@@ -59,28 +53,7 @@ export const register = internalMutation({
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
     validTimestamp(args.at);
-    const ticket = await ctx.db.get(args.ticketId);
-    if (!ticket || ticket.userId !== userId || ticket.expiresAt < Date.now())
-      throw new ConvexError(
-        "Photo upload expired. Please choose the photo again.",
-      );
-    const storageId = ctx.db.system.normalizeId("_storage", args.storageId);
-    if (!storageId) throw new ConvexError("Invalid photo ID.");
-    const metadata = await ctx.db.system.get(storageId);
-    if (
-      !metadata ||
-      metadata.sha256 !== ticket.sha256 ||
-      metadata.contentType !== "image/jpeg" ||
-      metadata.size > 3_000_000
-    )
-      throw new ConvexError("Photo must be the uploaded JPEG, under 3 MB.");
-    if (
-      await ctx.db
-        .query("meals")
-        .withIndex("by_storage", (q) => q.eq("storageId", storageId))
-        .first()
-    )
-      throw new ConvexError("Photo is already attached to a meal.");
+    const storageId = await uploadedPhoto(ctx, userId, args);
     await ctx.db.delete(args.ticketId);
     return ctx.db.insert("meals", {
       userId,

@@ -1,6 +1,12 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { habitIcon, mealItem, pushKeys, pushPayload } from "./validators";
+import {
+  habitIcon,
+  mealItem,
+  progressPose,
+  pushKeys,
+  pushPayload,
+} from "./validators";
 
 export default defineSchema({
   habits: defineTable({
@@ -173,6 +179,15 @@ export default defineSchema({
     sha256: v.string(),
     expiresAt: v.number(),
   }).index("by_user", ["userId"]),
+  progressPhotos: defineTable({
+    userId: v.string(),
+    storageId: v.id("_storage"),
+    pose: progressPose,
+    day: v.string(),
+    takenAt: v.number(),
+  })
+    .index("by_user_day", ["userId", "day", "takenAt"])
+    .index("by_storage", ["storageId"]),
   meals: defineTable({
     userId: v.string(),
     storageId: v.optional(v.id("_storage")),

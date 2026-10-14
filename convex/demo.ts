@@ -57,6 +57,14 @@ export const replace = internalMutation({
       if (meal.storageId) await ctx.storage.delete(meal.storageId);
       await ctx.db.delete(meal._id);
     }
+    const oldProgressPhotos = await ctx.db
+      .query("progressPhotos")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId))
+      .collect();
+    for (const photo of oldProgressPhotos) {
+      await ctx.storage.delete(photo.storageId);
+      await ctx.db.delete(photo._id);
+    }
     const records = [
       ...(await ctx.db
         .query("bodyCheckins")
