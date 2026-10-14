@@ -5446,3 +5446,211 @@ h1,
     width: min(40vw, 160px);
   }
 }
+
+/* Progress photos */
+.progress-photos > .segmented {
+  margin: 4px 0 12px;
+}
+.progress-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.progress-grid button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: 0;
+  background: var(--track);
+  color: var(--muted);
+}
+.progress-grid img,
+.compare-layer img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.progress-grid button:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: -3px;
+  z-index: 1;
+}
+.progress-tag,
+.compare-tag {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.progress-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.progress-actions > * {
+  flex: 1 1 auto;
+}
+.progress-add {
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+}
+.progress-add:focus-within {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+.progress-add[aria-disabled="true"] {
+  opacity: 0.5;
+}
+.progress-new,
+.progress-view,
+.progress-compare {
+  display: grid;
+  gap: 12px;
+}
+.progress-preview,
+.progress-large img {
+  width: 100%;
+  max-height: 52vh;
+  object-fit: contain;
+  border-radius: 14px;
+  background: var(--track);
+}
+.progress-large {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  min-height: 160px;
+  color: var(--muted);
+}
+.progress-large img {
+  height: auto;
+}
+.progress-large figcaption {
+  font-size: 12px;
+}
+.progress-new .segmented {
+  justify-self: start;
+}
+.progress-date,
+.compare-pick label {
+  display: grid;
+  margin: 0;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.progress-date input,
+.compare-pick select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+.progress-view .danger {
+  justify-self: start;
+  color: var(--amber);
+}
+.compare-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.compare-stage {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-height: 56vh;
+  justify-self: center;
+  width: 100%;
+  max-width: calc(56vh * 3 / 4);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--track);
+  touch-action: pan-y;
+}
+.compare-stage:has(.compare-range:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+.compare-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.compare-layer.after {
+  clip-path: inset(0 0 0 var(--reveal));
+}
+.compare-layer.after .compare-tag {
+  left: auto;
+  right: 6px;
+}
+.compare-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--reveal);
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3);
+  pointer-events: none;
+}
+.compare-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.compare-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  /* Keyboard only; the stage handles pointers so a drag tracks the finger. */
+  pointer-events: none;
+}
+.compare-stage {
+  cursor: ew-resize;
+  user-select: none;
+}
+/* An image would start a native drag and cancel the pointer. */
+.compare-layer img {
+  pointer-events: none;
+}
+.compare-line {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+}

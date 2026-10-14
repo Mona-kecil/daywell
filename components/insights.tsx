@@ -39,6 +39,7 @@ import { DriversCard } from "./drivers";
 import { YearPixels } from "./pixels";
 import { EatingWindowCard } from "./eating";
 import { Achievements, WeeklyReview } from "./review";
+import { ProgressPhotos } from "./progress-photos";
 import {
   BodyModel,
   FREQUENCY_HUE,
@@ -84,6 +85,7 @@ export function Insights({ now }: { now: number }) {
         <WeeklyReview now={now} />
       </InsightsView>
       <Achievements now={now} />
+      <ProgressPhotos now={now} />
     </>
   );
 }
