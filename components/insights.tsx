@@ -40,6 +40,7 @@ import { YearPixels } from "./pixels";
 import { EatingWindowCard } from "./eating";
 import { Achievements, WeeklyReview } from "./review";
 import { ProgressPhotos } from "./progress-photos";
+import { WeightGoalCard } from "./weight-goal";
 import {
   BodyModel,
   FREQUENCY_HUE,
@@ -85,6 +86,7 @@ export function Insights({ now }: { now: number }) {
         <WeeklyReview now={now} />
       </InsightsView>
       <Achievements now={now} />
+      <WeightGoalCard now={now} />
       <ProgressPhotos now={now} />
     </>
   );

@@ -34,7 +34,7 @@ export function CheckInCard({ now }: { now: number }) {
   // Remount the form when the day rolls over or another device saves.
   return (
     <CheckInForm
-      key={`${day}:${checkIn?.weightKg}:${checkIn?.sleepHours}:${checkIn?.note}`}
+      key={`${day}:${checkIn?.weightKg}:${checkIn?.waistCm}:${checkIn?.sleepHours}:${checkIn?.note}`}
       day={day}
       checkIn={checkIn}
     />
@@ -69,6 +69,7 @@ function CheckInForm({
           day,
           sleepHours: number(data.get("sleep")),
           weightKg: number(data.get("weight")),
+          waistCm: number(data.get("waist")),
           note: note || null,
         }),
       "Check-in saved",
@@ -149,7 +150,7 @@ function CheckInForm({
           : "Tap a face and a bar. Tap again to clear."}
       </p>
       <form className="checkin-fields" onSubmit={save}>
-        <div className="target-grid two">
+        <div className="target-grid">
           <label>
             Sleep
             <span className="unit-input">
@@ -180,6 +181,22 @@ function CheckInForm({
                 defaultValue={checkIn?.weightKg ?? ""}
               />
               <span>kg</span>
+            </span>
+          </label>
+          <label>
+            Waist
+            <span className="unit-input">
+              <input
+                name="waist"
+                type="number"
+                inputMode="decimal"
+                min={40}
+                max={200}
+                step="any"
+                placeholder="—"
+                defaultValue={checkIn?.waistCm ?? ""}
+              />
+              <span>cm</span>
             </span>
           </label>
         </div>
