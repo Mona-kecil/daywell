@@ -90,6 +90,10 @@ export const replace = internalMutation({
         .withIndex("by_user_time", (q) => q.eq("userId", userId))
         .collect()),
       ...(await ctx.db
+        .query("caffeine")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId))
+        .collect()),
+      ...(await ctx.db
         .query("uploads")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect()),

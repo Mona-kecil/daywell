@@ -3753,3 +3753,123 @@ h1,
   min-height: 44px;
   padding-inline: 18px;
 }
+/* Caffeine */
+.caffeine-chart {
+  margin: 4px 0 12px;
+}
+.caffeine-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+.caffeine-chart svg:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.caffeine-area {
+  fill: color-mix(in srgb, var(--amber) 16%, transparent);
+}
+.caffeine-line {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.caffeine-dose {
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.caffeine-threshold line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.caffeine-threshold text,
+.caffeine-now text,
+.caffeine-sleep text {
+  font-size: 10px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.caffeine-now line {
+  stroke: var(--text);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+.caffeine-sleep circle {
+  fill: var(--surface);
+  stroke: var(--green);
+  stroke-width: 2;
+}
+.caffeine-sleep text {
+  fill: var(--text);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.caffeine-cursor line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.caffeine-cursor circle {
+  fill: var(--amber);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.caffeine-total p {
+  margin: 6px 0 0;
+}
+.caffeine-over {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  color: var(--amber);
+}
+.caffeine-over svg {
+  flex: none;
+  margin-top: 1px;
+}
+.caffeine-presets {
+  margin-top: 12px;
+}
+.caffeine-presets .chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.caffeine-custom {
+  display: grid;
+  grid-template-columns: 1fr 112px auto;
+  gap: 8px;
+  align-items: end;
+  margin-top: 8px;
+}
+.caffeine-custom > div {
+  min-width: 0;
+}
+.caffeine-custom label {
+  display: block;
+  margin: 0 0 4px;
+}
+.caffeine-custom .unit-input {
+  margin-top: 0;
+}
+.caffeine-custom input {
+  min-height: 44px;
+}
+.caffeine-custom button {
+  /* Matches the 50px inputs beside it. */
+  min-height: 50px;
+  padding-inline: 18px;
+}
+.caffeine-list {
+  margin-top: 10px;
+}

@@ -14,6 +14,7 @@ export const all = query({
       sets,
       exercises,
       water,
+      caffeine,
       meals,
       checkins,
     ] = await Promise.all([
@@ -39,6 +40,10 @@ export const all = query({
         .collect(),
       ctx.db
         .query("water")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("caffeine")
         .withIndex("by_user_time", (q) => q.eq("userId", userId))
         .collect(),
       ctx.db
@@ -96,6 +101,12 @@ export const all = query({
         .filter((e) => e.custom)
         .map((e) => ({ id: e._id, name: e.name, muscleIds: e.muscleIds })),
       water: water.map((w) => ({ id: w._id, amountMl: w.amountMl, at: w.at })),
+      caffeine: caffeine.map((c) => ({
+        id: c._id,
+        at: c.at,
+        mg: c.mg,
+        label: c.label,
+      })),
       meals: meals.map((m) => ({
         id: m._id,
         description: m.description,

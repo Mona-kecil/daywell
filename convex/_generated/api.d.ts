@@ -9,6 +9,7 @@
  */
 
 import type * as achievements from "../achievements.js";
+import type * as caffeine from "../caffeine.js";
 import type * as checkinModel from "../checkinModel.js";
 import type * as checkins from "../checkins.js";
 import type * as coach from "../coach.js";
@@ -61,6 +62,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
+  caffeine: typeof caffeine;
   checkinModel: typeof checkinModel;
   checkins: typeof checkins;
   coach: typeof coach;

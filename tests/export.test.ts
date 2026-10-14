@@ -210,6 +210,7 @@ it("requires auth and exports an empty account without requiring initialization"
     workouts: [],
     exercises: [],
     water: [],
+    caffeine: [],
     meals: [],
     checkins: [],
   });

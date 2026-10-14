@@ -146,6 +146,12 @@ export default defineSchema({
     amountMl: v.number(),
     at: v.number(),
   }).index("by_user_time", ["userId", "at"]),
+  caffeine: defineTable({
+    userId: v.string(),
+    at: v.number(),
+    mg: v.number(),
+    label: v.string(),
+  }).index("by_user_time", ["userId", "at"]),
   uploads: defineTable({
     userId: v.string(),
     sha256: v.string(),

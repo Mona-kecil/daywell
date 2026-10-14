@@ -15,6 +15,7 @@ import { Burst, useCrossing } from "./celebrate";
 import { CoachCard } from "./coach";
 import { QuickLogButton } from "./quick-log";
 import { CheckInCard } from "./checkin";
+import { CaffeineCard } from "./caffeine";
 import { DayTimeline } from "./timeline";
 import type { Doc } from "@/convex/_generated/dataModel";
 
@@ -236,6 +237,7 @@ export function Today({
           </button>
         </div>
       </section>
+      <CaffeineCard />
       <section className="card">
         <SectionTitle
           title="Today's meals"
