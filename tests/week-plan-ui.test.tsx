@@ -80,7 +80,7 @@ describe("Rest of the week", () => {
     expect(rows()).toEqual([
       `Today${six}Pushchest, shoulders, triceps, absSelect`,
       `Tomorrow${six}Pullback`,
-      "FridayRestNothing that needs sets is off cooldown",
+      "FridayRestNo split that needs sets is off cooldown",
       `Saturday${six}Pushchest, shoulders, triceps`,
       "SundayRestEvery muscle is at 10+ sets",
     ]);

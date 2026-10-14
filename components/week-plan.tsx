@@ -105,7 +105,7 @@ export function WeekPlanCard({
                         <span className="small muted">
                           {d.rest === "on-target"
                             ? `Every muscle is at ${VOLUME_LOW}+ sets`
-                            : "Nothing that needs sets is off cooldown"}
+                            : "No split that needs sets is off cooldown"}
                         </span>
                       </>
                     )}
