@@ -9,7 +9,12 @@ import {
   within,
 } from "@testing-library/react";
 import { getFunctionName } from "convex/server";
-import { WeightGoalCard, goalLine, rateLine } from "../components/weight-goal";
+import {
+  WeightChart,
+  WeightGoalCard,
+  goalLine,
+  rateLine,
+} from "../components/weight-goal";
 
 type Ref = Parameters<typeof getFunctionName>[0];
 const state = vi.hoisted(() => ({
@@ -154,6 +159,11 @@ describe("weight trend card", () => {
     expect(readout.textContent).toBe(`−0.2 kg since ${day(10, 12)}`);
     fireEvent.keyDown(chart, { key: "ArrowLeft" });
     expect(readout.textContent).toContain(day(10, 15));
+  });
+
+  it("draws nothing without points", () => {
+    const { container } = render(<WeightChart points={[]} goalKg={79} />);
+    expect(container.innerHTML).toBe("");
   });
 
   it("leaves a far-off goal out of the chart", () => {

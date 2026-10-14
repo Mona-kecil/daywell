@@ -235,6 +235,7 @@ export function WeightChart({
   goalKg: number | null;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  if (points.length === 0) return null;
   const values = points.flatMap((p) =>
     p.weightKg === null ? [p.trendKg] : [p.trendKg, p.weightKg],
   );
