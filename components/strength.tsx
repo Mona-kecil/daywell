@@ -69,7 +69,7 @@ export function setsSummary(sets: SetDraft[]) {
   return sets.map(setLabel).join(", ");
 }
 
-function Stepper({
+export function Stepper({
   label,
   value,
   step,

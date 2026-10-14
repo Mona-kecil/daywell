@@ -4727,3 +4727,200 @@ h1,
   height: 12px;
   border-radius: 2px;
 }
+/* Interval timer */
+.interval-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.interval-presets .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 52px;
+  padding: 7px 14px;
+  border-radius: 14px;
+  text-align: left;
+}
+.interval-presets .chip strong {
+  font-size: 14px;
+}
+.interval-fields {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.interval-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.interval-field > span {
+  font-weight: 600;
+}
+.interval-field .stepper {
+  width: 168px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+}
+.interval-start {
+  margin-top: 14px;
+}
+.interval-start .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.interval-run {
+  --tone: var(--amber);
+  --tone-soft: var(--amber-soft);
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top)) 16px
+    max(20px, env(safe-area-inset-bottom));
+  border: 0;
+  background: var(--tone-soft);
+  color: var(--text);
+  overscroll-behavior: contain;
+  transition: background-color 300ms ease;
+}
+.interval-run.work {
+  --tone: var(--green);
+  --tone-soft: var(--green-soft);
+}
+.interval-run.rest {
+  --tone: var(--blue);
+  --tone-soft: var(--blue-soft);
+}
+.interval-run.done {
+  --tone: var(--green);
+  --tone-soft: var(--surface);
+}
+.interval-run[open] {
+  display: flex;
+  flex-direction: column;
+}
+.interval-run::backdrop {
+  background: var(--bg);
+}
+.interval-top {
+  display: flex;
+  justify-content: space-between;
+}
+.interval-top button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+.interval-face {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+.interval-face p {
+  margin: 0;
+}
+.interval-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tone);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.interval-dial {
+  position: relative;
+  width: min(72vw, 300px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.interval-dial svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.interval-track,
+.interval-arc {
+  fill: none;
+  stroke-width: 6;
+}
+.interval-track {
+  stroke: color-mix(in srgb, var(--tone) 18%, transparent);
+}
+.interval-arc {
+  stroke: var(--tone);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 100ms linear;
+}
+.interval-clock {
+  font-size: clamp(64px, 22vw, 104px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.interval-round {
+  font-size: 18px;
+  font-weight: 600;
+}
+.interval-next,
+.interval-total {
+  font-size: 15px;
+}
+.interval-total {
+  margin: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.interval-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+.interval-controls > button:not([class]) {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--tone);
+}
+.interval-controls .interval-main {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tone);
+  color: var(--surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .interval-run,
+  .interval-arc {
+    transition: none;
+  }
+}
