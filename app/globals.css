@@ -2563,6 +2563,8 @@ h1,
   display: flex;
   align-items: center;
   gap: 2px;
+  width: max-content;
+  max-width: calc(100vw - 20px);
   padding: 5px 6px 5px 8px;
   border-radius: 99px;
   background: var(--text);
@@ -2594,6 +2596,20 @@ h1,
   stroke-linecap: round;
   transition: stroke-dashoffset 200ms linear;
 }
+.rest-text {
+  display: grid;
+  justify-items: center;
+  min-width: 58px;
+  overflow: hidden;
+}
+.rest-next {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  opacity: 0.85;
+}
 .rest-time {
   min-width: 58px;
   display: inline-flex;
@@ -2605,10 +2621,11 @@ h1,
   font-variant-numeric: tabular-nums;
 }
 .rest-timer button {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 99px;
   color: inherit;
 }

@@ -40,7 +40,7 @@ import {
   type Exercise,
 } from "./strength";
 import { MuscleSheet } from "./muscle-sheet";
-import { RestTimer, startRest, type Rest } from "./rest-timer";
+import { RestTimer, startRest, type NextSet, type Rest } from "./rest-timer";
 import {
   ManageRoutinesSheet,
   RoutineChips,
@@ -150,6 +150,23 @@ function MuscleCard({
   );
 }
 // Soonest-ready recovering muscles first, then ready, then never trained.
+// After the last set of an exercise, the rest leads into the first open set
+// of the next exercise that has one (wrapping round to earlier ones).
+function firstOpenSet(entries: EntryDraft[], from: number): NextSet | null {
+  for (let k = 1; k < entries.length; k++) {
+    const { exercise, sets } = entries[(from + k) % entries.length];
+    const j = sets.findIndex((s) => !s.done);
+    if (j >= 0)
+      return {
+        name: exercise.name,
+        set: j + 1,
+        reps: sets[j].reps,
+        weightKg: sets[j].weightKg,
+      };
+  }
+  return null;
+}
+
 function byReadiness(muscles: Muscle[], now: number) {
   const rank = (m: Muscle) => {
     const status = recovery(now, m.lastTrainedAt, m.cooldownHours);
@@ -398,7 +415,9 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
                   setEntries((list) => list.filter((_, j) => j !== i))
                 }
                 onHistory={() => setHistoryFor(en.exercise)}
-                onRest={() => setRest(startRest())}
+                onRest={(next) =>
+                  setRest(startRest(next ?? firstOpenSet(entries, i)))
+                }
               />
             ))}
             <button

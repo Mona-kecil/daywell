@@ -20,6 +20,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Empty, Sheet, useClock, useTask } from "./ui";
 import { LineChart } from "./line-chart";
 import { BAR_KG, loadBar } from "@/lib/plates";
+import type { NextSet } from "./rest-timer";
 
 export type Exercise = FunctionReturnType<
   typeof api.strength.exercises
@@ -133,7 +134,7 @@ export function EntryEditor({
   onChange: (sets: SetDraft[]) => void;
   onRemove: () => void;
   onHistory: () => void;
-  onRest: () => void;
+  onRest: (next: NextSet | null) => void;
 }) {
   const { sets, exercise } = entry;
   const [showPlates, setShowPlates] = useState(false);
@@ -227,7 +228,18 @@ export function EntryEditor({
               aria-label={`Set ${i + 1} done`}
               onClick={() => {
                 update(i, { done: !s.done });
-                if (!s.done) onRest();
+                if (s.done) return;
+                const j = sets.findIndex((x, k) => k !== i && !x.done);
+                onRest(
+                  j < 0
+                    ? null
+                    : {
+                        name: exercise.name,
+                        set: j + 1,
+                        reps: sets[j].reps,
+                        weightKg: sets[j].weightKg,
+                      },
+                );
               }}
             >
               {s.done ? <Check size={15} strokeWidth={3} /> : i + 1}

@@ -1,10 +1,17 @@
 "use client";
-import { Minus, Plus, Timer, X } from "lucide-react";
+import { Minus, Plus, Timer, Volume2, VolumeOff, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export type Rest = { endsAt: number; total: number };
+export type NextSet = {
+  name: string;
+  set: number;
+  reps: number;
+  weightKg: number;
+};
+export type Rest = { endsAt: number; total: number; next?: NextSet | null };
 
 const KEY = "daywell.restSeconds";
+const VOICE_KEY = "daywell.restVoice";
 const DONE_MS = 4000;
 let audio: AudioContext | null = null;
 
@@ -13,16 +20,43 @@ export function restSeconds() {
   return saved >= 15 && saved <= 600 ? saved : 90;
 }
 
+const voiceOn = () =>
+  typeof localStorage !== "undefined" &&
+  localStorage.getItem(VOICE_KEY) === "1";
+const synth = () =>
+  typeof speechSynthesis === "undefined" ? null : speechSynthesis;
+
 // Called from the tap that starts a rest so iOS lets the chime play later.
-export function startRest(): Rest {
+export function startRest(next: NextSet | null = null): Rest {
   try {
     audio ??= new AudioContext();
     void audio.resume();
   } catch {
     audio = null;
   }
+  // iOS only speaks later if speech was started from a tap.
+  if (voiceOn()) synth()?.speak(new SpeechSynthesisUtterance(""));
   const total = restSeconds() * 1000;
-  return { endsAt: Date.now() + total, total };
+  return { endsAt: Date.now() + total, total, next };
+}
+
+const fmt = (n: number) =>
+  n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+export const nextLabel = (n: NextSet) =>
+  n.weightKg > 0
+    ? `${n.name} · ${n.reps} × ${fmt(n.weightKg)} kg`
+    : `${n.name} · ${n.reps} reps`;
+// "×" and "kg" read badly aloud, so the spoken form is spelled out.
+export const spoken = (n: NextSet | null | undefined) =>
+  n
+    ? `Rest over. ${n.name}, set ${n.set}: ${n.reps} ${n.reps === 1 ? "rep" : "reps"}${n.weightKg > 0 ? ` at ${fmt(n.weightKg)} kilos` : ""}.`
+    : "Rest over. Next set.";
+
+function say(text: string) {
+  const s = synth();
+  if (!s) return;
+  s.cancel();
+  s.speak(new SpeechSynthesisUtterance(text));
 }
 
 function chime() {
@@ -55,6 +89,7 @@ export function RestTimer({
   onChange: (rest: Rest | null) => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
+  const [voice, setVoice] = useState(voiceOn);
   useEffect(() => {
     if (!rest) return;
     // Adjusting is only possible before the end, so a changed rest is unrung.
@@ -65,6 +100,7 @@ export function RestTimer({
       if (!rang && t >= rest.endsAt) {
         rang = true;
         chime();
+        if (voiceOn()) say(spoken(rest.next));
       }
       if (t >= rest.endsAt + DONE_MS) onChange(null);
     }, 200);
@@ -101,17 +137,25 @@ export function RestTimer({
           strokeDashoffset={C * (1 - fraction)}
         />
       </svg>
-      <span className="rest-time">
-        {done ? (
-          <>
-            <Timer size={15} /> Go!
-          </>
-        ) : (
-          clock(left)
+      <span className="rest-text">
+        <span className="rest-time">
+          {done ? (
+            <>
+              <Timer size={15} /> Go!
+            </>
+          ) : (
+            clock(left)
+          )}
+        </span>
+        {rest.next && (
+          <span className="rest-next">
+            <span className="sr-only">Next: </span>
+            {nextLabel(rest.next)}
+          </span>
         )}
       </span>
       <span className="sr-only" aria-live="assertive">
-        {done ? "Rest over. Next set." : ""}
+        {done ? spoken(rest.next) : ""}
       </span>
       {!done && (
         <>
@@ -132,6 +176,22 @@ export function RestTimer({
             <Plus size={16} />
           </button>
         </>
+      )}
+      {synth() && (
+        <button
+          type="button"
+          aria-label="Read out the next set"
+          aria-pressed={voice}
+          onClick={() => {
+            const on = !voice;
+            localStorage.setItem(VOICE_KEY, on ? "1" : "0");
+            setVoice(on);
+            if (on) say("Voice on.");
+            else synth()?.cancel();
+          }}
+        >
+          {voice ? <Volume2 size={16} /> : <VolumeOff size={16} />}
+        </button>
       )}
       <button
         type="button"
