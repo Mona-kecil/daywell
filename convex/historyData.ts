@@ -10,6 +10,8 @@ export const HISTORY_LIMITS = {
   water: 10000,
   checkins: 1000,
   muscles: 11,
+  habits: 1000,
+  habitLogs: 10000,
 };
 
 export function validHistoryClock(now: number, timeZone: string) {
@@ -38,47 +40,67 @@ export async function historyFor(
   const today = localClock(now, timeZone).localDay;
   const start = mode === "weekly" ? Math.max(0, now - 8 * DAY_MS) : 0;
   const fromDay = mode === "weekly" ? shiftDay(today, -6) : "0000-01-01";
-  const [settings, muscles, workouts, sets, water, checkins] =
-    await Promise.all([
-      ctx.db
-        .query("settings")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .unique(),
-      ctx.db
-        .query("muscles")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .take(HISTORY_LIMITS.muscles + 1),
-      ctx.db
-        .query("workouts")
-        .withIndex("by_user_time", (q) =>
-          q.eq("userId", userId).gte("trainedAt", start).lte("trainedAt", now),
-        )
-        .take(HISTORY_LIMITS.workouts + 1),
-      ctx.db
-        .query("strengthSets")
-        .withIndex("by_user_time", (q) =>
-          q.eq("userId", userId).lte("trainedAt", now),
-        )
-        .take(HISTORY_LIMITS.sets + 1),
-      ctx.db
-        .query("water")
-        .withIndex("by_user_time", (q) =>
-          q.eq("userId", userId).gte("at", start).lte("at", now),
-        )
-        .take(HISTORY_LIMITS.water + 1),
-      ctx.db
-        .query("bodyCheckins")
-        .withIndex("by_user_day", (q) =>
-          q.eq("userId", userId).gte("day", fromDay).lte("day", today),
-        )
-        .take(HISTORY_LIMITS.checkins + 1),
-    ]);
+  const [
+    settings,
+    muscles,
+    workouts,
+    sets,
+    water,
+    checkins,
+    habits,
+    habitLogs,
+  ] = await Promise.all([
+    ctx.db
+      .query("settings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique(),
+    ctx.db
+      .query("muscles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .take(HISTORY_LIMITS.muscles + 1),
+    ctx.db
+      .query("workouts")
+      .withIndex("by_user_time", (q) =>
+        q.eq("userId", userId).gte("trainedAt", start).lte("trainedAt", now),
+      )
+      .take(HISTORY_LIMITS.workouts + 1),
+    ctx.db
+      .query("strengthSets")
+      .withIndex("by_user_time", (q) =>
+        q.eq("userId", userId).lte("trainedAt", now),
+      )
+      .take(HISTORY_LIMITS.sets + 1),
+    ctx.db
+      .query("water")
+      .withIndex("by_user_time", (q) =>
+        q.eq("userId", userId).gte("at", start).lte("at", now),
+      )
+      .take(HISTORY_LIMITS.water + 1),
+    ctx.db
+      .query("bodyCheckins")
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", userId).gte("day", fromDay).lte("day", today),
+      )
+      .take(HISTORY_LIMITS.checkins + 1),
+    ctx.db
+      .query("habits")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .take(HISTORY_LIMITS.habits + 1),
+    ctx.db
+      .query("habitLogs")
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", userId).gte("day", fromDay).lte("day", today),
+      )
+      .take(HISTORY_LIMITS.habitLogs + 1),
+  ]);
   for (const [length, limit] of [
     [workouts.length, HISTORY_LIMITS.workouts],
     [sets.length, HISTORY_LIMITS.sets],
     [water.length, HISTORY_LIMITS.water],
     [checkins.length, HISTORY_LIMITS.checkins],
     [muscles.length, HISTORY_LIMITS.muscles],
+    [habits.length, HISTORY_LIMITS.habits],
+    [habitLogs.length, HISTORY_LIMITS.habitLogs],
   ])
     if (length > limit) throw new ConvexError("History exceeds review limits.");
   return {
@@ -90,5 +112,7 @@ export async function historyFor(
     sets,
     water,
     checkins,
+    habits,
+    habitLogs,
   };
 }

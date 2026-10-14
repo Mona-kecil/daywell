@@ -34,6 +34,44 @@ function streakAchievement(
   return { earnedAt, progress: { value: Math.min(best, target), target } };
 }
 
+function habitStreakAchievement(
+  logs: NonNullable<HistoryInput["habitLogs"]>,
+  target: number,
+) {
+  const habits = new Map<string, Map<string, number>>();
+  for (const log of logs) {
+    const days = habits.get(log.habitId) ?? new Map<string, number>();
+    days.set(
+      log.day,
+      Math.min(days.get(log.day) ?? Infinity, log._creationTime),
+    );
+    habits.set(log.habitId, days);
+  }
+  let best = 0;
+  let earnedAt: number | null = null;
+  for (const days of habits.values()) {
+    let previous = -Infinity;
+    let run = 0;
+    const times: number[] = [];
+    for (const [day, at] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
+      const current = dayNumber(day);
+      if (current !== previous + 1) {
+        run = 0;
+        times.length = 0;
+      }
+      run++;
+      best = Math.max(best, run);
+      times.push(at);
+      if (times.length > target) times.shift();
+      // A backfill completes the run when its last missing log is recorded.
+      if (run >= target)
+        earnedAt = Math.min(earnedAt ?? Infinity, Math.max(...times));
+      previous = current;
+    }
+  }
+  return { earnedAt, progress: { value: Math.min(best, target), target } };
+}
+
 export function computeAchievements(input: HistoryInput): Achievement[] {
   const data = historyThroughNow(input);
   const result: Achievement[] = [];
@@ -137,5 +175,13 @@ export function computeAchievements(input: HistoryInput): Achievement[] {
     data.meals.map((m) => m.at),
     10,
   );
+  if (data.habitLogs !== undefined)
+    for (const target of [7, 30])
+      result.push({
+        id: `habit-streak-${target}`,
+        title: target === 7 ? "Habit week" : "Habit month",
+        detail: `Keep one habit going ${target} days in a row.`,
+        ...habitStreakAchievement(data.habitLogs, target),
+      });
   return result;
 }

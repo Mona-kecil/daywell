@@ -60,6 +60,8 @@ export type HistoryInput = {
     energy?: number;
     note?: string;
   }[];
+  habits?: { _id: string; createdAt: number; archivedAt?: number }[];
+  habitLogs?: { habitId: string; day: string; _creationTime: number }[];
 };
 
 export function hasCheckinData(row: HistoryInput["checkins"][number]) {
@@ -76,6 +78,9 @@ export function historyThroughNow(input: HistoryInput): HistoryInput {
   const today = localClock(input.now, input.timeZone).localDay;
   return {
     ...input,
+    habitLogs: input.habitLogs?.filter(
+      (log) => log.day <= today && log._creationTime <= input.now,
+    ),
     workouts: input.workouts
       .filter((w) => w.trainedAt <= input.now)
       .sort((a, b) => a.trainedAt - b.trainedAt),

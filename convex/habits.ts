@@ -27,7 +27,11 @@ async function activeHabits(ctx: QueryCtx | MutationCtx, userId: string) {
     .sort((a, b) => a.order - b.order);
 }
 
-async function ownedHabit(ctx: MutationCtx, userId: string, id: Id<"habits">) {
+async function ownedHabit(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+  id: Id<"habits">,
+) {
   const habit = await ctx.db.get(id);
   if (!habit || habit.userId !== userId)
     throw new ConvexError("Habit not found.");
@@ -44,6 +48,27 @@ function validName(raw: string) {
 function validDay(day: string) {
   if (!isDay(day)) throw new ConvexError("Use a valid YYYY-MM-DD day.");
 }
+
+export const history = query({
+  args: { id: v.id("habits"), today: v.string() },
+  handler: async (ctx, { id, today }) => {
+    const userId = await requireUser(ctx);
+    await ownedHabit(ctx, userId, id);
+    validDay(today);
+    const days = lastDays(today, 84);
+    const logs = await ctx.db
+      .query("habitLogs")
+      .withIndex("by_user_habit_day", (q) =>
+        q
+          .eq("userId", userId)
+          .eq("habitId", id)
+          .gte("day", days[0])
+          .lte("day", today),
+      )
+      .collect();
+    return { days: [...new Set(logs.map((log) => log.day))].sort() };
+  },
+});
 
 export const list = query({
   args: { today: v.string() },

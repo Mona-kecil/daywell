@@ -255,3 +255,30 @@ it("skips an oversized user's history without blocking another user's review", a
     "https://fcm.googleapis.com/fcm/send/bob",
   );
 });
+
+it("counts creation dates across DST, excludes archived and future habits, and leaves empty habit text unchanged", () => {
+  const summary = weeklySummary({
+    ...empty,
+    now: Date.parse("2026-03-08T23:00Z"),
+    timeZone: "America/New_York",
+    habits: [
+      { _id: "old", createdAt: 0 },
+      { _id: "new", createdAt: Date.parse("2026-03-08T04:30Z") },
+      { _id: "future", createdAt: Date.parse("2026-03-09T04:00Z") },
+      { _id: "archived", createdAt: 0, archivedAt: 1 },
+    ],
+    habitLogs: [
+      { habitId: "old", day: "2026-03-02", _creationTime: 1 },
+      { habitId: "new", day: "2026-03-08", _creationTime: 2 },
+      { habitId: "archived", day: "2026-03-08", _creationTime: 3 },
+      { habitId: "old", day: "2026-03-01", _creationTime: 4 },
+      { habitId: "old", day: "2026-03-09", _creationTime: 5 },
+    ],
+  });
+  expect(summary).toMatchObject({ habitsDone: 2, habitsPossible: 9 });
+  const zero = weeklySummary({ ...empty, habits: [], habitLogs: [] });
+  expect(zero).toMatchObject({ habitsDone: 0, habitsPossible: 0 });
+  expect(weeklyReviewText(zero)).toEqual(
+    weeklyReviewText(weeklySummary(empty)),
+  );
+});

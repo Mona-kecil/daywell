@@ -10,6 +10,7 @@ import {
   Dumbbell,
   HeartPulse,
   Layers,
+  ListChecks,
   Medal,
   Mountain,
   PersonStanding,
@@ -160,6 +161,8 @@ const BADGES: Record<string, { Icon: LucideIcon; tone: string }> = {
   "checkin-streak-7": { Icon: HeartPulse, tone: "amber" },
   "all-muscles-7": { Icon: PersonStanding, tone: "green" },
   "meals-10": { Icon: Utensils, tone: "amber" },
+  "habit-streak-7": { Icon: ListChecks, tone: "green" },
+  "habit-streak-30": { Icon: CalendarCheck, tone: "green" },
 };
 
 const R = 25;
