@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { CARDIO_KINDS, CARDIO_EFFORTS } from "../lib/cardio";
 import { HABIT_ICONS } from "../lib/habits";
 
 export const habitIcon = v.union(...HABIT_ICONS.map((icon) => v.literal(icon)));
@@ -45,4 +46,11 @@ export const progressPose = v.union(
   v.literal("front"),
   v.literal("side"),
   v.literal("back"),
+);
+
+export const cardioKind = v.union(
+  ...CARDIO_KINDS.map((kind) => v.literal(kind)),
+);
+export const cardioEffort = v.union(
+  ...CARDIO_EFFORTS.map((effort) => v.literal(effort)),
 );

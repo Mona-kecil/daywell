@@ -2,6 +2,8 @@ import { ConvexError, v } from "convex/values";
 import type { Auth } from "convex/server";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
+import { cardioHistory } from "./cardioModel";
+import type { CardioKind, CardioEffort } from "../lib/cardio";
 import { mealItem } from "./validators";
 import { seedExercises } from "./exerciseModel";
 import { requireUser, createWorkout, validLocalDay } from "./model";
@@ -65,6 +67,8 @@ export const replace = internalMutation({
       await ctx.storage.delete(photo.storageId);
       await ctx.db.delete(photo._id);
     }
+    for await (const rows of cardioHistory(ctx, userId))
+      for (const row of rows) await ctx.db.delete(row._id);
     const records = [
       ...(await ctx.db
         .query("bodyCheckins")
@@ -140,6 +144,39 @@ export const replace = internalMutation({
         await ctx.db.insert("habitLogs", { userId, habitId, day });
       }
     }
+    const cardioDays = lastDays(checkinDays[0], 10);
+    const demoCardio = [
+      { offset: 0, kind: "run", effort: "easy", minutes: 30, distanceKm: 5 },
+      { offset: 2, kind: "walk", effort: "easy", minutes: 40, distanceKm: 3 },
+      {
+        offset: 4,
+        kind: "ride",
+        effort: "moderate",
+        minutes: 60,
+        distanceKm: 24,
+      },
+      { offset: 6, kind: "run", effort: "hard", minutes: 25, distanceKm: 5 },
+      {
+        offset: 9,
+        kind: "run",
+        effort: "moderate",
+        minutes: 45,
+        distanceKm: 7.5,
+      },
+    ] satisfies {
+      offset: number;
+      kind: CardioKind;
+      effort: CardioEffort;
+      minutes: number;
+      distanceKm: number;
+    }[];
+    for (const { offset, ...session } of demoCardio)
+      await ctx.db.insert("cardioSessions", {
+        userId,
+        ...session,
+        day: cardioDays[offset],
+        createdAt: args.now - (9 - offset) * 86_400_000,
+      });
     const muscles = new Map<string, Id<"muscles">>();
     for (const muscle of MUSCLE_DEFAULTS)
       muscles.set(

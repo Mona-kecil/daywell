@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { cardioHistory } from "./cardioModel";
 import { requireUser } from "./model";
 import { mealTotals } from "../lib/nutrients";
 
@@ -70,6 +71,9 @@ export const all = query({
         .withIndex("by_user_day", (q) => q.eq("userId", userId))
         .collect(),
     ]);
+    const cardioSessions = [];
+    for await (const rows of cardioHistory(ctx, userId))
+      cardioSessions.push(...rows);
     const names = new Map(exercises.map((e) => [e._id, e.name]));
     const workoutSets = new Map<Id<"workouts">, Doc<"strengthSets">[]>();
     for (const set of sets) {
@@ -117,6 +121,16 @@ export const all = query({
         .filter((e) => e.custom)
         .map((e) => ({ id: e._id, name: e.name, muscleIds: e.muscleIds })),
       water: water.map((w) => ({ id: w._id, amountMl: w.amountMl, at: w.at })),
+      cardioSessions: cardioSessions.map((session) => ({
+        id: session._id,
+        kind: session.kind,
+        effort: session.effort,
+        day: session.day,
+        minutes: session.minutes,
+        distanceKm: session.distanceKm ?? null,
+        note: session.note ?? null,
+        createdAt: session.createdAt,
+      })),
       caffeine: caffeine.map((c) => ({
         id: c._id,
         at: c.at,

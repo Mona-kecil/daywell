@@ -1,6 +1,8 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
+  cardioKind,
+  cardioEffort,
   habitIcon,
   mealItem,
   progressPose,
@@ -168,6 +170,16 @@ export default defineSchema({
     amountMl: v.number(),
     at: v.number(),
   }).index("by_user_time", ["userId", "at"]),
+  cardioSessions: defineTable({
+    userId: v.string(),
+    kind: cardioKind,
+    effort: cardioEffort,
+    day: v.string(),
+    minutes: v.number(),
+    distanceKm: v.optional(v.number()),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user_day", ["userId", "day"]),
   caffeine: defineTable({
     userId: v.string(),
     at: v.number(),
