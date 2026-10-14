@@ -91,6 +91,7 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(),
     cooldownHours: v.number(),
+    soreUntil: v.optional(v.number()),
   }).index("by_user", ["userId"]),
   workouts: defineTable({
     userId: v.string(),

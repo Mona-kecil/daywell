@@ -202,8 +202,8 @@ export const request = internalMutation({
               readyMuscles: today.muscles
                 .filter(
                   (m) =>
-                    recovery(now, m.lastTrainedAt, m.cooldownHours).kind !==
-                    "recovering",
+                    recovery(now, m.lastTrainedAt, m.cooldownHours, m.soreUntil)
+                      .kind !== "recovering",
                 )
                 .map((m) => m.name),
             },

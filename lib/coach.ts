@@ -1,3 +1,4 @@
+import { readyAt } from "./forecast";
 import { recovery } from "./recovery";
 import type { Macros } from "./nutrients";
 
@@ -27,6 +28,7 @@ export type CoachInput = {
     name: string;
     cooldownHours: number;
     lastTrainedAt: number | null;
+    soreUntil?: number | null;
   }[];
 };
 
@@ -91,11 +93,8 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
   const groups = input.muscles
     .map((m) => ({
       ...m,
-      state: recovery(now, m.lastTrainedAt, m.cooldownHours),
-      readyAt:
-        m.lastTrainedAt === null
-          ? -Infinity
-          : m.lastTrainedAt + m.cooldownHours * 3_600_000,
+      state: recovery(now, m.lastTrainedAt, m.cooldownHours, m.soreUntil),
+      readyAt: readyAt(m, now) ?? -Infinity,
     }))
     .sort(
       (a, b) => a.readyAt - b.readyAt || a.name.localeCompare(b.name, "en"),

@@ -58,7 +58,12 @@ function MuscleDetail({
   onExercise: (exercise: Exercise) => void;
 }) {
   const dark = useIsDark();
-  const status = recovery(now, muscle.lastTrainedAt, muscle.cooldownHours);
+  const status = recovery(
+    now,
+    muscle.lastTrainedAt,
+    muscle.cooldownHours,
+    muscle.soreUntil,
+  );
   const readyAt =
     muscle.lastTrainedAt !== null
       ? muscle.lastTrainedAt + muscle.cooldownHours * 3_600_000

@@ -82,7 +82,8 @@ export function Today({
   const trained = overview.muscles.filter((m) => m.lastTrainedAt !== null);
   const recovering = trained.filter(
     (m) =>
-      recovery(now, m.lastTrainedAt, m.cooldownHours).kind === "recovering",
+      recovery(now, m.lastTrainedAt, m.cooldownHours, m.soreUntil).kind ===
+      "recovering",
   );
   const ready = trained.length - recovering.length;
   const next = [...recovering].sort(
@@ -95,7 +96,12 @@ export function Today({
     overview.muscles.flatMap((m) => {
       const key = muscleKey(m.name);
       return key
-        ? [[key, recovery(now, m.lastTrainedAt, m.cooldownHours)] as const]
+        ? [
+            [
+              key,
+              recovery(now, m.lastTrainedAt, m.cooldownHours, m.soreUntil),
+            ] as const,
+          ]
         : [];
     }),
   );
@@ -190,7 +196,14 @@ export function Today({
                 <strong>{next.name}</strong>
                 <br />
                 <span className="muted">
-                  {recovery(now, next.lastTrainedAt, next.cooldownHours).label}
+                  {
+                    recovery(
+                      now,
+                      next.lastTrainedAt,
+                      next.cooldownHours,
+                      next.soreUntil,
+                    ).label
+                  }
                 </span>
               </p>
             )}

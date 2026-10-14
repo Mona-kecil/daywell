@@ -247,6 +247,7 @@ export const readReply = internalQuery({
           return {
             name: m.name,
             cooldownHours: m.cooldownHours,
+            soreUntil: m.soreUntil ?? null,
             lastTrainedAt: last?.trainedAt ?? null,
           };
         }),

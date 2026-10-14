@@ -11,6 +11,7 @@ export type PlanMuscle = {
   name: string;
   cooldownHours: number;
   lastTrainedAt: number | null;
+  soreUntil?: number | null;
   current: number;
 };
 export type PlanDay = {
@@ -64,7 +65,7 @@ export function planWeek(
   ) {
     const at = sessionAt(day, timeZone);
     if (at <= now) continue;
-    const ready = (muscle: PlanMuscle) => (readyAt(muscle) ?? at) <= at;
+    const ready = (muscle: PlanMuscle) => (readyAt(muscle, at) ?? at) <= at;
     const next = splits
       .flatMap((split) => {
         if (!split.members.length || !split.members.every(ready)) return [];
@@ -118,6 +119,7 @@ export function planWeek(
     ];
     for (const muscle of trained) {
       muscle.lastTrainedAt = at;
+      muscle.soreUntil = null;
       muscle.current += SETS_PER_SESSION;
     }
     days.push({

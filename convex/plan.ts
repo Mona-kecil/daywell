@@ -55,6 +55,7 @@ export const week = query({
           id: muscle._id,
           name: muscle.name,
           cooldownHours: muscle.cooldownHours,
+          soreUntil: muscle.soreUntil ?? null,
           lastTrainedAt: last?.trainedAt ?? null,
           current: current.get(muscle._id) ?? 0,
         };
