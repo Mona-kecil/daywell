@@ -46,6 +46,26 @@ describe("Eating window card", () => {
     );
   });
 
+  it("draws a non-negative span with the last meal at or after the first across fall-back", () => {
+    const first = Date.parse("2026-11-01T01:30:00-04:00");
+    const last = Date.parse("2026-11-01T01:15:00-05:00");
+    const { days } = dayWindow(new Date("2026-11-01T12:00:00-05:00"), 1);
+    const { container } = render(
+      <EatingWindowCard
+        meals={[{ at: first }, { at: last }]}
+        days={days}
+        today="2026-11-01"
+      />,
+    );
+    const span = container.querySelector(".eating-span");
+    expect(Number(span?.getAttribute("width"))).toBeGreaterThanOrEqual(0);
+    const positions = [...container.querySelectorAll(".eating-meal")].map(
+      (meal) => Number(meal.getAttribute("cx")),
+    );
+    expect(positions[1]).toBeGreaterThanOrEqual(positions[0]);
+    expect(readout()).toBe("Today · 2 meals · 1:30 AM–1:15 AM, 45 min");
+  });
+
   it("summarises the usual day and steps through days by keyboard", () => {
     card([
       at("2026-10-11", "08:00"),

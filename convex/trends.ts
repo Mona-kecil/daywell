@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireUser, validTimestamp } from "./model";
+import { MAX_EXERCISES } from "./exerciseModel";
 import { liftTrend, type LiftSession, type LiftTrend } from "../lib/trends";
 
 const STATUS_ORDER = {
@@ -29,7 +30,7 @@ export const list = query({
       ctx.db
         .query("exercises")
         .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect(),
+        .take(MAX_EXERCISES),
     ]);
     const byExercise = new Map<
       Id<"exercises">,

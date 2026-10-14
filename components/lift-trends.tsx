@@ -30,8 +30,12 @@ const SH = 28;
 
 const oneDp = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+const displayedValue = (lift: Lift, value: number) =>
+  lift.unit === "reps" ? Math.round(value) : Math.round(value * 10) / 10;
 const amount = (lift: Lift, value: number) =>
-  lift.unit === "reps" ? `${Math.round(value)} reps` : `${oneDp(value)} kg`;
+  lift.unit === "reps"
+    ? `${displayedValue(lift, value)} reps`
+    : `${oneDp(displayedValue(lift, value))} kg`;
 const isShown = (lift: Lift): lift is Lift & { status: Shown } =>
   lift.status in STATUS;
 
@@ -43,11 +47,12 @@ function rate(lift: Lift) {
 }
 
 function hint(lift: Lift) {
-  const latest = lift.points.at(-1)?.value ?? 0;
+  const latest = displayedValue(lift, lift.points.at(-1)?.value ?? 0);
+  const best = displayedValue(lift, lift.best);
   if (lift.status === "stalled")
     return `No new best in ${lift.sessionsSinceBest} sessions. A new rep range or a lighter week often restarts progress.`;
-  if (lift.status === "slipping")
-    return `${Math.round((1 - latest / lift.best) * 100)}% under your best of ${amount(lift, lift.best)}.`;
+  if (lift.status === "slipping" && best > 0)
+    return `${Math.round(((best - latest) / best) * 100)}% under your best of ${amount(lift, lift.best)}.`;
   return null;
 }
 

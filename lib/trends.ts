@@ -51,12 +51,17 @@ export function liftTrend(sessions: LiftSession[], now: number): LiftTrend {
   )
     ? "reps"
     : "kg";
-  const values = history.map((session) => ({
-    at: session.trainedAt,
-    value: Math.max(
-      ...session.sets.map((set) => (unit === "reps" ? set.reps : e1rm(set))),
-    ),
-  }));
+  const values = history
+    .filter(
+      (session) =>
+        unit === "reps" || session.sets.some((set) => set.weightKg > 0),
+    )
+    .map((session) => ({
+      at: session.trainedAt,
+      value: Math.max(
+        ...session.sets.map((set) => (unit === "reps" ? set.reps : e1rm(set))),
+      ),
+    }));
   let best = 0;
   let bestIndex = -1;
   for (const [index, point] of values.entries()) {
@@ -75,6 +80,7 @@ export function liftTrend(sessions: LiftSession[], now: number): LiftTrend {
   let status: LiftTrend["status"];
   if (lastAt !== null && now - lastAt > LAPSED_DAYS * DAY_MS) status = "lapsed";
   else if (points.length < 3) status = "early";
+  else if (sessionsSinceBest >= STALL_SESSIONS) status = "stalled";
   else if (
     sessionsSinceBest < 2 ||
     (changePct !== null && changePct > FLAT_PCT)
@@ -87,7 +93,6 @@ export function liftTrend(sessions: LiftSession[], now: number): LiftTrend {
     last.value < 0.95 * best
   )
     status = "slipping";
-  else if (sessionsSinceBest >= STALL_SESSIONS) status = "stalled";
   else status = "steady";
   return {
     status,

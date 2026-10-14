@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { createWorkout, requireUser, validTimestamp } from "./model";
+import { MAX_EXERCISES } from "./exerciseModel";
 import {
   nextTarget as targetFromSessions,
   repRange,
@@ -69,6 +70,14 @@ export const addExercise = mutation({
       if (!muscle || muscle.userId !== userId)
         throw new ConvexError("Muscle not found.");
     }
+    const exercises = await ctx.db
+      .query("exercises")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .take(MAX_EXERCISES);
+    if (exercises.length >= MAX_EXERCISES)
+      throw new ConvexError(
+        `You can have at most ${MAX_EXERCISES} exercises. Delete a custom exercise before adding another.`,
+      );
     return ctx.db.insert("exercises", {
       userId,
       name,

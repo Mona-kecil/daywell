@@ -2,6 +2,8 @@ import { ConvexError } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
 import { EXERCISE_DEFAULTS } from "../lib/strength";
 
+export const MAX_EXERCISES = 500;
+
 export async function seedExercises(ctx: MutationCtx, userId: string) {
   const muscles = await ctx.db
     .query("muscles")

@@ -4,7 +4,7 @@ import { Clock3 } from "lucide-react";
 import type { DaySpan } from "@/lib/insights";
 import {
   WINDOW_DAYS,
-  clockMinutes,
+  mealMinutes,
   duration,
   eatingDays,
   eatingSummary,
@@ -68,7 +68,7 @@ export function EatingWindowCard({
   const [active, setActive] = useState<number | null>(null);
   const shown = active ?? latest;
 
-  const all = days.flatMap((d) => d.meals.map(clockMinutes));
+  const all = days.flatMap((d) => mealMinutes(d.meals));
   const lo = Math.min(6 * 60, Math.floor(Math.min(...all) / 60) * 60);
   const hi = Math.max(22 * 60, Math.ceil(Math.max(...all) / 60) * 60);
   const H = days.length * ROW + PAD.bottom;
@@ -179,7 +179,7 @@ export function EatingWindowCard({
               </g>
               {days.map((d, i) => {
                 const cy = i * ROW + ROW / 2;
-                const mins = d.meals.map(clockMinutes);
+                const mins = mealMinutes(d.meals);
                 return (
                   <g
                     key={d.key}

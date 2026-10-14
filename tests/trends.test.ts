@@ -96,11 +96,11 @@ describe("lift trend statuses", () => {
     },
   );
 
-  it("checks a positive slope before a stall", () => {
+  it("stalls after four sessions without a new best even when the recent slope rises", () => {
     expect(
       liftTrend([oldBest, ...weekly([80, 85, 90, 95])], NOW),
     ).toMatchObject({
-      status: "climbing",
+      status: "stalled",
       sessionsSinceBest: 4,
     });
   });
@@ -133,11 +133,11 @@ describe("lift trend statuses", () => {
     },
   );
 
-  it("checks slipping before a stall", () => {
+  it("stalls after four sessions without a new best even when the recent slope falls", () => {
     expect(
       liftTrend([oldBest, ...weekly([100, 90, 80, 70])], NOW),
     ).toMatchObject({
-      status: "slipping",
+      status: "stalled",
       sessionsSinceBest: 4,
     });
   });
@@ -221,7 +221,7 @@ describe("lift trend values", () => {
     ).toMatchObject({ unit: "reps", best: 15, sessionsSinceBest: 1 });
   });
 
-  it("keeps kg units when any window set has weight, even among bodyweight sets", () => {
+  it("omits bodyweight-only sessions from a kg series and its best count", () => {
     expect(
       liftTrend(
         [
@@ -239,11 +239,27 @@ describe("lift trend values", () => {
     ).toMatchObject({
       unit: "kg",
       best: 10,
-      points: [
-        { at: NOW - WEEK, value: 10 },
-        { at: NOW, value: 0 },
-      ],
+      points: [{ at: NOW - WEEK, value: 10 }],
+      bestAt: NOW - WEEK,
+      sessionsSinceBest: 0,
+      lastAt: NOW - WEEK,
+      status: "early",
+      changePct: null,
     });
+  });
+
+  it("uses only weighted sessions for kg status and weekly change", () => {
+    const weighted = weekly([100, 95, 90]);
+    const bodyweight = [
+      { trainedAt: NOW - 9 * WEEK, sets: [{ reps: 1000, weightKg: 0 }] },
+      ...[3, 2, 1, 0].map((days) => ({
+        trainedAt: NOW - days * DAY,
+        sets: [{ reps: 20, weightKg: 0 }],
+      })),
+    ];
+    expect(liftTrend([...weighted, ...bodyweight], NOW)).toEqual(
+      liftTrend(weighted, NOW),
+    );
   });
 
   it("keeps the historical unit and best when the window has no sessions", () => {

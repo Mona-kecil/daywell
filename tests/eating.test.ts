@@ -5,6 +5,7 @@ import {
   duration,
   eatingDays,
   eatingSummary,
+  mealMinutes,
 } from "../lib/eating";
 
 const zone = process.env.TZ;
@@ -43,6 +44,37 @@ describe("eating window", () => {
   it("reads wall-clock minutes on a 25-hour fall-back day", () => {
     // 7 PM on Nov 1 is 20 elapsed hours after midnight, but sits at 7 PM.
     expect(clockMinutes(at("2026-11-01", "19:00"))).toBe(19 * 60);
+  });
+
+  it("keeps evening wall-clock minutes after spring-forward", () => {
+    expect(clockMinutes(Date.parse("2026-03-08T19:00:00-04:00"))).toBe(19 * 60);
+    const { days } = dayWindow(new Date("2026-03-08T12:00:00-04:00"), 1);
+    expect(days[0].endMs - days[0].startMs).toBe(23 * 3_600_000);
+  });
+
+  it("derives meal positions that never move back during the repeated hour", () => {
+    const meals = [
+      "2026-11-01T01:30:00-04:00",
+      "2026-11-01T01:00:00-05:00",
+      "2026-11-01T01:15:00-05:00",
+      "2026-11-01T02:00:00-05:00",
+      "2026-11-01T19:00:00-05:00",
+    ].map((time) => Date.parse(time));
+    expect(mealMinutes(meals)).toEqual([90, 90, 90, 120, 19 * 60]);
+    expect(mealMinutes([])).toEqual([]);
+    const { days } = dayWindow(new Date("2026-11-01T12:00:00-05:00"), 1);
+    expect(
+      eatingSummary(eatingDays(days, meals.slice(0, 3)), "2026-11-02").windowMs,
+    ).toBe(45 * 60_000);
+  });
+
+  it("keeps wall-clock meal positions across the spring-forward gap", () => {
+    const meals = [
+      "2026-03-08T01:30:00-05:00",
+      "2026-03-08T03:15:00-04:00",
+      "2026-03-08T19:00:00-04:00",
+    ].map((time) => Date.parse(time));
+    expect(mealMinutes(meals)).toEqual([90, 195, 19 * 60]);
   });
 
   it("takes medians and leaves today's unfinished window out", () => {
