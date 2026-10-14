@@ -1,21 +1,19 @@
 "use client";
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { recovery } from "@/lib/recovery";
 import { Empty, Progress, Sheet } from "./ui";
 import { recoveryHex, useIsDark } from "./body3d";
 import type { Exercise } from "./strength";
+import { useWeeklyVolume, weekLabel } from "./volume";
+import { VOLUME_HIGH, VOLUME_LOW } from "@/lib/volume";
 
 type Muscle = FunctionReturnType<
   typeof api.tracker.overview
 >["muscles"][number];
-
-const WEEKS = 8;
-const WEEK_MS = 7 * 86_400_000;
 
 export function MuscleSheet({
   muscle,
@@ -61,8 +59,6 @@ function MuscleDetail({
 }) {
   const dark = useIsDark();
   const status = recovery(now, muscle.lastTrainedAt, muscle.cooldownHours);
-  // Pin week ends to the minute the sheet opened so queries stay stable.
-  const [anchor] = useState(() => Math.ceil(now / 60_000) * 60_000);
   const readyAt =
     muscle.lastTrainedAt !== null
       ? muscle.lastTrainedAt + muscle.cooldownHours * 3_600_000
@@ -91,7 +87,7 @@ function MuscleDetail({
               }`}
         </p>
       </div>
-      <WeeklySets muscleId={muscle._id} anchor={anchor} />
+      <WeeklySets muscleId={muscle._id} />
       <h3 className="sheet-subhead">Exercises</h3>
       {exercises.length === 0 ? (
         <Empty>No exercises target this muscle yet.</Empty>
@@ -116,65 +112,67 @@ function MuscleDetail({
   );
 }
 
-function WeeklySets({
-  muscleId,
-  anchor,
-}: {
-  muscleId: Id<"muscles">;
-  anchor: number;
-}) {
-  const ends = Array.from(
-    { length: WEEKS },
-    (_, i) => anchor - (WEEKS - 1 - i) * WEEK_MS,
-  );
-  const counts = ends.map((end) => {
-    // A fixed number of hook calls: one per week in the window.
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const week = useQuery(api.strength.weeklyMuscleSets, { now: end });
-    return week?.find((w) => w.muscleId === muscleId)?.sets;
-  });
+function WeeklySets({ muscleId }: { muscleId: Id<"muscles"> }) {
+  const data = useWeeklyVolume();
   const [active, setActive] = useState<number | null>(null);
-  if (counts.some((c) => c === undefined))
-    return <div className="week-bars loading" aria-busy />;
-  const values = counts as number[];
-  const max = Math.max(10, ...values);
+  if (!data) return <div className="week-bars loading" aria-busy />;
+  const weeks = data.weeks.map((w) => ({
+    start: w.start,
+    sets: w.perMuscle[muscleId] ?? 0,
+  }));
+  const row = data.muscles.find((m) => m.id === muscleId);
+  const last = weeks.length - 1;
+  const max = Math.max(VOLUME_HIGH + 4, ...weeks.map((w) => w.sets));
   const label = (i: number) =>
-    i === WEEKS - 1
-      ? "Last 7 days"
-      : `Week to ${new Date(ends[i]).toLocaleDateString([], { month: "short", day: "numeric" })}`;
-  const total = values.reduce((a, b) => a + b, 0);
+    i === last ? "This week" : `Week of ${weekLabel(weeks[i].start)}`;
+  const sets = (n: number) => `${n} ${n === 1 ? "set" : "sets"}`;
   return (
     <figure className="week-chart">
       <figcaption className="chart-head">
-        <span className="small">Sets per week</span>
+        <span className="small">Working sets per week</span>
         <span className="chart-readout" aria-live="polite">
           {active === null
-            ? `${values[WEEKS - 1]} in the last 7 days · ${Math.round(total / WEEKS)} a week on average`
-            : `${label(active)} · ${values[active]} ${values[active] === 1 ? "set" : "sets"}`}
+            ? `${sets(weeks[last].sets)} this week · usually ${Math.round(row?.average ?? 0)}`
+            : `${label(active)} · ${sets(weeks[active].sets)}`}
         </span>
       </figcaption>
-      <ol className="week-bars" onPointerLeave={() => setActive(null)}>
-        {values.map((v, i) => (
-          <li key={ends[i]}>
+      <ol
+        className="week-bars"
+        onPointerLeave={() => setActive(null)}
+        // The 10–20 band most people grow on, behind the bars.
+        style={
+          {
+            "--band-lo": `${(VOLUME_LOW / max) * 100}%`,
+            "--band-hi": `${(VOLUME_HIGH / max) * 100}%`,
+          } as CSSProperties
+        }
+      >
+        {weeks.map((w, i) => (
+          <li key={w.start}>
             <button
               type="button"
-              aria-label={`${label(i)}: ${v} ${v === 1 ? "set" : "sets"}`}
+              aria-label={`${label(i)}: ${sets(w.sets)}`}
               onPointerEnter={() => setActive(i)}
               onFocus={() => setActive(i)}
               onBlur={() => setActive(null)}
               className={active === i ? "active" : ""}
             >
               <span
-                className={v ? "" : "zero"}
-                style={{ height: `${Math.max(v ? 6 : 2, (v / max) * 100)}%` }}
+                className={w.sets ? "" : "zero"}
+                style={{
+                  height: `${Math.max(w.sets ? 6 : 2, (w.sets / max) * 100)}%`,
+                }}
               />
             </button>
           </li>
         ))}
       </ol>
       <div className="week-axis" aria-hidden>
-        <span>{WEEKS} weeks ago</span>
-        <span>Now</span>
+        <span>{weekLabel(weeks[0].start)}</span>
+        <span>
+          {VOLUME_LOW}–{VOLUME_HIGH} band
+        </span>
+        <span>This week</span>
       </div>
     </figure>
   );

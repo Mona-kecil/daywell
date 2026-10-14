@@ -17,6 +17,7 @@ import { recovery } from "@/lib/recovery";
 import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
 import { RecoveryForecast } from "./forecast";
 import { RecoveryReplay } from "./replay";
+import { useWeeklyVolume, VolumeCard } from "./volume";
 import {
   BodyModel,
   muscleKey,
@@ -132,7 +133,7 @@ function MuscleCard({
             : ""}
           {muscle.cooldownHours}h cooldown
           {weekSets
-            ? ` · ${weekSets} ${weekSets === 1 ? "set" : "sets"} this week`
+            ? ` · ${weekSets} working ${weekSets === 1 ? "set" : "sets"} this week`
             : ""}
           {!readyAt && muscle.lastTrainedAt !== null
             ? ` · Last trained ${new Date(muscle.lastTrainedAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
@@ -181,11 +182,8 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const exercises = useQuery(api.strength.exercises, {});
   const routines = useQuery(api.routines.list, {});
   const routine = routines?.find((r) => r._id === routineId) ?? null;
-  // Sets logged this minute still count: the window ends at the next minute.
-  const weekly = useQuery(api.strength.weeklyMuscleSets, {
-    now: Math.ceil(now / 60_000) * 60_000,
-  });
-  const weekSets = new Map(weekly?.map((w) => [w.muscleId, w.sets]));
+  const volume = useWeeklyVolume();
+  const weekSets = new Map(volume?.muscles.map((m) => [m.id, m.current]));
   const { results, status, loadMore } = usePaginatedQuery(
     api.tracker.workoutHistory,
     {},
@@ -432,6 +430,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
         }}
       />
       <RecoveryReplay muscles={muscles} now={now} />
+      <VolumeCard onOpen={(id) => setDetailId(id as Id<"muscles">)} />
       <section>
         <SectionTitle
           title="Muscle recovery"

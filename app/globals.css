@@ -2505,6 +2505,14 @@ h1,
   gap: 2px;
   border-bottom: 1px solid var(--border);
 }
+.week-bars:not(.loading) {
+  background: linear-gradient(
+    to top,
+    transparent var(--band-lo),
+    var(--green-soft) var(--band-lo) var(--band-hi),
+    transparent var(--band-hi)
+  );
+}
 .week-bars.loading {
   border: 0;
   border-radius: 12px;
@@ -2539,6 +2547,7 @@ h1,
 }
 .week-axis {
   display: flex;
+  gap: 8px;
   justify-content: space-between;
   font-size: 10px;
   color: var(--muted);
@@ -3967,5 +3976,127 @@ h1,
   margin: 8px 0 0;
 }
 .drivers-note {
+  margin: 12px 0 0;
+}
+/* Weekly volume */
+.volume-summary {
+  margin: 0;
+}
+.volume-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+}
+.volume-key {
+  display: inline-block;
+  margin-left: 6px;
+}
+.volume-key:first-child {
+  margin-left: 0;
+}
+.volume-key.band {
+  width: 16px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--green-soft);
+  outline: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+}
+.volume-key.avg {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--text);
+}
+.volume-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.volume-list li > button,
+.volume-list li > .volume-head {
+  width: 100%;
+}
+.volume-list li > button {
+  display: block;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  width: calc(100% + 20px);
+  border-radius: 12px;
+  text-align: left;
+  color: inherit;
+}
+.volume-list li > button:hover {
+  background: var(--track);
+}
+.volume-list li > button:focus-visible {
+  outline: 2px solid var(--green);
+}
+.volume-head,
+.volume-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.volume-head {
+  font-size: 15px;
+}
+.volume-bar {
+  position: relative;
+  display: block;
+  height: 10px;
+  margin: 6px 0;
+  border-radius: 5px;
+  background: var(--track);
+}
+.volume-band {
+  position: absolute;
+  inset-block: 0;
+  background: var(--green-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green) 30%, transparent);
+}
+.volume-fill {
+  position: absolute;
+  inset-block: 2px;
+  left: 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--green);
+}
+.volume-list li.low .volume-fill,
+.volume-list li.high .volume-fill {
+  background: var(--amber);
+}
+.volume-avg {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--text);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.volume-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+.volume-status.on-track {
+  color: var(--green);
+}
+.volume-status.low,
+.volume-status.high {
+  color: var(--amber);
+}
+.volume-status.none {
+  color: var(--muted);
+}
+.volume-idle,
+.volume-empty {
   margin: 12px 0 0;
 }

@@ -23,11 +23,11 @@ export function repRange(name: string): StrengthTarget["range"] {
 
 // Sets within 10% of the top weight; lighter ones are warm-ups. Working
 // sets are normalised to the top weight.
-function workingSets(sets: StrengthSet[]): StrengthSet[] {
+export function workingSets<T extends StrengthSet>(sets: T[]): T[] {
   const topWeight = Math.max(...sets.map((set) => set.weightKg));
   return sets
     .filter((set) => set.weightKg >= topWeight * 0.9)
-    .map((set) => ({ reps: set.reps, weightKg: topWeight }));
+    .map((set) => ({ ...set, weightKg: topWeight }));
 }
 
 export function nextTarget(

@@ -52,6 +52,7 @@ import type * as shortcuts from "../shortcuts.js";
 import type * as strength from "../strength.js";
 import type * as tracker from "../tracker.js";
 import type * as validators from "../validators.js";
+import type * as volume from "../volume.js";
 import type * as weeklyReviewCron from "../weeklyReviewCron.js";
 import type * as weeklyReviewData from "../weeklyReviewData.js";
 
@@ -106,6 +107,7 @@ declare const fullApi: ApiFromModules<{
   strength: typeof strength;
   tracker: typeof tracker;
   validators: typeof validators;
+  volume: typeof volume;
   weeklyReviewCron: typeof weeklyReviewCron;
   weeklyReviewData: typeof weeklyReviewData;
 }>;
