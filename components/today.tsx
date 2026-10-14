@@ -6,6 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import { recovery } from "@/lib/recovery";
 import type { Macros } from "@/lib/nutrients";
 import { Progress, SectionTitle, ActionLink, useTask } from "./ui";
+import { InstallCard } from "./install";
 import type { Tab } from "./tracker";
 import { BodyModel, muscleKey } from "./body3d";
 import { DayRings, type Ring } from "./day-rings";
@@ -277,6 +278,7 @@ export function Today({
           </button>
         </div>
       </section>
+      <InstallCard />
       <p className="page-foot">
         <Leaf size={14} /> Logs follow the local day on your device.
       </p>

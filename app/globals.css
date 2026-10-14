@@ -4370,3 +4370,22 @@ h1,
 .lift-rest {
   margin: 10px 0 0;
 }
+/* Install */
+.install-steps {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  list-style: decimal;
+  display: grid;
+  gap: 6px;
+  font-size: 15px;
+}
+.install-steps svg {
+  display: inline;
+  vertical-align: -3px;
+}
+.install-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
