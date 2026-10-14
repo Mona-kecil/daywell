@@ -22,6 +22,7 @@ import {
 import { useId, useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
 import { HABIT_ICONS, lastDays, MAX_HABITS, NAME_MAX } from "@/lib/habits";
+import { DAY_MS, dayNumber, shiftDay } from "@/lib/history";
 import { dayKey } from "@/lib/insights";
 import { Burst, useCrossing } from "./celebrate";
 import { ActionLink, SectionTitle, Sheet, useTask } from "./ui";
@@ -60,6 +61,20 @@ function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
   const week = lastDays(today, 7);
   const toggle = useMutation(api.habits.toggle).withOptimisticUpdate(
     (store, { id, day }) => {
+      // The 12-week grid, if open, gets the same tick.
+      const history = store.getQuery(api.habits.history, { id, today });
+      if (history) {
+        const has = history.days.includes(day);
+        store.setQuery(
+          api.habits.history,
+          { id, today },
+          {
+            days: has
+              ? history.days.filter((d) => d !== day)
+              : [...history.days, day].sort(),
+          },
+        );
+      }
       const list = store.getQuery(api.habits.list, { today });
       const index = week.indexOf(day);
       if (!list || index < 0) return;
@@ -174,6 +189,7 @@ function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
         {daysHabit && (
           <HabitDays
             habit={daysHabit}
+            today={today}
             week={week}
             onToggle={(day) =>
               void run(() => toggle({ id: daysHabit.id, day }))
@@ -212,13 +228,115 @@ const dayName = (day: string, i: number) => {
   });
 };
 
+export const HEAT_WEEKS = 12;
+
+const weekdayOf = (day: string) =>
+  (new Date(dayNumber(day) * DAY_MS).getUTCDay() + 6) % 7;
+
+// Monday-first week columns covering the 12 weeks up to today; the days
+// before that range, or after today, are null.
+export function heatWeeks(today: string, done: Iterable<string>) {
+  const set = new Set(done);
+  const first = shiftDay(today, 1 - HEAT_WEEKS * 7);
+  const monday = shiftDay(first, -weekdayOf(first));
+  const columns = Math.floor((dayNumber(today) - dayNumber(monday)) / 7) + 1;
+  return Array.from({ length: columns }, (_, w) =>
+    Array.from({ length: 7 }, (_, d) => {
+      const day = shiftDay(monday, w * 7 + d);
+      return day < first || day > today ? null : { day, on: set.has(day) };
+    }),
+  );
+}
+
+const monthShort = (day: string) =>
+  new Date(dayNumber(day) * DAY_MS).toLocaleDateString([], {
+    month: "short",
+    timeZone: "UTC",
+  });
+
+function HabitHeat({ id, today }: { id: Habit["id"]; today: string }) {
+  const history = useQuery(api.habits.history, { id, today });
+  const weeks = heatWeeks(today, history?.days ?? []);
+  const count = history?.days.length ?? 0;
+  return (
+    <figure className="habit-heat">
+      <figcaption>
+        <span>Last {HEAT_WEEKS} weeks</span>
+        <span className="muted">
+          {history ? `${count} of ${HEAT_WEEKS * 7} days` : "Loading…"}
+        </span>
+      </figcaption>
+      <div
+        className="habit-heat-grid"
+        style={{
+          gridTemplateColumns: `14px repeat(${weeks.length}, minmax(0, 1fr))`,
+        }}
+        role="img"
+        aria-label={
+          history
+            ? `Done ${count} of the last ${HEAT_WEEKS * 7} days`
+            : "Loading the last 12 weeks"
+        }
+        aria-busy={!history}
+      >
+        <span aria-hidden />
+        {weeks.map((week, w) => {
+          // Name each month over the week it starts in, and the first
+          // column's month unless another starts right after it.
+          const starts = (i: number) =>
+            weeks[i]?.find((c) => c?.day.endsWith("-01"));
+          const label =
+            starts(w) ??
+            (w === 0 && !starts(1) && !starts(2)
+              ? week.find((c) => c)
+              : undefined);
+          return (
+            <span key={w} className="habit-heat-month" aria-hidden>
+              {label ? monthShort(label.day) : ""}
+            </span>
+          );
+        })}
+        {["M", "", "W", "", "F", "", ""].map((d, row) => (
+          <HeatRow key={row} label={d} row={row} weeks={weeks} />
+        ))}
+      </div>
+    </figure>
+  );
+}
+
+function HeatRow({
+  label,
+  row,
+  weeks,
+}: {
+  label: string;
+  row: number;
+  weeks: ReturnType<typeof heatWeeks>;
+}) {
+  return (
+    <>
+      <span className="habit-heat-day" aria-hidden>
+        {label}
+      </span>
+      {weeks.map((week, w) => {
+        const cell = week[row];
+        return (
+          <i key={w} className={cell ? (cell.on ? "on" : undefined) : "off"} />
+        );
+      })}
+    </>
+  );
+}
+
 // The last week, newest first, for ticking off a day that was missed.
 function HabitDays({
   habit,
+  today,
   week,
   onToggle,
 }: {
   habit: Habit;
+  today: string;
   week: string[];
   onToggle: (day: string) => void;
 }) {
@@ -246,6 +364,7 @@ function HabitDays({
           </li>
         ))}
       </ul>
+      <HabitHeat id={habit.id} today={today} />
     </>
   );
 }

@@ -9,16 +9,19 @@ import {
   within,
 } from "@testing-library/react";
 import { getFunctionName } from "convex/server";
-import { HabitsCard, streakLabel } from "../components/habits";
+import { HabitsCard, heatWeeks, streakLabel } from "../components/habits";
 
 type Call = [string, unknown];
+type Ref = Parameters<typeof getFunctionName>[0];
 const state = vi.hoisted(() => ({
   habits: undefined as unknown,
+  history: undefined as unknown,
   calls: [] as [string, unknown][],
   updater: null as null | ((store: unknown, args: unknown) => void),
 }));
 vi.mock("convex/react", () => ({
-  useQuery: () => state.habits,
+  useQuery: (ref: Parameters<typeof getFunctionName>[0]) =>
+    getFunctionName(ref) === "habits:history" ? state.history : state.habits,
   useMutation: (ref: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(ref);
     const fn = (args: unknown) => {
@@ -64,6 +67,7 @@ const read = habit("Read", { icon: "book", streak: 2, best: 2 });
 
 beforeEach(() => {
   state.habits = undefined;
+  state.history = undefined;
   state.calls = [];
   state.updater = null;
 });
@@ -134,7 +138,8 @@ describe("habits card", () => {
     render(<HabitsCard now={now} />);
     let list = [vitamins, read];
     const store = {
-      getQuery: (_: unknown, args: unknown) => {
+      getQuery: (ref: Ref, args: unknown) => {
+        if (getFunctionName(ref) === "habits:history") return undefined;
         expect(args).toEqual({ today: "2026-10-15" });
         return list;
       },
@@ -191,7 +196,8 @@ describe("habits card", () => {
     render(<HabitsCard now={now} />);
     let list = [vitamins, read];
     const store = {
-      getQuery: (_: unknown, args: unknown) => {
+      getQuery: (ref: Ref, args: unknown) => {
+        if (getFunctionName(ref) === "habits:history") return undefined;
         // The card's own query, whichever day is ticked.
         expect(args).toEqual({ today: "2026-10-15" });
         return list;
@@ -217,6 +223,56 @@ describe("habits card", () => {
     const before = list;
     state.updater!(store, { id: "Read", day: "2026-10-01" });
     expect(list).toBe(before);
+  });
+
+  it("shows the last 12 weeks under the days", () => {
+    state.habits = [vitamins];
+    render(<HabitsCard now={now} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Vitamins: done/ }));
+    const sheet = screen.getByRole("dialog", { name: "Vitamins" });
+    expect(within(sheet).getByText("Loading…")).toBeTruthy();
+    expect(
+      within(sheet).getByRole("img", { name: "Loading the last 12 weeks" }),
+    ).toBeTruthy();
+    cleanup();
+
+    state.history = { days: ["2026-07-24", "2026-09-01", "2026-10-15"] };
+    render(<HabitsCard now={now} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Vitamins: done/ }));
+    const grid = within(
+      screen.getByRole("dialog", { name: "Vitamins" }),
+    ).getByRole("img", { name: "Done 3 of the last 84 days" });
+    expect(screen.getByText("3 of 84 days")).toBeTruthy();
+    expect(grid.querySelectorAll("i")).toHaveLength(13 * 7);
+    expect(grid.querySelectorAll("i.on")).toHaveLength(3);
+    expect(grid.querySelectorAll("i.off")).toHaveLength(13 * 7 - 84);
+    // July would crowd August, which starts in the second column.
+    expect(
+      [...grid.querySelectorAll(".habit-heat-month")]
+        .map((m) => m.textContent)
+        .filter(Boolean),
+    ).toEqual(["Aug", "Sep", "Oct"]);
+  });
+
+  it("ticks the 12 weeks along with the day", () => {
+    state.habits = [read];
+    render(<HabitsCard now={now} />);
+    let history = { days: ["2026-10-01", "2026-10-14"] };
+    const store = {
+      getQuery: (ref: Ref, args: unknown) => {
+        if (getFunctionName(ref) !== "habits:history") return [read];
+        expect(args).toEqual({ id: "Read", today: "2026-10-15" });
+        return history;
+      },
+      setQuery: (ref: Ref, _: unknown, next: unknown) => {
+        if (getFunctionName(ref) === "habits:history")
+          history = next as typeof history;
+      },
+    };
+    state.updater!(store, { id: "Read", day: "2026-10-10" });
+    expect(history.days).toEqual(["2026-10-01", "2026-10-10", "2026-10-14"]);
+    state.updater!(store, { id: "Read", day: "2026-10-14" });
+    expect(history.days).toEqual(["2026-10-01", "2026-10-10"]);
   });
 
   it("celebrates finishing the day, not loading a finished one", () => {
@@ -312,5 +368,38 @@ describe("streak label", () => {
     expect(streakLabel({ streak: 4, best: 9, doneToday: true })).toBe(
       "4 days in a row · best 9",
     );
+  });
+});
+
+describe("12-week grid", () => {
+  it("covers exactly 84 days in Monday-first weeks", () => {
+    // Thursday: a partial first and last week, so 13 columns.
+    const weeks = heatWeeks("2026-10-15", ["2026-07-24", "2026-07-23"]);
+    expect(weeks).toHaveLength(13);
+    expect(weeks.flat().filter(Boolean)).toHaveLength(84);
+    expect(weeks[0].map((c) => c?.day ?? null)).toEqual([
+      null,
+      null,
+      null,
+      null,
+      "2026-07-24",
+      "2026-07-25",
+      "2026-07-26",
+    ]);
+    expect(weeks[0][4]?.on).toBe(true);
+    expect(weeks.at(-1)!.map((c) => c?.day ?? null)).toEqual([
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14",
+      "2026-10-15",
+      null,
+      null,
+      null,
+    ]);
+    // Sunday: twelve whole weeks.
+    const sunday = heatWeeks("2026-10-18", []);
+    expect(sunday).toHaveLength(12);
+    expect(sunday.flat().every(Boolean)).toBe(true);
+    expect(sunday[0][0]?.day).toBe("2026-07-27");
   });
 });

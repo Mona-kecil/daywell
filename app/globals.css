@@ -5273,6 +5273,50 @@ h1,
   border-radius: 50%;
   border: 2px solid var(--border);
 }
+.habit-heat {
+  margin: 20px 0 0;
+}
+.habit-heat figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.habit-heat figcaption .muted {
+  font-weight: 400;
+}
+.habit-heat-grid {
+  display: grid;
+  gap: 4px;
+  max-width: 340px;
+}
+.habit-heat-grid i {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--border);
+}
+.habit-heat-grid i.on {
+  background: var(--green);
+}
+.habit-heat-grid i.off {
+  background: none;
+}
+.habit-heat-month,
+.habit-heat-day {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+  align-self: end;
+}
+.habit-heat-day {
+  align-self: center;
+}
+.habit-heat-grid[aria-busy="true"] i {
+  opacity: 0.5;
+}
 .habit-days button[aria-pressed="true"] .habit-day-mark {
   background: var(--green);
   border-color: var(--green);
