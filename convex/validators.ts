@@ -1,4 +1,7 @@
 import { v } from "convex/values";
+import { HABIT_ICONS } from "../lib/habits";
+
+export const habitIcon = v.union(...HABIT_ICONS.map((icon) => v.literal(icon)));
 export const macros = v.object({
   kcal: v.number(),
   protein: v.number(),
