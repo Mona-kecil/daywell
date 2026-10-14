@@ -297,6 +297,20 @@ describe("shortcut HTTP actions", () => {
     },
   );
 
+  it("returns an uncached 500 when the request fails unexpectedly", async () => {
+    const { t } = setup();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(crypto.subtle, "digest").mockRejectedValueOnce(new Error("boom"));
+    const response = await t.fetch("/shortcuts/today", {
+      headers: auth(`dw_${"a".repeat(43)}`),
+    });
+    expect(response.status).toBe(500);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      error: "Something went wrong. Try again.",
+    });
+  });
+
   it.each([
     ["/shortcuts/water", "GET", "POST"],
     ["/shortcuts/water", "PUT", "POST"],

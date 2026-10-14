@@ -59,16 +59,25 @@ for (const route of [
         { error: "Request body is too large." },
         { status: 413, headers: noStoreHeaders },
       );
-    const result = await ctx.runMutation(internal.shortcuts.request, {
-      hash: await hashToken(token),
-      kind: route.kind,
-      body,
-      timeZone: new URL(request.url).searchParams.get("timeZone") ?? undefined,
-    });
-    return Response.json(result.body, {
-      status: result.status,
-      headers: noStoreHeaders,
-    });
+    try {
+      const result = await ctx.runMutation(internal.shortcuts.request, {
+        hash: await hashToken(token),
+        kind: route.kind,
+        body,
+        timeZone:
+          new URL(request.url).searchParams.get("timeZone") ?? undefined,
+      });
+      return Response.json(result.body, {
+        status: result.status,
+        headers: noStoreHeaders,
+      });
+    } catch (error) {
+      console.error("Shortcuts request failed", error);
+      return Response.json(
+        { error: "Something went wrong. Try again." },
+        { status: 500, headers: noStoreHeaders },
+      );
+    }
   });
   for (const method of ROUTABLE_HTTP_METHODS)
     http.route({ path: route.path, method, handler });

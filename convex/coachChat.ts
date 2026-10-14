@@ -53,6 +53,16 @@ export const list = query({
   },
 });
 
+// The server's clock, so the client can judge stalled replies the same way
+// the server does even before it has sent anything.
+export const clock = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireUser(ctx);
+    return Date.now();
+  },
+});
+
 export const send = mutation({
   args: { text: v.string(), timeZone: v.string() },
   handler: async (ctx, args): Promise<Id<"coachMessages">> => {

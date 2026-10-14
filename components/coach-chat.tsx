@@ -31,6 +31,7 @@ export function CoachChatSheet({
 function CoachChat() {
   const messages = useQuery(api.coachChat.list, {});
   const send = useMutation(api.coachChat.send);
+  const clock = useMutation(api.coachChat.clock);
   const clear = useMutation(api.coachChat.clear);
   const { run, pending } = useTask();
   const [text, setText] = useState("");
@@ -47,6 +48,12 @@ function CoachChat() {
     setSkew(mine.at - sent.clientAt);
     setSent(null);
   }
+  useEffect(() => {
+    const start = Date.now();
+    void clock({})
+      .then((server) => setSkew(server - (start + Date.now()) / 2))
+      .catch(() => {});
+  }, [clock]);
   const now = useClock() + skew;
   const stalled = (m: { status: string; at: number }) =>
     m.status === "pending" && now - m.at >= COACH_PENDING_MS;

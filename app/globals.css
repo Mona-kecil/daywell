@@ -3354,6 +3354,10 @@ h1,
 .quick-log-bar svg:first-child {
   color: var(--green);
 }
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
 .quick-log-compose textarea {
   width: 100%;
   min-height: 96px;
@@ -3444,7 +3448,7 @@ h1,
   width: 100%;
   resize: none;
   field-sizing: content;
-  min-height: 40px;
+  min-height: 44px;
   padding: 6px 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -3455,7 +3459,7 @@ h1,
 }
 .proposal-amount input {
   width: 92px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 6px 10px;
   border-radius: 10px;
   border: 1px solid var(--border);

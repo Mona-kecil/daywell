@@ -2,15 +2,20 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { getFunctionName } from "convex/server";
 import { CoachChatSheet } from "../components/coach-chat";
 import { FeedbackProvider } from "../components/ui";
 
 const mocks = vi.hoisted(() => ({
   mutation: vi.fn<(args: unknown) => Promise<null>>(async () => null),
+  clock: vi.fn<(args: unknown) => Promise<number>>(async () => Date.now()),
   messages: [] as unknown[],
 }));
 vi.mock("convex/react", () => ({
-  useMutation: () => mocks.mutation,
+  useMutation: (ref: unknown) =>
+    getFunctionName(ref as never) === "coachChat:clock"
+      ? mocks.clock
+      : mocks.mutation,
   useQuery: () => mocks.messages,
 }));
 
@@ -112,6 +117,19 @@ describe("coach chat", () => {
       </FeedbackProvider>,
     );
     expect(screen.getByText("Coach is typing")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("uses the server clock for a reply that was pending before opening", async () => {
+    // This device runs 10 minutes ahead; the server says it's `at` now.
+    vi.spyOn(Date, "now").mockReturnValue(at + 10 * 60_000);
+    mocks.clock.mockResolvedValueOnce(at);
+    mocks.messages = [
+      { _id: "u", role: "user", text: "Hi", at, status: "done" },
+      { _id: "a", role: "assistant", text: "", at, status: "pending" },
+    ];
+    open();
+    expect(await screen.findByText("Coach is typing")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
