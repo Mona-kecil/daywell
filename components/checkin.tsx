@@ -18,14 +18,14 @@ import { SectionTitle, useTask } from "./ui";
 type CheckIn = NonNullable<FunctionReturnType<typeof api.checkins.get>>;
 type Scale = "mood" | "energy";
 
-const MOODS = [
+export const MOODS = [
   { Icon: Frown, label: "Awful" },
   { Icon: Annoyed, label: "Low" },
   { Icon: Meh, label: "Okay" },
   { Icon: Smile, label: "Good" },
   { Icon: Laugh, label: "Great" },
 ];
-const ENERGY = ["Drained", "Tired", "Steady", "Lively", "Charged"];
+export const ENERGY = ["Drained", "Tired", "Steady", "Lively", "Charged"];
 
 export function CheckInCard({ now }: { now: number }) {
   const day = dayKey(new Date(now));

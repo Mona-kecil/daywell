@@ -4655,3 +4655,75 @@ h1,
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
+/* Year in pixels */
+.pixels-metric {
+  margin-top: 12px;
+}
+.pixels-metric button {
+  min-height: 44px;
+}
+.pixels-readout {
+  margin: 12px 0 8px;
+}
+.pixels-card > svg {
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+.pixels-card > svg:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+.pix-0 {
+  fill: transparent;
+  stroke: var(--border);
+  stroke-width: 1;
+  border: 1px solid var(--border);
+}
+.pix-1 {
+  fill: color-mix(in srgb, var(--blue) 28%, var(--surface));
+  background: color-mix(in srgb, var(--blue) 28%, var(--surface));
+}
+.pix-2 {
+  fill: color-mix(in srgb, var(--blue) 46%, var(--surface));
+  background: color-mix(in srgb, var(--blue) 46%, var(--surface));
+}
+.pix-3 {
+  fill: color-mix(in srgb, var(--blue) 64%, var(--surface));
+  background: color-mix(in srgb, var(--blue) 64%, var(--surface));
+}
+.pix-4 {
+  fill: color-mix(in srgb, var(--blue) 82%, var(--surface));
+  background: color-mix(in srgb, var(--blue) 82%, var(--surface));
+}
+.pix-5 {
+  fill: var(--blue);
+  background: var(--blue);
+}
+.pixel.today {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+.pixel.active {
+  stroke: var(--amber);
+  stroke-width: 2;
+}
+.pixels-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pixels-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pixels-legend i {
+  width: 10px;
+  height: 12px;
+  border-radius: 2px;
+}

@@ -36,6 +36,7 @@ import { SectionTitle } from "./ui";
 import { LineChart } from "./line-chart";
 import { ConsistencyCalendar } from "./consistency";
 import { DriversCard } from "./drivers";
+import { YearPixels } from "./pixels";
 import { EatingWindowCard } from "./eating";
 import { Achievements, WeeklyReview } from "./review";
 import {
@@ -73,7 +74,12 @@ export function Insights({ now }: { now: number }) {
         data={data}
         period={period}
         checkins={checkins}
-        patterns={<DriversCard />}
+        patterns={
+          <>
+            <DriversCard />
+            <YearPixels now={now} />
+          </>
+        }
       >
         <WeeklyReview now={now} />
       </InsightsView>
