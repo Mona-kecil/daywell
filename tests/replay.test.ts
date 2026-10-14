@@ -25,18 +25,35 @@ describe("recovery replay", () => {
       { trainedAt: now - 2 * HOUR, muscleIds: ["back"] },
     ];
     const muscles = [back, abs, calves];
-    const before = statesAt(muscles, workouts, now - 64 * HOUR);
+    const before = statesAt(muscles, workouts, now - 64 * HOUR, true);
     expect(before.get("back")).toMatchObject({
       kind: "recovering",
       fraction: 0.5,
     });
     expect(before.get("abs")).toMatchObject({ kind: "ready" });
     expect(before.get("calves")).toMatchObject({ kind: "never" });
-    const later = statesAt(muscles, workouts, now - 20 * HOUR);
+    const later = statesAt(muscles, workouts, now - 20 * HOUR, true);
     expect(later.get("back")).toMatchObject({ kind: "ready" });
-    expect(statesAt(muscles, workouts, now).get("back")).toMatchObject({
+    expect(statesAt(muscles, workouts, now, true).get("back")).toMatchObject({
       kind: "recovering",
     });
+  });
+
+  it("shows a muscle as never trained before its first session", () => {
+    const legs = {
+      _id: "legs",
+      lastTrainedAt: now - 5 * HOUR,
+      cooldownHours: 48,
+    };
+    const workouts = [{ trainedAt: now - 5 * HOUR, muscleIds: ["legs"] }];
+    // Every workout is loaded, so nothing came before this one.
+    expect(
+      statesAt([legs], workouts, now - 10 * HOUR, false).get("legs"),
+    ).toMatchObject({ kind: "never" });
+    // Older workouts went unread, so a muscle trained then was rested.
+    expect(
+      statesAt([legs], workouts, now - 10 * HOUR, true).get("legs"),
+    ).toMatchObject({ kind: "ready" });
   });
 
   it("finds the latest session inside the window", () => {

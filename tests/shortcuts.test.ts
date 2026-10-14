@@ -311,6 +311,27 @@ describe("shortcut HTTP actions", () => {
     });
   });
 
+  it("returns an uncached 500 when the request body cannot be read", async () => {
+    const { t } = setup();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const body = new ReadableStream({
+      pull(controller) {
+        controller.error(new Error("connection reset"));
+      },
+    });
+    const response = await t.fetch("/shortcuts/water", {
+      method: "POST",
+      headers: auth(`dw_${"a".repeat(43)}`),
+      body,
+      duplex: "half",
+    } as RequestInit);
+    expect(response.status).toBe(500);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      error: "Something went wrong. Try again.",
+    });
+  });
+
   it.each([
     ["/shortcuts/water", "GET", "POST"],
     ["/shortcuts/water", "PUT", "POST"],

@@ -90,8 +90,10 @@ describe("coach chat", () => {
       { _id: "a", role: "assistant", text: "", at, status: "pending" },
     ];
     open();
+    expect((await screen.findByRole("alert")).textContent).toMatch(
+      /took too long/,
+    );
     expect(screen.queryByText("Coach is typing")).toBeNull();
-    expect(screen.getByRole("alert").textContent).toMatch(/took too long/);
     await userEvent.type(
       screen.getByLabelText("Your question"),
       "Again{Enter}",
@@ -131,6 +133,30 @@ describe("coach chat", () => {
     open();
     expect(await screen.findByText("Coach is typing")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("waits for the server clock before calling a pending reply stalled", () => {
+    // This device runs 10 minutes ahead and the clock request is in flight.
+    vi.spyOn(Date, "now").mockReturnValue(at + 10 * 60_000);
+    mocks.clock.mockReturnValueOnce(new Promise(() => {}));
+    mocks.messages = [
+      { _id: "u", role: "user", text: "Hi", at, status: "done" },
+      { _id: "a", role: "assistant", text: "", at, status: "pending" },
+    ];
+    open();
+    expect(screen.getByText("Coach is typing")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("falls back to the device clock when the clock request fails", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(at + 10 * 60_000);
+    mocks.clock.mockRejectedValueOnce(new Error("offline"));
+    mocks.messages = [
+      { _id: "u", role: "user", text: "Hi", at, status: "done" },
+      { _id: "a", role: "assistant", text: "", at, status: "pending" },
+    ];
+    open();
+    expect(await screen.findByRole("alert")).toBeTruthy();
   });
 
   it("shows a failed answer's reason", () => {

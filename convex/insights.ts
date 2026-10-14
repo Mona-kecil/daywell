@@ -38,12 +38,22 @@ export const range = query({
       ctx.db
         .query("workouts")
         .withIndex("by_user_time", (q) =>
-          q.eq("userId", userId).gte("trainedAt", startMs).lt("trainedAt", endMs),
+          q
+            .eq("userId", userId)
+            .gte("trainedAt", startMs)
+            .lt("trainedAt", endMs),
         )
         .collect(),
     ]);
+    const earlier = await ctx.db
+      .query("workouts")
+      .withIndex("by_user_time", (q) =>
+        q.eq("userId", userId).lt("trainedAt", startMs),
+      )
+      .first();
     return {
       waterGoal: settings?.waterGoal ?? 2500,
+      trainedBefore: earlier !== null,
       muscles: muscles.map((m) => ({ _id: m._id, name: m.name })),
       water: water.map((w) => ({ at: w.at, amountMl: w.amountMl })),
       meals: meals

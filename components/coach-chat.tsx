@@ -42,7 +42,8 @@ function CoachChat() {
   const [sent, setSent] = useState<{ id: string; clientAt: number } | null>(
     null,
   );
-  const [skew, setSkew] = useState(0);
+  // Unknown until the server clock answers; no reply looks stalled before.
+  const [skew, setSkew] = useState<number | null>(null);
   const mine = sent && messages?.find((m) => m._id === sent.id);
   if (sent && mine) {
     setSkew(mine.at - sent.clientAt);
@@ -52,11 +53,11 @@ function CoachChat() {
     const start = Date.now();
     void clock({})
       .then((server) => setSkew(server - (start + Date.now()) / 2))
-      .catch(() => {});
+      .catch(() => setSkew((s) => s ?? 0));
   }, [clock]);
-  const now = useClock() + skew;
+  const now = useClock() + (skew ?? 0);
   const stalled = (m: { status: string; at: number }) =>
-    m.status === "pending" && now - m.at >= COACH_PENDING_MS;
+    skew !== null && m.status === "pending" && now - m.at >= COACH_PENDING_MS;
   const answering =
     messages?.some((m) => m.status === "pending" && !stalled(m)) ?? false;
   const busy = pending || answering;

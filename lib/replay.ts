@@ -20,12 +20,13 @@ export function replayWindow(now: number, muscles: ReplayMuscle[]) {
 }
 
 // Each muscle's recovery as it stood at `at`. Workouts must cover the read
-// window. A muscle with no session in it but trained some time before was
-// already rested by the window start.
+// window. A muscle with no session in it was rested by then if it was trained
+// before the window, and untrained if nothing came before the window.
 export function statesAt<M extends ReplayMuscle>(
   muscles: M[],
   workouts: ReplayWorkout[],
   at: number,
+  trainedBefore: boolean,
 ): Map<M["_id"], Recovery> {
   const last = new Map<string, number>();
   for (const w of workouts) {
@@ -40,7 +41,7 @@ export function statesAt<M extends ReplayMuscle>(
         return [m._id, recovery(at, trained, m.cooldownHours)];
       return [
         m._id,
-        m.lastTrainedAt === null
+        m.lastTrainedAt === null || !trainedBefore
           ? recovery(at, null, m.cooldownHours)
           : { kind: "ready", fraction: 1, label: "Ready" },
       ];

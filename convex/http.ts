@@ -53,13 +53,13 @@ for (const route of [
         { error: "Invalid or missing token." },
         { status: 401, headers: noStoreHeaders },
       );
-    const body = route.method === "POST" ? await readBody(request) : "";
-    if (body === null)
-      return Response.json(
-        { error: "Request body is too large." },
-        { status: 413, headers: noStoreHeaders },
-      );
     try {
+      const body = route.method === "POST" ? await readBody(request) : "";
+      if (body === null)
+        return Response.json(
+          { error: "Request body is too large." },
+          { status: 413, headers: noStoreHeaders },
+        );
       const result = await ctx.runMutation(internal.shortcuts.request, {
         hash: await hashToken(token),
         kind: route.kind,
