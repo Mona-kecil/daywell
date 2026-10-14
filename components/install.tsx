@@ -110,10 +110,14 @@ export function InstallCard() {
               // The event can only be used once, so a second tap while the
               // browser dialog opens does nothing.
               deferred = null;
-              await event.prompt();
-              const { outcome } = await event.userChoice;
-              if (outcome === "dismissed") dismiss();
-              else emit();
+              try {
+                await event.prompt();
+                const { outcome } = await event.userChoice;
+                if (outcome === "dismissed") return dismiss();
+              } catch {
+                // A refused prompt is spent too; Chrome may offer a new one.
+              }
+              emit();
             }}
           >
             Install Daywell

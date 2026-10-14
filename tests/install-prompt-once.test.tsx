@@ -56,4 +56,30 @@ describe("install card", () => {
 
     expect(prompt).toHaveBeenCalledTimes(1);
   });
+
+  it("drops the spent prompt when the browser rejects it", async () => {
+    const event = Object.assign(
+      new Event("beforeinstallprompt", { cancelable: true }),
+      {
+        prompt: vi.fn(() => Promise.reject(new Error("already shown"))),
+        userChoice: new Promise<{ outcome: "accepted" | "dismissed" }>(
+          () => {},
+        ),
+      },
+    );
+    act(() => window.dispatchEvent(event));
+    render(<InstallCard />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Install Daywell" }));
+    });
+
+    // A rejected prompt can't be shown again, so the button goes away
+    // instead of doing nothing on the next tap.
+    expect(
+      screen.queryByRole("button", { name: "Install Daywell" }),
+    ).toBeNull();
+    // Not a dismissal: the browser may offer a fresh prompt later.
+    expect(localStorage.getItem("daywell.installDismissed")).toBeNull();
+  });
 });
