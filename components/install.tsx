@@ -33,7 +33,7 @@ if (typeof window !== "undefined") {
 export function installMode(): InstallMode {
   if (
     installed ||
-    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia?.("(display-mode: standalone)").matches ||
     ("standalone" in navigator && navigator.standalone === true)
   )
     return "installed";
