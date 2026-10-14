@@ -244,3 +244,66 @@ it("authenticates, isolates users, validates clocks, and rejects capped history"
     "History exceeds review limits.",
   );
 });
+
+it.each([7, 30])(
+  "earns a %i-day habit badge from one run and records when backfilled logs complete it",
+  (target) => {
+    const habitLogs = Array.from({ length: target + 1 }, (_, i) => ({
+      habitId: "a",
+      day: shiftDay("2026-09-01", i),
+      _creationTime: i === 2 ? 100 : i + 1,
+    }));
+    expect(
+      achievement(`habit-streak-${target}`, {
+        habitLogs: habitLogs.slice(0, target - 1),
+      }),
+    ).toMatchObject({
+      earnedAt: null,
+      progress: { value: target - 1, target },
+    });
+    expect(
+      achievement(`habit-streak-${target}`, {
+        habitLogs: [...habitLogs].reverse(),
+      }),
+    ).toMatchObject({
+      title: target === 7 ? "Habit week" : "Habit month",
+      detail: `Keep one habit going ${target} days in a row.`,
+      earnedAt: 100,
+      progress: { value: target, target },
+    });
+  },
+);
+
+it("keeps habit runs separate, deduplicates days, stops at gaps and ignores future dates and timestamps", () => {
+  const habitLogs = Array.from({ length: 6 }, (_, i) => ({
+    habitId: "a",
+    day: shiftDay("2026-10-01", i),
+    _creationTime: i + 1,
+  }));
+  expect(
+    achievement("habit-streak-7", {
+      habitLogs: [
+        ...habitLogs,
+        { ...habitLogs[0], _creationTime: 100 },
+        { habitId: "b", day: "2026-10-07", _creationTime: 7 },
+        { habitId: "a", day: "2026-10-08", _creationTime: 8 },
+        { habitId: "a", day: "2026-10-07", _creationTime: now + 1 },
+        { habitId: "a", day: "2026-11-01", _creationTime: 9 },
+      ],
+    }),
+  ).toMatchObject({ earnedAt: null, progress: { value: 6, target: 7 } });
+  const later = Array.from({ length: 7 }, (_, i) => ({
+    habitId: "b",
+    day: shiftDay("2026-10-10", i),
+    _creationTime: i + 10,
+  }));
+  expect(
+    achievement("habit-streak-7", {
+      habitLogs: [
+        ...habitLogs,
+        { habitId: "a", day: "2026-10-07", _creationTime: 200 },
+        ...later,
+      ],
+    }),
+  ).toMatchObject({ earnedAt: 16, progress: { value: 7, target: 7 } });
+});

@@ -40,7 +40,20 @@ export function weeklySummary(input: HistoryInput) {
     ...checkins.map((c) => c.day),
   ]);
   const avgWaterMl = water.reduce((sum, w) => sum + w.amountMl, 0) / 7;
+  const activeHabits = (data.habits ?? []).filter(
+    (habit) => habit.archivedAt === undefined && habit.createdAt <= data.now,
+  );
+  const activeIds = new Set(activeHabits.map((habit) => habit._id));
+  const habitsDone = (data.habitLogs ?? []).filter(
+    (log) => activeIds.has(log.habitId) && log.day >= fromDay,
+  ).length;
+  const habitsPossible = activeHabits.reduce((sum, habit) => {
+    const createdDay = localClock(habit.createdAt, data.timeZone).localDay;
+    const firstDay = createdDay > fromDay ? createdDay : fromDay;
+    return sum + dayNumber(toDay) - dayNumber(firstDay) + 1;
+  }, 0);
   return {
+    ...(data.habits === undefined ? {} : { habitsDone, habitsPossible }),
     fromDay,
     toDay,
     isoWeek: isoWeek(toDay),
@@ -66,8 +79,12 @@ export function weeklyReviewText(summary: WeeklySummary) {
     summary.avgSleepHours === null
       ? "Sleep not logged"
       : `Sleep ${summary.avgSleepHours.toFixed(1)} h avg`;
+  const habits =
+    summary.habitsPossible !== undefined && summary.habitsPossible > 0
+      ? ` Habits ${summary.habitsDone}/${summary.habitsPossible} done.`
+      : "";
   return {
     title: "Your weekly review",
-    body: `${count(summary.workouts, "workout")} · ${count(summary.totalSets, "set")} · ${count(summary.newPRs, "new PR")}. ${sleep}. Water ${Math.round(summary.avgWaterMl)} / ${summary.waterGoalMl} ml avg (${Math.round(summary.waterGoalPercent)}%). Logged ${summary.daysLogged}/7 days.`,
+    body: `${count(summary.workouts, "workout")} · ${count(summary.totalSets, "set")} · ${count(summary.newPRs, "new PR")}. ${sleep}. Water ${Math.round(summary.avgWaterMl)} / ${summary.waterGoalMl} ml avg (${Math.round(summary.waterGoalPercent)}%). Logged ${summary.daysLogged}/7 days.${habits}`,
   };
 }
