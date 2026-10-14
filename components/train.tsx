@@ -20,6 +20,7 @@ import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
 import { RecoveryForecast } from "./forecast";
 import { RecoveryReplay } from "./replay";
 import { IntervalCard } from "./intervals";
+import { StretchCard } from "./stretch";
 import { useWeeklyVolume, VolumeCard } from "./volume";
 import { WeekPlanCard } from "./week-plan";
 import { LiftTrendsCard } from "./lift-trends";
@@ -511,6 +512,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
         />
       </section>
       <IntervalCard />
+      <StretchCard muscles={muscles} now={now} />
       <RecoveryForecast muscles={muscles} now={now} onPlan={pick} />
       <RecoveryReplay muscles={muscles} now={now} />
       <VolumeCard onOpen={(id) => setDetailId(id as Id<"muscles">)} />

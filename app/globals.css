@@ -4939,7 +4939,7 @@ h1,
   margin-top: 12px;
 }
 .rep-basis button {
-  min-height: 38px;
+  min-height: 44px;
 }
 .rep-rows {
   list-style: none;
@@ -5305,4 +5305,65 @@ h1,
 .habit-form-actions .danger {
   margin-right: auto;
   color: var(--amber);
+}
+
+/* Cool-down stretches */
+.stretch-muscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.stretch-muscles .chip {
+  min-height: 44px;
+  padding-inline: 14px;
+}
+.stretch-length {
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stretch-length .segmented button {
+  min-height: 44px;
+  padding: 0 12px;
+}
+.stretch-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+}
+.stretch-start:disabled {
+  opacity: 0.5;
+}
+.stretch-run .interval-face {
+  gap: 8px;
+}
+.stretch-name {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+}
+.stretch-run .stretch-side {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tone);
+}
+.stretch-dial {
+  width: min(52vw, 220px);
+}
+.stretch-dial .interval-clock {
+  font-size: clamp(56px, 18vw, 84px);
+}
+.stretch-run .stretch-cue {
+  max-width: 32ch;
+  font-size: 16px;
+  line-height: 1.4;
+}
+@media (max-height: 640px) {
+  .stretch-dial {
+    width: min(40vw, 160px);
+  }
 }

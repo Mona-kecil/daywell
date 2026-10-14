@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderToStaticMarkup } from "react-dom/server";
 import { resolve } from "node:path";
@@ -188,7 +188,9 @@ describe("screen actions", () => {
       </FeedbackProvider>,
     );
     await userEvent.click(
-      screen.getByRole("button", {
+      within(
+        screen.getByRole("group", { name: "What did you train?" }),
+      ).getByRole("button", {
         name: overview.muscles[1].name,
         pressed: false,
       }),
