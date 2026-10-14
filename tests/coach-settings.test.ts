@@ -16,6 +16,7 @@ describe("coach settings", () => {
       waterGoal: 3000,
       kcalTarget: null,
       proteinTarget: null,
+      goalWeightKg: null,
       timeZone: null,
       checkIns: ["10:00", "13:00", "16:00", "19:30"],
       remindersEnabled: false,

@@ -7,6 +7,7 @@ const optionalNumber = v.optional(v.union(v.number(), v.null()));
 export const checkinFields = {
   day: v.string(),
   weightKg: optionalNumber,
+  waistCm: optionalNumber,
   sleepHours: optionalNumber,
   mood: optionalNumber,
   energy: optionalNumber,
@@ -22,6 +23,7 @@ export async function upsertCheckin(
   validLocalDay(args.day);
   for (const [name, value, min, max, integer] of [
     ["Weight", args.weightKg, 20, 400, false],
+    ["Waist", args.waistCm, 40, 200, false],
     ["Sleep", args.sleepHours, 0, 24, false],
     ["Mood", args.mood, 1, 5, true],
     ["Energy", args.energy, 1, 5, true],
@@ -42,10 +44,11 @@ export async function upsertCheckin(
   const fields: Partial<
     Pick<
       Doc<"bodyCheckins">,
-      "weightKg" | "sleepHours" | "mood" | "energy" | "note"
+      "weightKg" | "waistCm" | "sleepHours" | "mood" | "energy" | "note"
     >
   > = {};
   if (args.weightKg !== undefined) fields.weightKg = args.weightKg ?? undefined;
+  if (args.waistCm !== undefined) fields.waistCm = args.waistCm ?? undefined;
   if (args.sleepHours !== undefined)
     fields.sleepHours = args.sleepHours ?? undefined;
   if (args.mood !== undefined) fields.mood = args.mood ?? undefined;

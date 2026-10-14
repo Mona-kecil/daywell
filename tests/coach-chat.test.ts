@@ -338,7 +338,14 @@ describe("coach chat", () => {
       expect(source.input.snapshot.last7Days.fromDay).toBe("2026-10-09");
       expect(source.input.snapshot.latestCheckin).toEqual(
         included
-          ? { day, weightKg: 70, sleepHours: null, mood: null, energy: null }
+          ? {
+              day,
+              weightKg: 70,
+              waistCm: null,
+              sleepHours: null,
+              mood: null,
+              energy: null,
+            }
           : null,
       );
       await t.finishAllScheduledFunctions(() => vi.runAllTimers());
@@ -367,6 +374,7 @@ describe("coach chat", () => {
         userId: "alice",
         day: "2026-10-14",
         weightKg: 70,
+        waistCm: 82.25,
         sleepHours: 7,
         mood: 3,
         energy: 4,
@@ -392,6 +400,7 @@ describe("coach chat", () => {
     expect(source.input.snapshot.latestCheckin).toEqual({
       day: "2026-10-14",
       weightKg: 70,
+      waistCm: 82.25,
       sleepHours: 7,
       mood: 3,
       energy: 4,

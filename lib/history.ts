@@ -55,6 +55,7 @@ export type HistoryInput = {
   checkins: {
     day: string;
     weightKg?: number;
+    waistCm?: number;
     sleepHours?: number;
     mood?: number;
     energy?: number;
@@ -67,6 +68,7 @@ export type HistoryInput = {
 export function hasCheckinData(row: HistoryInput["checkins"][number]) {
   return (
     row.weightKg !== undefined ||
+    row.waistCm !== undefined ||
     row.sleepHours !== undefined ||
     row.mood !== undefined ||
     row.energy !== undefined ||

@@ -41,6 +41,7 @@ export const settings = query({
       waterGoal: row?.waterGoal ?? 2500,
       kcalTarget: row?.kcalTarget ?? null,
       proteinTarget: row?.proteinTarget ?? null,
+      goalWeightKg: row?.goalWeightKg ?? null,
       timeZone: row?.timeZone ?? null,
       checkIns: row?.checkIns ?? DEFAULT_CHECK_INS,
       remindersEnabled: row?.remindersEnabled ?? false,
@@ -61,6 +62,22 @@ export const setTargets = mutation({
     await ctx.db.patch(row._id, {
       kcalTarget: args.kcalTarget,
       proteinTarget: args.proteinTarget,
+    });
+  },
+});
+export const setGoalWeight = mutation({
+  args: { goalWeightKg: v.union(v.number(), v.null()) },
+  handler: async (ctx, args) => {
+    const row = await writableSettings(ctx);
+    if (
+      args.goalWeightKg !== null &&
+      (!Number.isFinite(args.goalWeightKg) ||
+        args.goalWeightKg < 30 ||
+        args.goalWeightKg > 300)
+    )
+      throw new ConvexError("Goal weight must be from 30–300 kg.");
+    await ctx.db.patch(row._id, {
+      goalWeightKg: args.goalWeightKg ?? undefined,
     });
   },
 });

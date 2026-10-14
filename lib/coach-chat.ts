@@ -22,6 +22,7 @@ export type CoachSnapshotInput = {
   checkin: {
     day: string;
     weightKg?: number;
+    waistCm?: number;
     sleepHours?: number;
     mood?: number;
     energy?: number;
@@ -136,6 +137,7 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
         ? {
             day: checkin.day,
             weightKg: checkin.weightKg ?? null,
+            waistCm: checkin.waistCm ?? null,
             sleepHours: checkin.sleepHours ?? null,
             mood: checkin.mood ?? null,
             energy: checkin.energy ?? null,
