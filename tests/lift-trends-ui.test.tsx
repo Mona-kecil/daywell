@@ -79,6 +79,50 @@ describe("Lift trends card", () => {
     expect(onOpen).toHaveBeenCalledWith("e-Bench press");
   });
 
+  it.each([
+    {
+      unit: "kg",
+      values: [100, 97, 94.5],
+      best: 99.96,
+      latest: "94.5 kg",
+      hint: "6% under your best of 100 kg.",
+    },
+    {
+      unit: "kg",
+      values: [100, 97, 94.5],
+      best: 100,
+      latest: "94.5 kg",
+      hint: "6% under your best of 100 kg.",
+    },
+    {
+      unit: "reps",
+      values: [20, 19, 18],
+      best: 20,
+      latest: "18 reps",
+      hint: "10% under your best of 20 reps.",
+    },
+  ])(
+    "rounds the slipping percentage from displayed $unit values (best $best)",
+    ({ unit, values, best, latest, hint }) => {
+      mocks.lifts = [lift("Press", "slipping", values, { unit, best })];
+      render(<LiftTrendsCard now={0} onOpen={() => {}} />);
+      expect(screen.getByText(latest)).toBeTruthy();
+      expect(screen.getByText(/under your best/).textContent).toBe(hint);
+      expect(
+        screen
+          .getByRole("button", { name: /Open history$/ })
+          .getAttribute("aria-label"),
+      ).toContain(hint);
+    },
+  );
+
+  it("omits the slipping percentage when the displayed best rounds to zero", () => {
+    mocks.lifts = [lift("Press", "slipping", [0.04, 0.01])];
+    render(<LiftTrendsCard now={0} onOpen={() => {}} />);
+    expect(screen.getByText("0 kg")).toBeTruthy();
+    expect(screen.queryByText(/under your best/)).toBeNull();
+  });
+
   it("shows five lifts until asked for the rest", async () => {
     mocks.lifts = ["A", "B", "C", "D", "E", "F", "G"].map((n) =>
       lift(n, "climbing", [50, 55], { changePct: 1 }),

@@ -14,6 +14,16 @@ export const clockMinutes = (at: number) => {
   return d.getHours() * 60 + d.getMinutes();
 };
 
+// Chart positions follow meal order through the repeated fall-back hour,
+// while later meals keep their wall-clock positions.
+export function mealMinutes(meals: number[]): number[] {
+  let previous = 0;
+  return meals.map((at) => {
+    previous = Math.max(previous, clockMinutes(at));
+    return previous;
+  });
+}
+
 export function eatingDays(spans: DaySpan[], times: number[]): EatingDay[] {
   const sorted = [...times].sort((a, b) => a - b);
   return spans.map((span) => ({

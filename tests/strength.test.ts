@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
 import { api } from "../convex/_generated/api";
+import { MAX_EXERCISES } from "../convex/exerciseModel";
 import {
   e1rm,
   summarizeSets,
@@ -89,6 +90,43 @@ it("seeds 25 exercises once, scopes customs, and rejects deletion of built-ins o
   expect(
     (await alice.query(api.strength.exercises, {})).some((e) => e._id === id),
   ).toBe(false);
+});
+
+it("caps custom exercise creation at 500 total exercises per user", async () => {
+  const { t, alice, bob, muscles } = await setup();
+  await t.run(async (ctx) => {
+    for (let i = EXERCISE_DEFAULTS.length; i < MAX_EXERCISES - 1; i++)
+      await ctx.db.insert("exercises", {
+        userId: "alice",
+        name: `Custom ${i}`,
+        muscleIds: [muscles[0]._id],
+        custom: true,
+      });
+  });
+  const args = { name: "Last allowed", muscleIds: [muscles[0]._id] };
+  const id = await alice.mutation(api.strength.addExercise, args);
+  expect(await alice.query(api.strength.exercises, {})).toHaveLength(
+    MAX_EXERCISES,
+  );
+  await expect(
+    alice.mutation(api.strength.addExercise, { ...args, name: "Over cap" }),
+  ).rejects.toThrow(
+    "You can have at most 500 exercises. Delete a custom exercise before adding another.",
+  );
+  expect(await alice.query(api.strength.exercises, {})).toHaveLength(
+    MAX_EXERCISES,
+  );
+  const bobMuscles = (await bob.query(api.tracker.overview, {})).muscles;
+  await expect(
+    bob.mutation(api.strength.addExercise, {
+      name: "Bob custom",
+      muscleIds: [bobMuscles[0]._id],
+    }),
+  ).resolves.toBeDefined();
+  await alice.mutation(api.strength.deleteExercise, { id });
+  await expect(
+    alice.mutation(api.strength.addExercise, args),
+  ).resolves.toBeDefined();
 });
 
 it("creates one workout with the union, matches tracker recovery, and cascades set deletion", async () => {
