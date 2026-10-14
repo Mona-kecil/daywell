@@ -214,6 +214,7 @@ it("requires auth and exports an empty account without requiring initialization"
     habits: [],
     habitLogs: [],
     meals: [],
+    progressPhotos: [],
     checkins: [],
   });
 });

@@ -40,3 +40,9 @@ export const pushPayload = v.object({
     v.literal("weekly-review"),
   ),
 });
+
+export const progressPose = v.union(
+  v.literal("front"),
+  v.literal("side"),
+  v.literal("back"),
+);
