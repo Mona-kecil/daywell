@@ -13,16 +13,17 @@ import { requireUser } from "./model";
 import { validHistoryClock } from "./historyData";
 import { suggestionsFor } from "./coachData";
 import { localClock, normalizeTimeZone } from "../lib/coach-time";
-import { buildCoachSnapshot, COACH_HISTORY_WINDOW_MS } from "../lib/coach-chat";
+import {
+  buildCoachSnapshot,
+  COACH_HISTORY_WINDOW_MS,
+  COACH_PENDING_MS as PENDING_MS,
+  COACH_STALE_ERROR as STALE_ERROR,
+} from "../lib/coach-chat";
 import { coachChatProvider } from "./coachChatProviders";
 import {
   CoachChatError,
   type CoachChatInput,
 } from "./coachChatProviders/types";
-
-const PENDING_MS = 2 * 60_000;
-const STALE_ERROR =
-  "The coach took too long to answer. Please send your question again.";
 
 export type CoachMessage = Pick<
   Doc<"coachMessages">,

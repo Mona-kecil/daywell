@@ -4,7 +4,8 @@ import { ArrowUp, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
 import { deviceTimeZone } from "./coach";
-import { Sheet, timeLabel, useTask } from "./ui";
+import { COACH_PENDING_MS, COACH_STALE_ERROR } from "@/lib/coach-chat";
+import { Sheet, timeLabel, useClock, useTask } from "./ui";
 
 const STARTERS = [
   "What should I eat tonight?",
@@ -35,7 +36,11 @@ function CoachChat() {
   const [text, setText] = useState("");
   const [confirming, setConfirming] = useState(false);
   const log = useRef<HTMLDivElement>(null);
-  const answering = messages?.some((m) => m.status === "pending") ?? false;
+  const now = useClock();
+  const stalled = (m: { status: string; at: number }) =>
+    m.status === "pending" && now - m.at >= COACH_PENDING_MS;
+  const answering =
+    messages?.some((m) => m.status === "pending" && !stalled(m)) ?? false;
   const busy = pending || answering;
 
   const last = messages?.at(-1);
@@ -71,8 +76,9 @@ function CoachChat() {
             <Sparkles size={22} />
           </span>
           <p>
-            Ask about your day. Your coach sees today’s water, meals, training,
-            recovery and your last week. It doesn’t see your photos.
+            Ask about your day. Your coach sees the last week of what you log:
+            water, meals, training, recovery and check-ins like sleep and
+            weight. It doesn’t see your photos.
           </p>
           <div className="chat-starters">
             {STARTERS.map((s) => (
@@ -107,29 +113,34 @@ function CoachChat() {
             </button>
           </div>
           <ol className="chat-log" aria-live="polite">
-            {messages.map((m) => (
-              <li key={m._id} className={`bubble ${m.role} ${m.status}`}>
-                {m.status === "pending" ? (
-                  <span className="typing" role="status">
-                    <span className="sr-only">Coach is typing</span>
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                ) : m.status === "error" ? (
-                  <span role="alert">
-                    {m.error ?? "The coach could not answer."}
-                  </span>
-                ) : (
-                  m.text
-                )}
-                {m.status !== "pending" && (
-                  <time dateTime={new Date(m.at).toISOString()}>
-                    {timeLabel(m.at)}
-                  </time>
-                )}
-              </li>
-            ))}
+            {messages.map((m) => {
+              const status = stalled(m) ? "error" : m.status;
+              return (
+                <li key={m._id} className={`bubble ${m.role} ${status}`}>
+                  {status === "pending" ? (
+                    <span className="typing" role="status">
+                      <span className="sr-only">Coach is typing</span>
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  ) : status === "error" ? (
+                    <span role="alert">
+                      {m.status === "pending"
+                        ? COACH_STALE_ERROR
+                        : (m.error ?? "The coach could not answer.")}
+                    </span>
+                  ) : (
+                    m.text
+                  )}
+                  {status !== "pending" && (
+                    <time dateTime={new Date(m.at).toISOString()}>
+                      {timeLabel(m.at)}
+                    </time>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </>
       )}

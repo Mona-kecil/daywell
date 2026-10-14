@@ -148,3 +148,7 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
 
 export type CoachSnapshot = ReturnType<typeof buildCoachSnapshot>;
 export const COACH_HISTORY_WINDOW_MS = 8 * DAY_MS;
+// A reply still pending after this long has stalled; the user may ask again.
+export const COACH_PENDING_MS = 2 * 60_000;
+export const COACH_STALE_ERROR =
+  "The coach took too long to answer. Please send your question again.";

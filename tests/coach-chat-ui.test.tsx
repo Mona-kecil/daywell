@@ -26,6 +26,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   mocks.messages = [];
 });
 
@@ -62,6 +63,7 @@ describe("coach chat", () => {
   });
 
   it("shows the coach typing and blocks another question meanwhile", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(at + 30_000);
     mocks.messages = [
       { _id: "u", role: "user", text: "Hi", at, status: "done" },
       { _id: "a", role: "assistant", text: "", at, status: "pending" },
@@ -74,6 +76,24 @@ describe("coach chat", () => {
       (screen.getByRole("button", { name: "Send" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("lets you ask again when an answer has stalled", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(at + 3 * 60_000);
+    mocks.messages = [
+      { _id: "u", role: "user", text: "Hi", at, status: "done" },
+      { _id: "a", role: "assistant", text: "", at, status: "pending" },
+    ];
+    open();
+    expect(screen.queryByText("Coach is typing")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toMatch(/took too long/);
+    await userEvent.type(
+      screen.getByLabelText("Your question"),
+      "Again{Enter}",
+    );
+    expect(mocks.mutation).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Again" }),
+    );
   });
 
   it("shows a failed answer's reason", () => {
