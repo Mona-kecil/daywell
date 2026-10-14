@@ -1,11 +1,13 @@
 "use client";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { ChevronRight } from "lucide-react";
+import { Bandage, ChevronRight } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { recovery } from "@/lib/recovery";
-import { Empty, Progress, Sheet } from "./ui";
+import { readyAt as readyTime } from "@/lib/forecast";
+import { recovery, SORE_EXTEND_HOURS, SORE_MAX_HOURS } from "@/lib/recovery";
+import { Empty, Progress, Sheet, useTask } from "./ui";
 import { recoveryHex, useIsDark } from "./body3d";
 import type { Exercise } from "./strength";
 import { useWeeklyVolume, weekLabel } from "./volume";
@@ -64,10 +66,16 @@ function MuscleDetail({
     muscle.cooldownHours,
     muscle.soreUntil,
   );
-  const readyAt =
-    muscle.lastTrainedAt !== null
-      ? muscle.lastTrainedAt + muscle.cooldownHours * 3_600_000
-      : null;
+  const readyAt = readyTime(muscle, now);
+  const reportSore = useMutation(api.tracker.reportSore);
+  const clearSore = useMutation(api.tracker.clearSore);
+  const { run, pending } = useTask();
+  const at = (t: number) =>
+    new Date(t).toLocaleString([], {
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   return (
     <>
       <div className="muscle-status">
@@ -86,11 +94,55 @@ function MuscleDetail({
           {muscle.lastTrainedAt === null
             ? "Not trained yet."
             : `Last trained ${new Date(muscle.lastTrainedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}${
-                readyAt && readyAt > now
-                  ? ` · ready ${new Date(readyAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`
-                  : ""
+                readyAt && readyAt > now ? ` · ready ${at(readyAt)}` : ""
               }`}
         </p>
+        <div className="sore-row">
+          {status.sore && (
+            <p className="sore-note">
+              <Bandage size={16} aria-hidden />
+              <span>
+                Marked sore, so it rests past its {muscle.cooldownHours}h
+                cooldown.
+              </span>
+            </p>
+          )}
+          <p className="muted small">
+            Each tap adds {SORE_EXTEND_HOURS} hours of rest, up to{" "}
+            {SORE_MAX_HOURS / 24} days from now.
+          </p>
+          <div className="row">
+            <button
+              type="button"
+              className="soft-button"
+              disabled={pending}
+              onClick={() =>
+                void run(
+                  () => reportSore({ muscleId: muscle._id, now: Date.now() }),
+                  `${capitalize(muscle.name)} rests ${SORE_EXTEND_HOURS} hours longer`,
+                )
+              }
+            >
+              <Bandage size={16} aria-hidden />
+              {status.kind === "recovering" ? "Still sore" : "Feeling sore"}
+            </button>
+            {status.sore && (
+              <button
+                type="button"
+                className="text-button"
+                disabled={pending}
+                onClick={() =>
+                  void run(
+                    () => clearSore({ muscleId: muscle._id }),
+                    "Back to the normal cooldown",
+                  )
+                }
+              >
+                Not sore anymore
+              </button>
+            )}
+          </div>
+        </div>
       </div>
       <WeeklySets muscleId={muscle._id} />
       <h3 className="sheet-subhead">Exercises</h3>
@@ -116,6 +168,8 @@ function MuscleDetail({
     </>
   );
 }
+
+const capitalize = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 function WeeklySets({ muscleId }: { muscleId: Id<"muscles"> }) {
   const data = useWeeklyVolume();

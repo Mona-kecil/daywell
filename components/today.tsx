@@ -3,6 +3,7 @@ import { ArrowRight, Camera, Dumbbell, Droplets, Leaf } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
+import { readyAt } from "@/lib/forecast";
 import { recovery } from "@/lib/recovery";
 import type { Macros } from "@/lib/nutrients";
 import { Progress, SectionTitle, ActionLink, useTask } from "./ui";
@@ -87,10 +88,7 @@ export function Today({
   );
   const ready = trained.length - recovering.length;
   const next = [...recovering].sort(
-    (a, b) =>
-      (a.lastTrainedAt ?? 0) +
-      a.cooldownHours * 3_600_000 -
-      ((b.lastTrainedAt ?? 0) + b.cooldownHours * 3_600_000),
+    (a, b) => (readyAt(a, now) ?? 0) - (readyAt(b, now) ?? 0),
   )[0];
   const states = Object.fromEntries(
     overview.muscles.flatMap((m) => {

@@ -4605,3 +4605,53 @@ h1,
   width: 100%;
   margin-top: 12px;
 }
+/* Soreness */
+.sore-row {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+.sore-row .row {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sore-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--amber-soft);
+  color: var(--text);
+  font-size: 14px;
+}
+.sore-note svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--amber);
+}
+/* Warm-up */
+.entry-tools {
+  display: flex;
+  gap: 4px;
+}
+.warmup {
+  margin: 8px 0 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--amber-soft);
+}
+.warmup ol {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.warmup li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}

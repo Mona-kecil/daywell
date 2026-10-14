@@ -14,6 +14,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
 import { VOLUME_HIGH } from "@/lib/volume";
+import { readyAt as readyTime } from "@/lib/forecast";
 import { recovery } from "@/lib/recovery";
 import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
 import { RecoveryForecast } from "./forecast";
@@ -73,10 +74,8 @@ function MuscleCard({
     muscle.soreUntil,
   );
   const dark = useIsDark();
-  const readyAt =
-    status.kind === "recovering" && muscle.lastTrainedAt !== null
-      ? new Date(muscle.lastTrainedAt + muscle.cooldownHours * 3_600_000)
-      : null;
+  const at = readyTime(muscle, now);
+  const readyAt = status.kind === "recovering" && at ? new Date(at) : null;
   return (
     <div className="muscle-card">
       <div className="row spaced">
@@ -154,7 +153,6 @@ function MuscleCard({
     </div>
   );
 }
-// Soonest-ready recovering muscles first, then ready, then never trained.
 // After the last set of an exercise, the rest leads into the first open set
 // of the next exercise that has one (wrapping round to earlier ones).
 function firstOpenSet(entries: EntryDraft[], from: number): NextSet | null {
@@ -172,11 +170,11 @@ function firstOpenSet(entries: EntryDraft[], from: number): NextSet | null {
   return null;
 }
 
+// Soonest-ready recovering muscles first, then ready, then never trained.
 function byReadiness(muscles: Muscle[], now: number) {
   const rank = (m: Muscle) => {
     const status = recovery(now, m.lastTrainedAt, m.cooldownHours, m.soreUntil);
-    if (status.kind === "recovering")
-      return m.lastTrainedAt! + m.cooldownHours * 3_600_000 - now;
+    if (status.kind === "recovering") return (readyTime(m, now) ?? now) - now;
     return status.kind === "ready" ? Number.MAX_SAFE_INTEGER : Infinity;
   };
   return [...muscles].sort((a, b) => rank(a) - rank(b));
