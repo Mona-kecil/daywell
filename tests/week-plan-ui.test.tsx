@@ -31,7 +31,10 @@ const session = (
   muscles: names.map((name) => ({ id: name, name })),
   rest: null,
 });
-const rest = (date: number, why: PlanDay["rest"]): PlanDay => ({
+const rest = (
+  date: number,
+  why: Exclude<PlanDay["rest"], "extras">,
+): PlanDay => ({
   day: key(date),
   at: at(date),
   split: null,
@@ -87,6 +90,21 @@ describe("Rest of the week", () => {
     expect(screen.getByText(/Still under 10 by Sunday/).textContent).toBe(
       "Still under 10 by Sunday: abs 8, calves 3",
     );
+  });
+
+  it.each([
+    [["abs"], "abs"],
+    [["abs", "calves"], "abs and calves"],
+    [["abs", "calves", "forearms"], "abs, calves and forearms"],
+  ])("names extras waiting for a split: %s", (waiting, names) => {
+    mocks.data = plan([{ ...rest(14, "on-target"), rest: "extras", waiting }], {
+      chest: 10,
+      abs: 0,
+    });
+    render(<WeekPlanCard muscles={muscles} now={NOW} onStart={vi.fn()} />);
+    expect(rows()).toEqual([
+      `TodayRestOnly ${names} need sets; they're trained alongside a split`,
+    ]);
   });
 
   it("selects today's split for the log form", async () => {

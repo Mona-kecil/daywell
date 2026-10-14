@@ -31,6 +31,11 @@ function dayLabel(plan: PlanDay, today: string, tomorrow: string) {
   return new Date(plan.at).toLocaleDateString([], { weekday: "long" });
 }
 
+function waitingNames(names: string[]) {
+  if (names.length < 2) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
 // A push/pull/legs plan for the rest of the week: each day trains the split
 // with the biggest gap to 10 sets whose muscles are off cooldown by 6 PM.
 export function WeekPlanCard({
@@ -105,7 +110,9 @@ export function WeekPlanCard({
                         <span className="small muted">
                           {d.rest === "on-target"
                             ? `Every muscle is at ${VOLUME_LOW}+ sets`
-                            : "No split that needs sets is off cooldown"}
+                            : d.rest === "extras"
+                              ? `Only ${waitingNames(d.waiting)} need sets; they're trained alongside a split`
+                              : "No split that needs sets is off cooldown"}
                         </span>
                       </>
                     )}

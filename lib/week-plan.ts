@@ -18,8 +18,10 @@ export type PlanDay = {
   at: number;
   split: "push" | "pull" | "legs" | null;
   muscles: { id: string; name: string }[];
-  rest: null | "recovering" | "on-target";
-};
+} & (
+  | { rest: null | "recovering" | "on-target"; waiting?: never }
+  | { rest: "extras"; waiting: string[] }
+);
 export type WeekPlan = {
   days: PlanDay[];
   projected: Record<string, number>;
@@ -91,15 +93,21 @@ export function planWeek(
             : a.lastTrainedAt - b.lastTrainedAt),
       )[0];
     if (!next) {
-      days.push({
-        day,
-        at,
-        split: null,
-        muscles: [],
-        rest: simulated.every((muscle) => muscle.current >= VOLUME_LOW)
-          ? "on-target"
-          : "recovering",
-      });
+      const belowTarget = simulated.filter(
+        (muscle) => muscle.current < VOLUME_LOW,
+      );
+      const restDay = { day, at, split: null, muscles: [] };
+      if (belowTarget.some((muscle) => splitNames.has(muscle.name))) {
+        days.push({ ...restDay, rest: "recovering" });
+      } else if (belowTarget.length) {
+        days.push({
+          ...restDay,
+          rest: "extras",
+          waiting: belowTarget.map((muscle) => muscle.name),
+        });
+      } else {
+        days.push({ ...restDay, rest: "on-target" });
+      }
       continue;
     }
     const trained = [

@@ -214,7 +214,9 @@ it("attaches only ready, deficient extras to session days", () => {
 
 it("does not schedule extras alone even when they are ready", () => {
   const result = planWeek([muscle("abs")], options);
-  expect(result.days.every((day) => day.rest === "recovering")).toBe(true);
+  expect(result.days.map(({ rest, waiting }) => ({ rest, waiting }))).toEqual(
+    Array.from({ length: 7 }, () => ({ rest: "extras", waiting: ["abs"] })),
+  );
   expect(
     result.days.every((day) => day.split === null && !day.muscles.length),
   ).toBe(true);
@@ -227,11 +229,30 @@ it("rests on target only when split muscles and extras all meet the target", () 
     options,
   );
   expect(onTarget.days.every((day) => day.rest === "on-target")).toBe(true);
-  const recovering = planWeek(
-    [muscle("chest", { current: 10 }), muscle("abs", { current: 9 })],
+  const extras = planWeek(
+    [
+      muscle("neck", { current: 9 }),
+      muscle("chest", { current: 10 }),
+      muscle("abs", { current: 9 }),
+      muscle("obliques", { current: 10 }),
+    ],
     options,
   );
-  expect(recovering.days.every((day) => day.rest === "recovering")).toBe(true);
+  expect(extras.days.map(({ rest, waiting }) => ({ rest, waiting }))).toEqual(
+    Array.from({ length: 7 }, () => ({
+      rest: "extras",
+      waiting: ["neck", "abs"],
+    })),
+  );
+});
+
+it("rests for recovery when a deficient split is on cooldown despite deficient extras", () => {
+  const result = planWeek(
+    [muscle("chest", { lastTrainedAt: monday }), muscle("abs")],
+    options,
+  );
+  expect(result.days[0]).toMatchObject({ rest: "recovering" });
+  expect(result.days[0]).not.toHaveProperty("waiting");
 });
 
 it("returns an empty projected record and on-target rest for no muscles", () => {
