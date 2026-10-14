@@ -23,6 +23,7 @@ import {
   type Macros,
 } from "@/lib/nutrients";
 import { AddMealOptions, RecentMeals } from "./meal-add";
+import { CloseTheGap } from "./gap";
 import { MacroSummary } from "./today";
 import { Empty, SectionTitle, useTask, timeLabel } from "./ui";
 type Meal = FunctionReturnType<typeof api.meals.today>[number];
@@ -501,6 +502,7 @@ export function Meals({
           Totals include ready meals and matched foods.
         </p>
       </section>
+      <CloseTheGap totals={totals} />
       <section className="card capture-card">
         <Camera size={30} strokeWidth={1.5} />
         <h2>What’s on your plate?</h2>

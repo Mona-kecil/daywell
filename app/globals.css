@@ -3631,3 +3631,125 @@ h1,
 .routine-new button {
   margin-top: 12px;
 }
+.gap-bar {
+  position: relative;
+  height: 12px;
+  border-radius: 99px;
+  background: var(--track);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.gap-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.gap-eaten {
+  background: var(--c-protein);
+  border-radius: 99px;
+}
+.gap-add {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--c-protein) 55%, transparent) 0 4px,
+    color-mix(in srgb, var(--c-protein) 25%, transparent) 4px 8px
+  );
+  border-left: 2px solid var(--surface);
+  border-radius: 0 99px 99px 0;
+  transition:
+    width 0.25s ease,
+    left 0.25s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gap-add {
+    transition: none;
+  }
+}
+.gap-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 4px;
+}
+.gap-after {
+  color: var(--text);
+  font-weight: 600;
+}
+.gap-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.gap-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+  margin: 0 -10px;
+  border-radius: 14px;
+}
+.gap-list li + li {
+  border-top: 1px solid var(--border);
+}
+.gap-list li.previewed {
+  background: var(--bg);
+}
+.gap-list li > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.gap-list strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.gap-list .soft-button {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.gap-tag {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.gap-tag.closes {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.gap-empty {
+  margin-top: 8px;
+}
+.gap-met {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--green);
+}
+.gap-met strong {
+  color: var(--text);
+}
+.gap-target {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+.gap-target label {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.gap-target .unit-input {
+  margin-top: 0;
+}
+.gap-target button {
+  min-height: 44px;
+  padding-inline: 18px;
+}
