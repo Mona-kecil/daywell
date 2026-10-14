@@ -40,15 +40,13 @@ import { EatingWindowCard } from "./eating";
 import { Achievements, WeeklyReview } from "./review";
 import {
   BodyModel,
+  FREQUENCY_HUE,
   mix,
   muscleKey,
   PALETTE,
   type MuscleKey,
   type MuscleState,
 } from "./body3d";
-
-// The validated protein series colour; one hue, light → dark by frequency.
-const FREQUENCY_HUE = { light: "#2a7a50", dark: "#4fa574" };
 
 export function Insights({ now }: { now: number }) {
   const today = dayKey(new Date(now));

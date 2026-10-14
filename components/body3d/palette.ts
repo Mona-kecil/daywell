@@ -17,6 +17,9 @@ export const PALETTE = {
   },
 };
 
+// The validated protein series colour; one hue, light → dark by amount.
+export const FREQUENCY_HUE = { light: "#2a7a50", dark: "#4fa574" };
+
 const channels = (hex: string) =>
   [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 export function mix(a: string, b: string, t: number) {

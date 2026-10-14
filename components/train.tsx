@@ -13,6 +13,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { localDateTimeValue } from "@/lib/day";
+import { VOLUME_HIGH } from "@/lib/volume";
 import { recovery } from "@/lib/recovery";
 import { Empty, Progress, SectionTitle, useTask, useToast } from "./ui";
 import { RecoveryForecast } from "./forecast";
@@ -21,7 +22,10 @@ import { useWeeklyVolume, VolumeCard } from "./volume";
 import { WeekPlanCard } from "./week-plan";
 import {
   BodyModel,
+  FREQUENCY_HUE,
+  mix,
   muscleKey,
+  PALETTE,
   recoveryHex,
   useIsDark,
   type MuscleKey,
@@ -163,6 +167,7 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
   const [detailId, setDetailId] = useState<Id<"muscles"> | null>(null);
   const [rest, setRest] = useState<Rest | null>(null);
   const [routineId, setRoutineId] = useState<Id<"routines"> | null>(null);
+  const [bodyMap, setBodyMap] = useState<"recovery" | "volume">("recovery");
   const [routineSheet, setRoutineSheet] = useState<"save" | "manage" | null>(
     null,
   );
@@ -213,10 +218,18 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
     }),
   );
   const states = Object.fromEntries(
-    [...byKey].map(([key, m]) => [
-      key,
-      recovery(now, m.lastTrainedAt, m.cooldownHours),
-    ]),
+    [...byKey].map(([key, m]) => {
+      const state = recovery(now, m.lastTrainedAt, m.cooldownHours);
+      if (bodyMap === "recovery") return [key, state];
+      const n = weekSets.get(m._id) ?? 0;
+      return [
+        key,
+        {
+          ...state,
+          label: `${n} working ${n === 1 ? "set" : "sets"} this week`,
+        },
+      ];
+    }),
   );
   const addEntry = (exercise: Exercise) => {
     setEntries((list) => [
@@ -292,9 +305,50 @@ export function Train({ muscles, now }: { muscles: Muscle[]; now: number }) {
             }
           }}
         >
+          <div
+            className="segmented body-map-mode"
+            role="group"
+            aria-label="Colour muscles by"
+          >
+            {(["recovery", "volume"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={bodyMap === mode}
+                onClick={() => setBodyMap(mode)}
+              >
+                {mode === "recovery" ? "Recovery" : "Sets this week"}
+              </button>
+            ))}
+          </div>
           <BodyModel
             states={states}
             selected={selectedKeys}
+            colorOf={
+              bodyMap === "volume"
+                ? (key, dark) => {
+                    const m = byKey.get(key);
+                    const n = (m && weekSets.get(m._id)) || 0;
+                    const base = PALETTE[dark ? "dark" : "light"].never;
+                    return n
+                      ? mix(
+                          base,
+                          FREQUENCY_HUE[dark ? "dark" : "light"],
+                          0.3 + (0.7 * Math.min(n, VOLUME_HIGH)) / VOLUME_HIGH,
+                        )
+                      : base;
+                  }
+                : undefined
+            }
+            legend={
+              bodyMap === "volume" ? (
+                <>
+                  <span>0</span>
+                  <i className="frequency-ramp" />
+                  <span>{VOLUME_HIGH}+ sets</span>
+                </>
+              ) : undefined
+            }
             onToggle={(key: MuscleKey) => {
               const m = byKey.get(key);
               if (m) toggle(m._id);
