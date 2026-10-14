@@ -139,7 +139,7 @@ describe("habit coach rules", () => {
         localMinutes: 19 * 60 + 30,
         muscles,
       }).map((s) => s.kind),
-    ).toEqual(["food", "water", "food"]);
+    ).toEqual(["food", "water", "habit"]);
   });
   it("keeps the longest supported names within existing text bounds", () => {
     const results = suggest({

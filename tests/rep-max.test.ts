@@ -31,6 +31,16 @@ describe("rep targets", () => {
         );
   });
 
+  it("counts a step as reached within 8 ulps and no further", () => {
+    // Between 16 and 32 one ulp is 2^-48; just under 16 it is 2^-49.
+    const ulp = (n: number) => 2 ** (Math.floor(Math.log2(n)) - 52);
+    expect(loadable(20 - 8 * ulp(19.9), 1)).toBe(20);
+    expect(loadable(20 - 9 * ulp(19.9), 1)).toBe(19);
+    expect(loadable(16 - 8 * ulp(15.9), 1)).toBe(16);
+    expect(loadable(16 - 9 * ulp(15.9), 1)).toBe(15);
+    expect(loadable(49.99999999999992)).toBe(47.5);
+  });
+
   it("lists weights and percentages from a one-rep max", () => {
     const table = repTable(100);
     expect(table.map((r) => r.reps)).toEqual([1, 2, 3, 4, 5, 6, 8, 10, 12, 15]);

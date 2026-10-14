@@ -163,7 +163,10 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
       });
     }
   }
+  // One nudge per kind, so two food reminders never crowd out the rest.
+  const kinds = new Set<Suggestion["kind"]>();
   return suggestions
     .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id, "en"))
+    .filter((s) => !kinds.has(s.kind) && kinds.add(s.kind))
     .slice(0, 3);
 }

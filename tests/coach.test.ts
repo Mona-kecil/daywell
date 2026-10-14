@@ -114,16 +114,34 @@ describe("coach rules", () => {
       localMinutes: 1200,
       targets: { kcalTarget: 2000, proteinTarget: 150 },
       mealCount: 0,
+      habits: [{ id: "h1", name: "Vitamins", order: 0 }],
       muscles: [{ name: "back", cooldownHours: 24, lastTrainedAt: null }],
     };
+    // Water, food, habit and training all apply; a second food nudge doesn't.
     const results = suggest(input);
     expect(results).toHaveLength(3);
     expect(results).toEqual(suggest(input));
-    expect(results.map((s) => s.priority)).toEqual([1, 1, 2]);
+    expect(results.map((s) => s.priority)).toEqual([1, 1, 3]);
+    expect(results.map((s) => s.kind)).toEqual(["food", "water", "habit"]);
     for (const s of results) {
       expect(s.title.length).toBeLessThanOrEqual(60);
       expect(s.body.length).toBeLessThanOrEqual(140);
     }
+  });
+  it("keeps one nudge per kind so an evening habit is not crowded out", () => {
+    const results = suggest({
+      now: Date.UTC(2026, 9, 14, 19),
+      localMinutes: 19 * 60,
+      targets: { kcalTarget: 2000, proteinTarget: 150 },
+      mealCount: 0,
+      habits: [{ id: "h1", name: "Vitamins", order: 0 }],
+      muscles: [{ name: "back", cooldownHours: 24, lastTrainedAt: null }],
+    });
+    expect(results.map((s) => s.id)).toEqual([
+      "food:targets",
+      "water:pace",
+      "today:habits",
+    ]);
   });
 });
 
