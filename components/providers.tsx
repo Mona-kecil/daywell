@@ -7,6 +7,7 @@ import {
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
+import { ConnectionStatus } from "./connection";
 
 const tokenSchema = z.object({ token: z.string().nullable() });
 function useDevAuth() {
@@ -78,12 +79,14 @@ export function Providers({
     return (
       <ConvexProviderWithAuth client={client} useAuth={useDevAuth}>
         {children}
+        <ConnectionStatus />
       </ConvexProviderWithAuth>
     );
   return (
     <AuthKitProvider>
       <ConvexProviderWithAuth client={client} useAuth={useAuthFromAuthKit}>
         {children}
+        <ConnectionStatus />
       </ConvexProviderWithAuth>
     </AuthKitProvider>
   );

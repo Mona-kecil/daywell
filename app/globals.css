@@ -4233,3 +4233,31 @@ h1,
   stroke: var(--surface);
   stroke-width: 2;
 }
+/* Connection */
+.connection-pill {
+  position: fixed;
+  inset: calc(12px + env(safe-area-inset-top)) auto auto 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  border: 0;
+  overflow: visible;
+  z-index: 40;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+.connection-pill:not(:popover-open) {
+  display: none;
+}
+.connection-pill svg {
+  flex-shrink: 0;
+}
