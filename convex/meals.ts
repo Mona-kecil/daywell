@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import {
   mutation,
@@ -260,6 +261,36 @@ export const recent = query({
       if (result.length === limit) break;
     }
     return result;
+  },
+});
+
+export const photos = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+    const { numItems } = args.paginationOpts;
+    if (!Number.isInteger(numItems) || numItems < 1 || numItems > 60)
+      throw new ConvexError("Limit must be an integer from 1–60.");
+    const result = await ctx.db
+      .query("meals")
+      .withIndex("by_user_status_time", (q) =>
+        q.eq("userId", userId).eq("analysis.status", "ready"),
+      )
+      .order("desc")
+      .filter((q) => q.neq(q.field("storageId"), undefined))
+      .paginate(args.paginationOpts);
+    const page = await Promise.all(
+      result.page.map(async (meal) => ({
+        id: meal._id,
+        at: meal.at,
+        description: meal.description,
+        photoUrl: meal.storageId
+          ? await ctx.storage.getUrl(meal.storageId)
+          : null,
+        ...mealTotals(meal.items),
+      })),
+    );
+    return { ...result, page };
   },
 });
 
