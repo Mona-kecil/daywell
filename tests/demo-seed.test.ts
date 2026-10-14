@@ -84,7 +84,7 @@ it("demo seed replaces thirty-six days, deletes old photos, and preserves other 
   expect(await dev.query(api.strength.exercises, {})).toHaveLength(25);
   expect(
     await t.run((ctx) => ctx.db.query("strengthSets").collect()),
-  ).toHaveLength(108);
+  ).toHaveLength(114);
   const bench = (await dev.query(api.strength.exercises, {})).find(
     (e) => e.name === "Bench press",
   );

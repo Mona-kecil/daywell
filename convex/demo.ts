@@ -171,8 +171,11 @@ export const replace = internalMutation({
           note: `${session.label} · 3 sets per exercise, steady effort`,
         });
         let order = 0;
-        // Preserve the existing fourteen-day strength history.
-        for (const [name, baseWeight] of offset < 14 ? session.exercises : []) {
+        // Two older Crunch sessions show a stall alongside the climbing lifts.
+        const strengthExercises = session.exercises.filter(
+          ([name]) => offset < 14 || (name === "Crunch" && offset <= 18),
+        );
+        for (const [name, baseWeight] of strengthExercises) {
           const exercise = exercises.find((row) => row.name === name);
           if (!exercise || typeof baseWeight !== "number")
             throw new ConvexError("Missing demo exercise.");
