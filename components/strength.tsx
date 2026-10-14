@@ -4,6 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import {
   Check,
   Disc3,
+  Flame,
   Minus,
   Plus,
   RotateCcw,
@@ -20,6 +21,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Empty, Sheet, useClock, useTask } from "./ui";
 import { LineChart } from "./line-chart";
 import { BAR_KG, loadBar } from "@/lib/plates";
+import { warmupSets } from "@/lib/warmup";
 import type { NextSet } from "./rest-timer";
 
 export type Exercise = FunctionReturnType<
@@ -138,7 +140,11 @@ export function EntryEditor({
 }) {
   const { sets, exercise } = entry;
   const [showPlates, setShowPlates] = useState(false);
+  const [showWarmup, setShowWarmup] = useState(false);
   const next = sets.find((s) => !s.done) ?? sets[sets.length - 1];
+  // Ramp up to the heaviest set planned.
+  const top = sets.reduce((a, b) => (b.weightKg > a.weightKg ? b : a));
+  const warmup = warmupSets(top.weightKg, top.reps);
   const last = useQuery(api.strength.exerciseHistory, {
     exerciseId: exercise._id,
     limit: 1,
@@ -283,17 +289,30 @@ export function EntryEditor({
         >
           <Plus size={15} /> Add set
         </button>
-        {next.weightKg >= BAR_KG && (
-          <button
-            type="button"
-            className="text-button"
-            aria-expanded={showPlates}
-            onClick={() => setShowPlates((v) => !v)}
-          >
-            <Disc3 size={15} /> Plates
-          </button>
-        )}
+        <span className="entry-tools">
+          {warmup.length > 0 && (
+            <button
+              type="button"
+              className="text-button"
+              aria-expanded={showWarmup}
+              onClick={() => setShowWarmup((v) => !v)}
+            >
+              <Flame size={15} /> Warm-up
+            </button>
+          )}
+          {next.weightKg >= BAR_KG && (
+            <button
+              type="button"
+              className="text-button"
+              aria-expanded={showPlates}
+              onClick={() => setShowPlates((v) => !v)}
+            >
+              <Disc3 size={15} /> Plates
+            </button>
+          )}
+        </span>
       </div>
+      {showWarmup && warmup.length > 0 && <Warmup sets={warmup} work={top} />}
       {showPlates && next.weightKg >= BAR_KG && (
         <Plates totalKg={next.weightKg} />
       )}
@@ -313,6 +332,42 @@ const PLATE_SIZE: Record<number, [width: number, height: number]> = {
 
 const plateKg = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+// Lighter sets before the working weight. They aren't logged.
+function Warmup({
+  sets,
+  work,
+}: {
+  sets: ReturnType<typeof warmupSets>;
+  work: SetDraft;
+}) {
+  return (
+    <figure className="warmup">
+      <figcaption className="small">
+        <strong>Warm-up</strong>
+        <span className="muted">
+          {" "}
+          · before {kg(work.weightKg)} kg × {work.reps}, not logged
+        </span>
+      </figcaption>
+      <ol>
+        {sets.map((s) => {
+          const { perSide } = loadBar(s.weightKg);
+          return (
+            <li key={s.label}>
+              <strong>{s.label}</strong>
+              <span className="muted small">
+                {perSide.length
+                  ? `${perSide.map(plateKg).join(" + ")} kg a side`
+                  : "Empty bar"}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </figure>
+  );
+}
 
 // One side of an Olympic bar, loaded from the collar out.
 function Plates({ totalKg }: { totalKg: number }) {
