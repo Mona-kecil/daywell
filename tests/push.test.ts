@@ -205,6 +205,38 @@ describe("coach cron", () => {
       await t.run((ctx) => ctx.db.query("pushDeliveries").collect()),
     ).toHaveLength(0);
   });
+  it("uses the device zone for suggestions after traveling", async () => {
+    const { alice } = setup();
+    await alice.mutation(api.tracker.initialize, {});
+    await alice.mutation(api.coach.setTimeZone, { timeZone: "Asia/Tokyo" });
+    await alice.mutation(api.tracker.addWater, {
+      at: Date.parse("2026-10-12T06:00:00Z"),
+      amountMl: 500,
+    });
+    const now = Date.parse("2026-10-12T10:00:00Z");
+    const savedZone = await alice.query(api.coach.suggestions, { now });
+    expect(
+      savedZone.filter((suggestion) => suggestion.kind === "water"),
+    ).toHaveLength(1);
+    const deviceZone = await alice.query(api.coach.suggestions, {
+      now,
+      timeZone: "America/Los_Angeles",
+    });
+    expect(
+      deviceZone.filter((suggestion) => suggestion.kind === "water"),
+    ).toEqual([]);
+  });
+  it("rejects an invalid device zone for suggestions despite a saved zone", async () => {
+    const { alice } = setup();
+    await alice.mutation(api.tracker.initialize, {});
+    await alice.mutation(api.coach.setTimeZone, { timeZone: "Asia/Tokyo" });
+    await expect(
+      alice.query(api.coach.suggestions, {
+        now: Date.parse("2026-10-12T10:00:00Z"),
+        timeZone: "Invalid/Zone",
+      }),
+    ).rejects.toThrow("Unknown time zone.");
+  });
   it("uses the user's local day and ready meal totals for client suggestions", async () => {
     const { t, alice, bob } = setup();
     await alice.mutation(api.tracker.initialize, {});

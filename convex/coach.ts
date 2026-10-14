@@ -5,7 +5,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { positive, requireUser, validTimestamp } from "./model";
+import { dayZone, positive, requireUser, validTimestamp } from "./model";
 import { normalizeTimeZone } from "../lib/coach-time";
 import { suggestionsFor } from "./coachData";
 import { DEFAULT_CHECK_INS } from "../lib/coach";
@@ -106,12 +106,7 @@ export const suggestions = query({
     validTimestamp(args.now);
     const row = await userSettings(ctx);
     const userId = await requireUser(ctx);
-    const timeZone = row?.timeZone ?? args.timeZone ?? "UTC";
-    try {
-      normalizeTimeZone(timeZone);
-    } catch {
-      throw new ConvexError("Choose a valid IANA time zone.");
-    }
+    const timeZone = dayZone(args.timeZone, row?.timeZone ?? undefined);
     return suggestionsFor(
       ctx,
       row ?? { userId, waterGoal: 2500 },
