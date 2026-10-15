@@ -368,7 +368,7 @@ it.each(["checkins", "sets", "cardio", "muscles"] as const)(
   15_000,
 );
 
-it("does not charge old, future-day or future-created rows against day-index limits", async () => {
+it("does not charge out-of-range days but counts future-created rows against limits", async () => {
   const { t, alice } = setup();
   await t.run(async (ctx) => {
     for (let i = 0; i < 30; i++) {
@@ -381,6 +381,10 @@ it("does not charge old, future-day or future-created rows against day-index lim
       }
     }
   });
+  expect(await alice.query(api.readiness.today, args)).toMatchObject({
+    score: null,
+    components: [],
+  });
   vi.setSystemTime(now + 60_000);
   await t.run(async (ctx) => {
     for (let i = 0; i < 30; i++) {
@@ -391,8 +395,7 @@ it("does not charge old, future-day or future-created rows against day-index lim
       });
     }
   });
-  expect(await alice.query(api.readiness.today, args)).toMatchObject({
-    score: null,
-    components: [],
-  });
+  await expect(alice.query(api.readiness.today, args)).rejects.toThrow(
+    "History exceeds readiness limits.",
+  );
 });
