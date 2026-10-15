@@ -57,6 +57,8 @@ import type * as readiness from "../readiness.js";
 import type * as recap from "../recap.js";
 import type * as routines from "../routines.js";
 import type * as shortcuts from "../shortcuts.js";
+import type * as steps from "../steps.js";
+import type * as stepsModel from "../stepsModel.js";
 import type * as strength from "../strength.js";
 import type * as tracker from "../tracker.js";
 import type * as trends from "../trends.js";
@@ -121,6 +123,8 @@ declare const fullApi: ApiFromModules<{
   recap: typeof recap;
   routines: typeof routines;
   shortcuts: typeof shortcuts;
+  steps: typeof steps;
+  stepsModel: typeof stepsModel;
   strength: typeof strength;
   tracker: typeof tracker;
   trends: typeof trends;

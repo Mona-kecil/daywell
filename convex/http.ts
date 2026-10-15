@@ -35,6 +35,7 @@ async function readBody(request: Request): Promise<string | null> {
 
 for (const route of [
   { path: "/shortcuts/water", method: "POST", kind: "water" },
+  { path: "/shortcuts/steps", method: "POST", kind: "steps" },
   { path: "/shortcuts/checkin", method: "POST", kind: "checkin" },
   { path: "/shortcuts/today", method: "GET", kind: "today" },
 ] as const) {

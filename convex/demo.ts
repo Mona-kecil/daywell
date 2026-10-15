@@ -1,7 +1,10 @@
+import { addDays } from "../lib/cardio";
+import { localClock } from "../lib/coach-time";
 import { ConvexError, v } from "convex/values";
 import type { Auth } from "convex/server";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
+import { allSteps, upsertSteps } from "./stepsModel";
 import { cardioHistory } from "./cardioModel";
 import type { CardioKind, CardioEffort } from "../lib/cardio";
 import { mealItem } from "./validators";
@@ -69,6 +72,7 @@ export const replace = internalMutation({
     }
     for await (const rows of cardioHistory(ctx, userId))
       for (const row of rows) await ctx.db.delete(row._id);
+    for (const row of await allSteps(ctx, userId)) await ctx.db.delete(row._id);
     const records = [
       ...(await ctx.db
         .query("bodyCheckins")
@@ -126,6 +130,23 @@ export const replace = internalMutation({
         ? priorSettings.timeZone
         : undefined;
     await ctx.db.insert("settings", { userId, waterGoal: 2500, timeZone });
+    const stepsToday =
+      args.checkinDays?.[0] ?? localClock(args.now, timeZone ?? "UTC").localDay;
+    for (let offset = 0; offset < 60; offset++) {
+      if (offset % 13 === 5) continue;
+      await upsertSteps(
+        ctx,
+        userId,
+        {
+          day: addDays(stepsToday, -offset),
+          count:
+            offset % 17 === 0 ? 8000 : 4000 + ((offset * 1733 + 2150) % 8001),
+          timeZone: timeZone ?? "UTC",
+          source: offset % 9 === 0 ? "manual" : "shortcut",
+        },
+        args.now,
+      );
+    }
     const habitDays = lastDays(checkinDays[0], 28);
     const demoHabits = [
       { name: "Vitamins", icon: "pill" },

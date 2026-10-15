@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { allSteps } from "./stepsModel";
 import { cardioHistory } from "./cardioModel";
 import { requireUser } from "./model";
 import { mealTotals } from "../lib/nutrients";
@@ -21,6 +22,7 @@ export const all = query({
       meals,
       checkins,
       progressPhotos,
+      steps,
     ] = await Promise.all([
       ctx.db
         .query("settings")
@@ -70,6 +72,7 @@ export const all = query({
         .query("progressPhotos")
         .withIndex("by_user_day", (q) => q.eq("userId", userId))
         .collect(),
+      allSteps(ctx, userId),
     ]);
     const cardioSessions = [];
     for await (const rows of cardioHistory(ctx, userId))
@@ -87,6 +90,9 @@ export const all = query({
       settings: settings
         ? {
             waterGoal: settings.waterGoal,
+            ...(settings.stepGoal === undefined
+              ? {}
+              : { stepGoal: settings.stepGoal }),
             kcalTarget: settings.kcalTarget,
             proteinTarget: settings.proteinTarget,
             goalWeightKg: settings.goalWeightKg,
@@ -122,6 +128,13 @@ export const all = query({
         .filter((e) => e.custom)
         .map((e) => ({ id: e._id, name: e.name, muscleIds: e.muscleIds })),
       water: water.map((w) => ({ id: w._id, amountMl: w.amountMl, at: w.at })),
+      steps: steps.map((row) => ({
+        id: row._id,
+        day: row.day,
+        count: row.count,
+        source: row.source,
+        updatedAt: row.updatedAt,
+      })),
       cardioSessions: cardioSessions.map((session) => ({
         id: session._id,
         kind: session.kind,

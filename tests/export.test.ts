@@ -212,6 +212,7 @@ it("requires auth and exports an empty account without requiring initialization"
     water: [],
     caffeine: [],
     cardioSessions: [],
+    steps: [],
     habits: [],
     habitLogs: [],
     meals: [],

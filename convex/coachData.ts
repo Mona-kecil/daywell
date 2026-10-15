@@ -1,3 +1,5 @@
+import { stepDays } from "./stepsModel";
+import { DEFAULT_STEP_GOAL } from "../lib/steps";
 import { ConvexError } from "convex/values";
 import { activeMinutes, addDays, mondayOf } from "../lib/cardio";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
@@ -99,7 +101,7 @@ export async function suggestionsFor(
   ctx: QueryCtx | MutationCtx,
   settings: Pick<
     Doc<"settings">,
-    "userId" | "waterGoal" | "kcalTarget" | "proteinTarget"
+    "userId" | "waterGoal" | "kcalTarget" | "proteinTarget" | "stepGoal"
   >,
   now: number,
   timeZone: string,
@@ -110,7 +112,7 @@ export async function suggestionsFor(
   const { localDay } = localClock(now, timeZone);
   const weekday = new Date(`${localDay}T00:00:00Z`).getUTCDay() || 7;
   const monday = mondayOf(localDay);
-  const [habits, habitLogs, cardio, recentCardio, todayReadiness] =
+  const [habits, habitLogs, cardio, recentCardio, todayReadiness, steps] =
     await Promise.all([
       ctx.db
         .query("habits")
@@ -145,6 +147,7 @@ export async function suggestionsFor(
       inReadinessWindow(today.localMinutes)
         ? (readiness ?? readinessForCoach(ctx, settings.userId, now, timeZone))
         : undefined,
+      stepDays(ctx, settings.userId, addDays(localDay, -6), localDay, now, 7),
     ]);
   // Only people who do cardio hear about it: something this week or in the four before.
   const cardioUser = cardio.length > 0 || recentCardio !== null;
@@ -162,6 +165,11 @@ export async function suggestionsFor(
     },
     muscles: today.muscles,
     readiness: todayReadiness,
+    steps: {
+      today: steps.find((row) => row.day === localDay)?.count ?? null,
+      goal: settings.stepGoal ?? DEFAULT_STEP_GOAL,
+      recentDays: new Set(steps.map((row) => row.day)).size,
+    },
     habits: habits.map((habit) => ({
       id: habit._id,
       name: habit.name,

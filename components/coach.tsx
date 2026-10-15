@@ -54,6 +54,13 @@ const KIND = {
     cta: "See readiness",
     card: "readiness",
   },
+  steps: {
+    Icon: Footprints,
+    tone: "green",
+    tab: "today",
+    cta: "See steps",
+    card: "steps",
+  },
   cardio: { Icon: Footprints, tone: "green", tab: "train", cta: "Log cardio" },
 } satisfies Record<
   Suggestion["kind"],

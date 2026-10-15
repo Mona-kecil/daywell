@@ -73,6 +73,7 @@ export default defineSchema({
   settings: defineTable({
     userId: v.string(),
     waterGoal: v.number(),
+    stepGoal: v.optional(v.number()),
     kcalTarget: v.optional(v.number()),
     proteinTarget: v.optional(v.number()),
     goalWeightKg: v.optional(v.number()),
@@ -172,6 +173,15 @@ export default defineSchema({
     amountMl: v.number(),
     at: v.number(),
   }).index("by_user_time", ["userId", "at"]),
+  steps: defineTable({
+    userId: v.string(),
+    day: v.string(),
+    count: v.number(),
+    source: v.union(v.literal("shortcut"), v.literal("manual")),
+    updatedAt: v.number(),
+  })
+    .index("by_user_day", ["userId", "day"])
+    .index("by_user_source_updated", ["userId", "source", "updatedAt"]),
   cardioSessions: defineTable({
     userId: v.string(),
     kind: cardioKind,

@@ -20,6 +20,8 @@ import {
   COACH_PENDING_MS as PENDING_MS,
   COACH_STALE_ERROR as STALE_ERROR,
 } from "../lib/coach-chat";
+import { stepDays } from "./stepsModel";
+import { DEFAULT_STEP_GOAL } from "../lib/steps";
 import { coachChatProvider } from "./coachChatProviders";
 import {
   CoachChatError,
@@ -232,7 +234,7 @@ export const readReply = internalQuery({
       ]);
     const settings = storedSettings ?? { userId, waterGoal: 2500 };
     const loading = readinessForCoach(ctx, userId, now, args.timeZone);
-    const [muscles, suggestions, readiness] = await Promise.all([
+    const [muscles, suggestions, readiness, steps] = await Promise.all([
       Promise.all(
         groups.map(async (m) => {
           const last = await ctx.db
@@ -255,6 +257,7 @@ export const readReply = internalQuery({
       ),
       suggestionsFor(ctx, settings, now, args.timeZone, loading),
       loading,
+      stepDays(ctx, userId, today, today, now, 1),
     ]);
     return {
       kind: "ready",
@@ -274,6 +277,10 @@ export const readReply = internalQuery({
           checkin,
           suggestions,
           readiness,
+          steps: {
+            today: steps[0]?.count ?? null,
+            goal: storedSettings?.stepGoal ?? DEFAULT_STEP_GOAL,
+          },
         }),
         messages: recent
           .reverse()
