@@ -68,8 +68,12 @@ const bowl = {
 beforeEach(() => {
   state.list = structuredClone([oats, bowl]);
   state.calls = [];
+  localStorage.clear();
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const card = () => screen.getByRole("region", { name: "Saved meals" });
 
@@ -233,5 +237,91 @@ describe("saved meals", () => {
     expect(state.calls).toEqual([
       ["savedMeals:saveFromMeal", { mealId: "m1", name: "Big breakfast" }],
     ]);
+  });
+
+  it("adds up a shopping list and keeps it on the device", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<SavedMeals />);
+    await userEvent.click(
+      within(card()).getByRole("button", { name: /Shopping list/ }),
+    );
+    const sheet = () => screen.getByRole("dialog", { name: "Shopping list" });
+    expect(within(sheet()).getByText(/Add servings above/)).toBeTruthy();
+    const fewer = (name: string) =>
+      within(sheet()).getByRole("button", {
+        name: `One serving fewer of ${name}`,
+      }) as HTMLButtonElement;
+    expect(fewer("Overnight oats").disabled).toBe(true);
+    const more = (name: string) =>
+      userEvent.click(
+        within(sheet()).getByRole("button", {
+          name: `One serving more of ${name}`,
+        }),
+      );
+    await more("Overnight oats");
+    await more("Overnight oats");
+    expect(
+      within(sheet())
+        .getByRole("checkbox", { name: /^Rolled oats/ })
+        .closest("label")?.textContent,
+    ).toBe("Rolled oats160 g");
+    await more("Chicken rice bowl");
+    const yogurt = within(sheet()).getByRole("checkbox", {
+      name: /^Greek yogurt/,
+    });
+    expect(yogurt.closest("label")?.textContent).toBe(
+      "Greek yogurt for Overnight oats, Chicken rice bowl600 g",
+    );
+    expect(
+      within(sheet())
+        .getByRole("checkbox", { name: /^Rolled oats/ })
+        .closest("label")?.textContent,
+    ).toMatch(/160 g$/);
+    await userEvent.click(yogurt);
+    expect(within(sheet()).getByText(/1 left/)).toBeTruthy();
+    await userEvent.click(
+      within(sheet()).getByRole("button", { name: /Share list/ }),
+    );
+    expect(writeText).toHaveBeenCalledWith("- Rolled oats, 160 g");
+
+    // Closing and reopening keeps the plan and the ticks.
+    await userEvent.click(
+      within(sheet()).getByRole("button", { name: "Close" }),
+    );
+    await userEvent.click(
+      within(card()).getByRole("button", { name: /Shopping list/ }),
+    );
+    expect(
+      within(sheet()).getByLabelText("Overnight oats servings").textContent,
+    ).toBe("2");
+    expect(
+      (
+        within(sheet()).getByRole("checkbox", {
+          name: /^Greek yogurt/,
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    // A ticked food that drops off the list no longer counts.
+    await userEvent.click(
+      within(sheet()).getByRole("checkbox", { name: /^Rolled oats/ }),
+    );
+    await userEvent.click(fewer("Overnight oats"));
+    await userEvent.click(fewer("Overnight oats"));
+    expect(
+      within(sheet()).queryByRole("checkbox", { name: /^Rolled oats/ }),
+    ).toBeNull();
+    expect(within(sheet()).getByText(/all done/)).toBeTruthy();
+    await userEvent.click(
+      within(sheet()).getByRole("button", { name: "Start over" }),
+    );
+    expect(within(sheet()).queryByRole("checkbox")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("daywell.shopping")!)).toEqual({
+      plan: {},
+      checked: [],
+    });
   });
 });

@@ -2,11 +2,18 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { BookmarkPlus, Minus, Plus, Trash2 } from "lucide-react";
+import {
+  BookmarkPlus,
+  Minus,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+} from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { scaleItems } from "@/lib/saved-meals";
 import { scaleNutrients, sumNutrients, type Macros } from "@/lib/nutrients";
+import { ShoppingBody } from "./shopping";
 import { SectionTitle, Sheet, useTask } from "./ui";
 
 type Saved = FunctionReturnType<typeof api.savedMeals.list>[number];
@@ -38,6 +45,7 @@ export function savedLine(meal: Pick<Saved, "perServing" | "servings">) {
 export function SavedMeals() {
   const saved = useQuery(api.savedMeals.list, {});
   const [openId, setOpenId] = useState<Id<"savedMeals"> | null>(null);
+  const [shopping, setShopping] = useState(false);
   if (saved === undefined) return null;
   const open = saved.find((m) => m.id === openId);
   return (
@@ -49,6 +57,18 @@ export function SavedMeals() {
           saved.length
             ? "Tap one to log it now."
             : "Meals you eat often, ready in one tap."
+        }
+        action={
+          saved.length > 0 && (
+            <button
+              type="button"
+              className="soft-button"
+              aria-haspopup="dialog"
+              onClick={() => setShopping(true)}
+            >
+              <ShoppingBasket size={16} /> Shopping list
+            </button>
+          )
         }
       />
       {saved.length ? (
@@ -74,6 +94,13 @@ export function SavedMeals() {
           tap <strong>Save for next time</strong>.
         </p>
       )}
+      <Sheet
+        open={shopping}
+        onClose={() => setShopping(false)}
+        title="Shopping list"
+      >
+        {shopping && <ShoppingBody recipes={saved} />}
+      </Sheet>
       <Sheet
         open={Boolean(open)}
         onClose={() => setOpenId(null)}
