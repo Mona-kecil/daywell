@@ -1,18 +1,26 @@
 "use client";
-import { usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Droplets, Dumbbell, Utensils } from "lucide-react";
+import { Droplets, Dumbbell, Footprints, Utensils } from "lucide-react";
 import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { formatPace, pace } from "@/lib/cardio";
 import { localDayRange } from "@/lib/day";
+import { dayKey } from "@/lib/insights";
 import { mealTotals } from "@/lib/nutrients";
 import { dayTimeline, type TimelineEvent } from "@/lib/timeline";
+import { EFFORT_NAMES, sessionLine } from "./cardio";
 import { SectionTitle, timeLabel } from "./ui";
 
 type Meal = FunctionReturnType<typeof api.meals.today>[number];
 
-const ICON = { water: Droplets, meal: Utensils, workout: Dumbbell };
+const ICON = {
+  water: Droplets,
+  meal: Utensils,
+  workout: Dumbbell,
+  cardio: Footprints,
+};
 
 function describe(e: TimelineEvent) {
   if (e.kind === "water")
@@ -28,6 +36,15 @@ function describe(e: TimelineEvent) {
           ? "Analysing"
           : `${Math.round(e.kcal).toLocaleString()} kcal`,
     };
+  if (e.kind === "cardio") {
+    const p = pace(e.activity, e.distanceKm, e.minutes);
+    return {
+      title: sessionLine({ ...e, kind: e.activity }),
+      detail: [EFFORT_NAMES[e.effort], p && formatPace(p)]
+        .filter(Boolean)
+        .join(" · "),
+    };
+  }
   return {
     title: e.muscles.length ? `Trained ${e.muscles.join(", ")}` : "Workout",
     detail: e.note || null,
@@ -56,6 +73,8 @@ export function DayTimeline({
   useEffect(() => {
     if (status === "CanLoadMore" && !pastToday) loadMore(8);
   }, [status, pastToday, loadMore]);
+  const today = dayKey(new Date(now));
+  const week = useQuery(api.cardio.week, { today });
   const names = new Map(muscles.map((m) => [m._id, m.name]));
   const events = dayTimeline({
     water,
@@ -72,6 +91,17 @@ export function DayTimeline({
         at: w.trainedAt,
         muscles: w.muscleIds.flatMap((id) => names.get(id) ?? []),
         note: w.note,
+      })),
+    cardio: (week?.sessions ?? [])
+      .filter((s) => s.day === today)
+      .map((s) => ({
+        id: s.id,
+        // A session logged ahead of time for today sits at the start of the day.
+        at: Math.min(Math.max(s.createdAt, startMs), now),
+        activity: s.kind,
+        effort: s.effort,
+        minutes: s.minutes,
+        distanceKm: s.distanceKm,
       })),
   });
   if (!events.length) return null;

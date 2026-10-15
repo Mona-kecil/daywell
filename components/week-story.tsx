@@ -6,6 +6,7 @@ import {
   ChartSpline,
   Droplets,
   Dumbbell,
+  Footprints,
   Moon,
   Pause,
   Play,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
+import { minutesLabel } from "./cardio";
 
 type Review = FunctionReturnType<typeof api.coach.weeklyReview>;
 type Lift = FunctionReturnType<typeof api.trends.list>["lifts"][number];
@@ -78,6 +80,23 @@ export function storySlides(review: Review, lifts: Lift[]): Slide[] {
           text: "No workouts logged, so every muscle has had time to recover.",
         },
   ];
+
+  if (review.cardioSessions) {
+    const active = review.cardioActiveMinutes ?? 0;
+    const goal = review.cardioGoal ?? 150;
+    slides.push({
+      key: "cardio",
+      icon: Footprints,
+      eyebrow: "Cardio",
+      big: `${whole(active)} active minutes`,
+      text: `${plural(review.cardioSessions, "session")}, ${minutesLabel(review.cardioMinutes ?? 0)} in all. ${active >= goal ? `You hit the ${goal}-minute goal.` : `${whole(goal - active)} to go for ${goal}.`}`,
+      extra: (
+        <span className="story-bar" aria-hidden>
+          <span style={{ width: `${Math.min(100, (active / goal) * 100)}%` }} />
+        </span>
+      ),
+    });
+  }
 
   const climbing = lifts
     .filter((l) => l.status === "climbing" && l.changePct !== null)

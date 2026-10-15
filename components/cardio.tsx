@@ -27,7 +27,7 @@ export const KIND_NAMES: Record<CardioKind, string> = {
   row: "Row",
   other: "Other",
 };
-const EFFORT_NAMES: Record<CardioEffort, string> = {
+export const EFFORT_NAMES: Record<CardioEffort, string> = {
   easy: "Easy",
   moderate: "Moderate",
   hard: "Hard",
