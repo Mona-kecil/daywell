@@ -2909,9 +2909,50 @@ h1,
   padding: 0;
   margin: 14px 0 4px;
 }
-.manual-items li {
+.manual-items > li {
   border-top: 1px solid var(--border);
   padding: 12px 0;
+}
+.food-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.food-source .text-button {
+  flex-shrink: 0;
+}
+.food-source > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.food-matches {
+  margin: 0 0 8px;
+}
+.food-matches > ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.food-matches > ul > li + li {
+  border-top: 1px solid var(--border);
+}
+.food-matches > ul > li > button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.food-matches > ul > li > button:active {
+  background: var(--green-soft);
 }
 .manual-head {
   display: flex;

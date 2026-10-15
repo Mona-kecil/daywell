@@ -1,7 +1,7 @@
 "use client";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Plus, RotateCcw, ScanBarcode, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, ScanBarcode, Search, Trash2 } from "lucide-react";
 import {
   useEffect,
   useEffectEvent,
@@ -18,6 +18,7 @@ import { scaleNutrients, sumNutrients, type Macros } from "@/lib/nutrients";
 import { Sheet, timeLabel, useTask } from "./ui";
 
 type Product = NonNullable<FunctionReturnType<typeof api.food.lookupBarcode>>;
+type FoodHit = FunctionReturnType<typeof api.food.search>[number];
 
 const whole = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -286,6 +287,18 @@ type Row = {
   protein: string;
   carbs: string;
   fat: string;
+  // A USDA match; its macros follow the amount until one is typed over.
+  food?: FoodHit;
+};
+const tenth = (n: number) => String(Math.round(n * 10) / 10);
+const fromFood = (food: FoodHit, grams: string) => {
+  const m = scaleNutrients(food.per100g, Number(grams) || 0);
+  return {
+    kcal: tenth(m.kcal),
+    protein: tenth(m.protein),
+    carbs: tenth(m.carbs),
+    fat: tenth(m.fat),
+  };
 };
 const blank = (key: number): Row => ({
   key,
@@ -329,7 +342,14 @@ export function ManualBody({
   const addManual = useMutation(api.meals.addManual),
     create = useMutation(api.savedMeals.create),
     remove = useMutation(api.savedMeals.remove);
+  const findFood = useAction(api.food.search);
   const { run, pending } = useTask();
+  const lookup = useTask();
+  const [matches, setMatches] = useState<{
+    key: number;
+    query: string;
+    hits: FoodHit[];
+  } | null>(null);
   const saving = mode === "save";
   const [description, setDescription] = useState("");
   const [servings, setServings] = useState(1);
@@ -337,8 +357,25 @@ export function ManualBody({
   const [error, setError] = useState<string | null>(null);
   const update = (key: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  const search = (r: Row) => {
+    const query = r.name.trim().replace(/\s+/g, " ").slice(0, 80);
+    void lookup.run(async () =>
+      setMatches({ key: r.key, query, hits: await findFood({ query }) }),
+    );
+  };
+  const pick = (r: Row, food: FoodHit) => {
+    update(r.key, { food, ...fromFood(food, r.grams) });
+    setMatches(null);
+  };
   const items = rows.map((r) => {
     const grams = Number(r.grams);
+    if (r.food)
+      return {
+        name: r.name.trim(),
+        grams,
+        fdcId: r.food.fdcId,
+        per100g: r.food.per100g,
+      };
     const per = (v: string) => ((Number(v) || 0) / grams) * 100;
     return {
       name: r.name.trim(),
@@ -458,7 +495,12 @@ export function ManualBody({
                   step="any"
                   required
                   value={r.grams}
-                  onChange={(e) => update(r.key, { grams: e.target.value })}
+                  onChange={(e) =>
+                    update(r.key, {
+                      grams: e.target.value,
+                      ...(r.food && fromFood(r.food, e.target.value)),
+                    })
+                  }
                 />
                 <span>g</span>
               </label>
@@ -474,6 +516,34 @@ export function ManualBody({
                 <Trash2 size={16} />
               </button>
             </div>
+            <div className="food-source">
+              <button
+                type="button"
+                className="text-button"
+                aria-label={`Search USDA for food ${i + 1}`}
+                disabled={r.name.trim().length < 2 || lookup.pending}
+                onClick={() => search(r)}
+              >
+                <Search size={15} />
+                {lookup.pending && matches?.key !== r.key
+                  ? "Searching…"
+                  : "Search USDA"}
+              </button>
+              {r.food && (
+                <span className="muted small">
+                  From USDA: {r.food.description}
+                </span>
+              )}
+            </div>
+            {matches?.key === r.key && (
+              <FoodMatches
+                label={`USDA matches for food ${i + 1}`}
+                query={matches.query}
+                hits={matches.hits}
+                onPick={(food) => pick(r, food)}
+                onClose={() => setMatches(null)}
+              />
+            )}
             <div className="manual-macros">
               {MACRO_FIELDS.map(([field, label]) => (
                 <label key={field}>
@@ -487,7 +557,12 @@ export function ManualBody({
                     placeholder="0"
                     aria-label={`Food ${i + 1} ${label}`}
                     value={r[field]}
-                    onChange={(e) => update(r.key, { [field]: e.target.value })}
+                    onChange={(e) =>
+                      update(r.key, {
+                        [field]: e.target.value,
+                        food: undefined,
+                      })
+                    }
                   />
                 </label>
               ))}
@@ -560,5 +635,46 @@ export function AddMealOptions() {
         onClose={() => setSheet(null)}
       />
     </>
+  );
+}
+
+function FoodMatches({
+  label,
+  query,
+  hits,
+  onPick,
+  onClose,
+}: {
+  label: string;
+  query: string;
+  hits: FoodHit[];
+  onPick: (food: FoodHit) => void;
+  onClose: () => void;
+}) {
+  if (!hits.length)
+    return (
+      <p className="small amber-text food-matches" role="status">
+        No USDA food with complete nutrients matches “{query}”. Try a simpler
+        name, or enter the values yourself.
+      </p>
+    );
+  return (
+    <div className="food-matches" role="group" aria-label={label}>
+      <ul>
+        {hits.map((hit) => (
+          <li key={hit.fdcId}>
+            <button type="button" onClick={() => onPick(hit)}>
+              <span>{hit.description}</span>
+              <span className="muted small">
+                Per 100 g: {macroLine(hit.per100g)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="text-button" onClick={onClose}>
+        None of these
+      </button>
+    </div>
   );
 }

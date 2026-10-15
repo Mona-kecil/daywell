@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   BarcodeSheet,
@@ -106,6 +106,80 @@ describe("manual meal form", () => {
     await fill("Seeds", { "Protein g": "60", "Fat g": "50" });
     expect(mocks.mutation).toHaveBeenCalledWith(
       expect.objectContaining({ description: "Seeds" }),
+    );
+  });
+
+  it("fills a food from a USDA match and keeps it scaled", async () => {
+    const chicken = { kcal: 165, protein: 31, carbs: 0, fat: 3.6 };
+    mocks.action.mockResolvedValueOnce([
+      {
+        fdcId: 171477,
+        description: "Chicken, broilers or fryers, breast, roasted",
+        dataType: "SR Legacy",
+        per100g: chicken,
+      },
+      {
+        fdcId: 2,
+        description: "Chicken breast tenders, breaded",
+        dataType: "SR Legacy",
+        per100g: { kcal: 263, protein: 15, carbs: 16, fat: 15 },
+      },
+    ] as never);
+    sheet(<ManualMealSheet open onClose={() => {}} />);
+    const search = screen.getByRole("button", {
+      name: "Search USDA for food 1",
+    });
+    expect((search as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.type(screen.getByLabelText("Food 1 name"), "  chicken ");
+    const grams = screen.getByLabelText(/^Food 1 grams/) as HTMLInputElement;
+    await userEvent.clear(grams);
+    await userEvent.type(grams, "150");
+    await userEvent.click(search);
+    expect(mocks.action).toHaveBeenCalledWith({ query: "chicken" });
+    const matches = await screen.findByRole("group", {
+      name: "USDA matches for food 1",
+    });
+    await userEvent.click(
+      within(matches).getByRole("button", { name: /broilers or fryers/ }),
+    );
+    expect(screen.queryByRole("group", { name: /USDA matches/ })).toBeNull();
+    const field = (label: string) =>
+      (screen.getByLabelText(`Food 1 ${label}`) as HTMLInputElement).value;
+    expect([field("kcal"), field("Protein g"), field("Fat g")]).toEqual([
+      "247.5",
+      "46.5",
+      "5.4",
+    ]);
+    expect(screen.getByText(/From USDA: Chicken, broilers/)).toBeTruthy();
+    // A matched food follows its amount until a value is typed over it.
+    await userEvent.clear(grams);
+    await userEvent.type(grams, "200");
+    expect(field("kcal")).toBe("330");
+    await userEvent.click(screen.getByText("Log meal"));
+    expect(mocks.mutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: "chicken",
+        items: [
+          { name: "chicken", grams: 200, fdcId: 171477, per100g: chicken },
+        ],
+      }),
+    );
+    await userEvent.type(screen.getByLabelText("Food 1 Protein g"), "1");
+    expect(screen.queryByText(/From USDA/)).toBeNull();
+    await userEvent.clear(grams);
+    await userEvent.type(grams, "100");
+    expect(field("kcal")).toBe("330");
+  });
+
+  it("says so when USDA has no match", async () => {
+    mocks.action.mockResolvedValueOnce([] as never);
+    sheet(<ManualMealSheet open onClose={() => {}} />);
+    await userEvent.type(screen.getByLabelText("Food 1 name"), "zzqx");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Search USDA for food 1" }),
+    );
+    expect((await screen.findByRole("status")).textContent).toMatch(
+      /No USDA food with complete nutrients matches “zzqx”/,
     );
   });
 
