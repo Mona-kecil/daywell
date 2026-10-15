@@ -38,6 +38,7 @@ import { ConsistencyCalendar } from "./consistency";
 import { DriversCard } from "./drivers";
 import { YearPixels } from "./pixels";
 import { EatingWindowCard } from "./eating";
+import { CardBoundary } from "./card-boundary";
 import { MonthRecap } from "./month-recap";
 import { Achievements, WeeklyReview } from "./review";
 import { ProgressPhotos } from "./progress-photos";
@@ -79,15 +80,23 @@ export function Insights({ now }: { now: number }) {
         checkins={checkins}
         patterns={
           <>
-            <DriversCard />
+            <CardBoundary title="What goes with better days">
+              <DriversCard />
+            </CardBoundary>
             <YearPixels now={now} />
           </>
         }
       >
-        <WeeklyReview now={now} />
-        <MonthRecap now={now} />
+        <CardBoundary title="Your week">
+          <WeeklyReview now={now} />
+        </CardBoundary>
+        <CardBoundary title="Your month">
+          <MonthRecap now={now} />
+        </CardBoundary>
       </InsightsView>
-      <Achievements now={now} />
+      <CardBoundary title="Achievements">
+        <Achievements now={now} />
+      </CardBoundary>
       <WeightGoalCard now={now} />
       <ProgressPhotos now={now} />
     </>
