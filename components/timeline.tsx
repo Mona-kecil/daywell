@@ -39,7 +39,11 @@ function describe(e: TimelineEvent) {
   if (e.kind === "cardio") {
     const p = pace(e.activity, e.distanceKm, e.minutes);
     return {
-      title: sessionLine({ ...e, kind: e.activity }),
+      // Each part stays on one line, so "32 min" never splits.
+      title: sessionLine({ ...e, kind: e.activity })
+        .split(" · ")
+        .map((part) => part.replaceAll(" ", "\u00a0"))
+        .join(" · "),
       detail: [EFFORT_NAMES[e.effort], p && formatPace(p)]
         .filter(Boolean)
         .join(" · "),
