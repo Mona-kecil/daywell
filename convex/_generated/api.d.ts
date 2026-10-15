@@ -53,6 +53,7 @@ import type * as quickLogProviders_fake from "../quickLogProviders/fake.js";
 import type * as quickLogProviders_index from "../quickLogProviders/index.js";
 import type * as quickLogProviders_openai from "../quickLogProviders/openai.js";
 import type * as quickLogProviders_types from "../quickLogProviders/types.js";
+import type * as recap from "../recap.js";
 import type * as routines from "../routines.js";
 import type * as shortcuts from "../shortcuts.js";
 import type * as strength from "../strength.js";
@@ -115,6 +116,7 @@ declare const fullApi: ApiFromModules<{
   "quickLogProviders/index": typeof quickLogProviders_index;
   "quickLogProviders/openai": typeof quickLogProviders_openai;
   "quickLogProviders/types": typeof quickLogProviders_types;
+  recap: typeof recap;
   routines: typeof routines;
   shortcuts: typeof shortcuts;
   strength: typeof strength;
