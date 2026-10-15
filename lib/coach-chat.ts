@@ -1,3 +1,4 @@
+import { servingTotals, type SavedMeal } from "./saved-meals";
 import { localClock } from "./coach-time";
 import { DAY_MS, shiftDay } from "./history";
 import { mealTotals, sumNutrients, type MealItem } from "./nutrients";
@@ -29,6 +30,7 @@ export type CoachSnapshotInput = {
   } | null;
   readiness?: CoachInput["readiness"];
   steps?: { today: number | null; goal: number };
+  savedMealRecipes?: (SavedMeal & { lastUsedAt?: number; createdAt: number })[];
   suggestions: Pick<Suggestion, "kind" | "title" | "body">[];
 };
 
@@ -51,7 +53,25 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
     analysed.filter((m) => isToday(m.at)).map((m) => mealTotals(m.items)),
   );
   const checkin = input.checkin;
-  return {
+  const savedMeals = (input.savedMealRecipes ?? [])
+    .toSorted(
+      (a, b) =>
+        (b.lastUsedAt ?? -1) - (a.lastUsedAt ?? -1) ||
+        b.createdAt - a.createdAt,
+    )
+    .slice(0, 10)
+    .map((meal) => {
+      const per = servingTotals(meal.items, meal.servings).perServing;
+      return {
+        name: meal.name.slice(0, 80),
+        kcal: Math.round(per.kcal),
+        protein: Math.round(per.protein),
+        carbs: Math.round(per.carbs),
+        fat: Math.round(per.fat),
+      };
+    });
+  const boundedSavedMeals: typeof savedMeals = [];
+  const snapshot = {
     local: {
       day: clock.localDay,
       time: clock.slot,
@@ -99,6 +119,7 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
         })),
       omittedMeals: Math.max(0, todayMeals.length - 6),
     },
+    savedMeals: boundedSavedMeals,
     muscles: input.muscles.map((m) => {
       const state = recovery(
         now,
@@ -154,6 +175,15 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
       text: `${s.title.slice(0, 60)}. ${s.body.slice(0, 140)}`,
     })),
   };
+  // Saved recipes share the existing 3 KB snapshot budget, most recently used first.
+  for (const meal of savedMeals) {
+    snapshot.savedMeals.push(meal);
+    if (new TextEncoder().encode(JSON.stringify(snapshot)).length >= 3072) {
+      snapshot.savedMeals.pop();
+      break;
+    }
+  }
+  return snapshot;
 }
 
 export type CoachSnapshot = ReturnType<typeof buildCoachSnapshot>;

@@ -1,12 +1,15 @@
 "use client";
 import { useAction, useConvex, useMutation } from "convex/react";
 import {
+  BookmarkCheck,
   Check,
   Droplets,
   Dumbbell,
   HeartPulse,
   Mic,
   MicOff,
+  Minus,
+  Plus,
   Sparkles,
   Utensils,
   X,
@@ -21,7 +24,9 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { QuickLogProposal } from "@/lib/quick-log";
+import { validEaten } from "@/lib/saved-meals";
 import { deviceTimeZone } from "./coach";
+import { servingLabel } from "./saved-meals";
 import { Sheet, timeLabel, useTask, useToast } from "./ui";
 
 const EXAMPLE = "Drank 500 ml, trained back at 7am, had 2 eggs and toast";
@@ -126,6 +131,8 @@ function describe(p: QuickLogProposal) {
       return { Icon: Dumbbell, tone: "green", title: "Workout" };
     case "meal":
       return { Icon: Utensils, tone: "amber", title: "Meal" };
+    case "savedMeal":
+      return { Icon: BookmarkCheck, tone: "amber", title: "Saved meal" };
     case "checkin":
       return { Icon: HeartPulse, tone: "green", title: "Check-in" };
   }
@@ -150,6 +157,7 @@ function QuickLog({ onDone }: { onDone: () => void }) {
   const addWorkout = useMutation(api.tracker.addWorkout),
     deleteWorkout = useMutation(api.tracker.deleteWorkout);
   const deleteMeal = useMutation(api.meals.deleteMeal);
+  const applySavedMeal = useMutation(api.quickLog.applySavedMeal);
   const upsertCheckin = useMutation(api.checkins.upsert);
   const convex = useConvex();
   const { run, pending } = useTask();
@@ -202,6 +210,14 @@ function QuickLog({ onDone }: { onDone: () => void }) {
         });
         return () => deleteMeal({ id });
       }
+      case "savedMeal": {
+        const id = await applySavedMeal({
+          savedMealId: p.savedMealId as Id<"savedMeals">,
+          servings: p.servings,
+          at: p.at,
+        });
+        return () => deleteMeal({ id });
+      }
       case "checkin": {
         const before = await convex.query(api.checkins.get, { day: p.day });
         const fields = CHECKIN_KEYS.filter((k) => p[k] !== undefined);
@@ -222,7 +238,8 @@ function QuickLog({ onDone }: { onDone: () => void }) {
   const invalid = chosen.some(
     ({ proposal: p }) =>
       (p.kind === "water" && !(p.amountMl > 0 && p.amountMl <= 10_000)) ||
-      (p.kind === "meal" && !p.description.trim()),
+      (p.kind === "meal" && !p.description.trim()) ||
+      (p.kind === "savedMeal" && !validEaten(p.servings)),
   );
   const logAll = () =>
     void run(async () => {
@@ -457,6 +474,44 @@ function Detail({
           </ul>
         </>
       );
+    case "savedMeal": {
+      // Quarter steps, as Saved meals logs them.
+      const step = (by: number) =>
+        onChange({
+          ...p,
+          servings: Math.min(10, Math.max(0.25, p.servings + by)),
+        });
+      return (
+        <div className="row spaced proposal-servings">
+          <span className="small">{p.name}</span>
+          <div
+            className="serving-picker small-picker"
+            role="group"
+            aria-label={`Servings of ${p.name}`}
+          >
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`A quarter serving less of ${p.name}`}
+              disabled={p.servings <= 0.25}
+              onClick={() => step(-0.25)}
+            >
+              <Minus size={16} />
+            </button>
+            <output>{servingLabel(p.servings)}</output>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`A quarter serving more of ${p.name}`}
+              disabled={p.servings >= 10}
+              onClick={() => step(0.25)}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+      );
+    }
     case "checkin":
       return <p className="small">{checkinLine(p)}</p>;
   }

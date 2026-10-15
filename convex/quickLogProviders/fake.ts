@@ -6,11 +6,19 @@ export const fake: QuickLogProvider = {
     const result = parseQuickLog(input.text, {
       now: input.now,
       timeZone: input.timeZone,
+      savedMeals: input.savedMeals?.map((name) => ({ id: name, name })),
       muscles: input.muscles.map((name) => ({ id: name, name })),
     });
     return {
       ...result,
       proposals: result.proposals.map((proposal) => {
+        if (proposal.kind === "savedMeal")
+          return {
+            kind: proposal.kind,
+            name: proposal.name,
+            servings: proposal.servings,
+            at: proposal.at,
+          };
         if (proposal.kind !== "workout") return proposal;
         return {
           kind: proposal.kind,

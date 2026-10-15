@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReturnType } from "convex/server";
 import {
   disablePush,
@@ -82,7 +83,21 @@ export function CoachCard({
     timeZone: deviceTimeZone(),
   });
   const [chatting, setChatting] = useState(false);
+  const logSaved = useMutation(api.savedMeals.log);
+  const deleteMeal = useMutation(api.meals.deleteMeal);
+  const { run, pending } = useTask();
   if (!suggestions) return null;
+  const logMeal = (meal: NonNullable<Suggestion["savedMeal"]>) =>
+    void run(
+      () =>
+        logSaved({
+          id: meal.id as Id<"savedMeals">,
+          at: Date.now(),
+          servings: 1,
+        }),
+      `Logged ${meal.name}`,
+      (id) => deleteMeal({ id }),
+    );
   return (
     <section className="card coach-card" aria-labelledby="coach-title">
       <div className="coach-head">
@@ -131,6 +146,16 @@ export function CoachCard({
                     <span className={`coach-cta ${tone}-text`}>{cta} →</span>
                   </span>
                 </button>
+                {s.savedMeal && (
+                  <button
+                    type="button"
+                    className="soft-button coach-log"
+                    disabled={pending}
+                    onClick={() => s.savedMeal && logMeal(s.savedMeal)}
+                  >
+                    <Plus size={16} /> Log 1 serving of {s.savedMeal.name}
+                  </button>
+                )}
               </li>
             );
           })}

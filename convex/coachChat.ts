@@ -20,6 +20,7 @@ import {
   COACH_PENDING_MS as PENDING_MS,
   COACH_STALE_ERROR as STALE_ERROR,
 } from "../lib/coach-chat";
+import { loadSavedMeals } from "./savedMeals";
 import { stepDays } from "./stepsModel";
 import { DEFAULT_STEP_GOAL } from "../lib/steps";
 import { coachChatProvider } from "./coachChatProviders";
@@ -234,31 +235,41 @@ export const readReply = internalQuery({
       ]);
     const settings = storedSettings ?? { userId, waterGoal: 2500 };
     const loading = readinessForCoach(ctx, userId, now, args.timeZone);
-    const [muscles, suggestions, readiness, steps] = await Promise.all([
-      Promise.all(
-        groups.map(async (m) => {
-          const last = await ctx.db
-            .query("workoutMuscles")
-            .withIndex("by_user_muscle_time", (q) =>
-              q
-                .eq("userId", userId)
-                .eq("muscleId", m._id)
-                .lte("trainedAt", now),
-            )
-            .order("desc")
-            .first();
-          return {
-            name: m.name,
-            cooldownHours: m.cooldownHours,
-            soreUntil: m.soreUntil ?? null,
-            lastTrainedAt: last?.trainedAt ?? null,
-          };
-        }),
-      ),
-      suggestionsFor(ctx, settings, now, args.timeZone, loading),
-      loading,
-      stepDays(ctx, userId, today, today, now, 1),
-    ]);
+    const recipes = loadSavedMeals(ctx, userId);
+    const [muscles, suggestions, readiness, steps, savedMeals] =
+      await Promise.all([
+        Promise.all(
+          groups.map(async (m) => {
+            const last = await ctx.db
+              .query("workoutMuscles")
+              .withIndex("by_user_muscle_time", (q) =>
+                q
+                  .eq("userId", userId)
+                  .eq("muscleId", m._id)
+                  .lte("trainedAt", now),
+              )
+              .order("desc")
+              .first();
+            return {
+              name: m.name,
+              cooldownHours: m.cooldownHours,
+              soreUntil: m.soreUntil ?? null,
+              lastTrainedAt: last?.trainedAt ?? null,
+            };
+          }),
+        ),
+        suggestionsFor(
+          ctx,
+          settings,
+          now,
+          args.timeZone,
+          loading,
+          () => recipes,
+        ),
+        loading,
+        stepDays(ctx, userId, today, today, now, 1),
+        recipes,
+      ]);
     return {
       kind: "ready",
       input: {
@@ -276,6 +287,7 @@ export const readReply = internalQuery({
           muscles,
           checkin,
           suggestions,
+          savedMealRecipes: savedMeals,
           readiness,
           steps: {
             today: steps[0]?.count ?? null,
