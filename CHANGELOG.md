@@ -9,11 +9,13 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 - **Cardio everywhere**: a cardio nudge from the coach for people who do cardio, plus cardio in the weekly review, the week story, the "Your day" timeline and the share card.
 - **Monthly recap** on Insights: training, cardio, water, weight and habits for this month or last, with a tap-through story.
 - **Readiness** on Today: a 0–100 estimate from last night's sleep, your recent sleep, how you feel, soreness and training load. It never says "Ready to push" while any one factor is weak.
+- **Readiness in the coach**: on a low morning (06:00–14:00, nothing trained yet) the coach suggests taking it easy instead of a workout, and "Ask your coach" knows today's score.
 
 ### Fixed
 
 - One failing Insights card now shows "Try again" instead of taking down the whole tab.
 - This month's recap reads as "so far" through its last day.
+- "See habits" on a coach suggestion now scrolls to your habits, and cardio reminders open Train.
 
 ## 2026-10-15
 
