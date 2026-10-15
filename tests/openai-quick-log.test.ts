@@ -82,6 +82,8 @@ describe("OpenAI Responses quick log contract", () => {
     expect(schema).not.toHaveProperty("$schema");
     const serialized = JSON.stringify(schema);
     expect(serialized).not.toContain("muscleIds");
+    expect(serialized).not.toContain("savedMealId");
+    expect(serialized).toContain("savedMeal");
     expect(serialized).toContain('"null"');
     // Every object in a strict schema must forbid extra fields and require all properties.
     const verify = (value: unknown): void => {

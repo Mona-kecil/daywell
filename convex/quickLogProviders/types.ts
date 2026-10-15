@@ -3,6 +3,7 @@ import {
   quickLogProposalSchema,
   quickLogCheckinSchema,
   textMealSchema,
+  savedMealProposalSchema,
 } from "../../lib/quick-log";
 
 export type QuickLogInput = {
@@ -11,6 +12,7 @@ export type QuickLogInput = {
   timeZone: string;
   localClock: string;
   muscles: string[];
+  savedMeals?: string[];
 };
 export interface QuickLogProvider {
   parse(input: QuickLogInput): Promise<unknown>;
@@ -30,6 +32,11 @@ export const providerResultSchema = z.object({
           note: z.string().max(2000),
         }),
         textMealSchema.extend({ kind: z.literal("meal") }),
+        savedMealProposalSchema
+          .omit({ savedMealId: true, servings: true })
+          .extend({
+            servings: z.number().min(0.25).max(10).multipleOf(0.25),
+          }),
         z.object({
           kind: z.literal("checkin"),
           day: z.string(),

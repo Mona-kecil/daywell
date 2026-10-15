@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validEaten } from "./saved-meals";
 import { localClock, normalizeTimeZone } from "./coach-time";
 import { SPLITS } from "./forecast";
 
@@ -32,6 +33,14 @@ export const quickLogCheckinSchema = z.object({
   mood: z.number().int().min(1).max(5).optional(),
   energy: z.number().int().min(1).max(5).optional(),
 });
+export const savedMealProposalSchema = z.object({
+  kind: z.literal("savedMeal"),
+  savedMealId: z.string().min(1),
+  name: z.string().trim().min(1).max(80),
+  servings: z.number().refine(validEaten),
+  at: quickLogTimestampSchema,
+});
+
 export const quickLogProposalSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("water"),
@@ -49,6 +58,7 @@ export const quickLogProposalSchema = z.discriminatedUnion("kind", [
     })
     .refine((entry) => entry.muscleIds.length === entry.muscles.length),
   textMealSchema.extend({ kind: z.literal("meal") }),
+  savedMealProposalSchema,
   quickLogCheckinSchema.refine((entry) =>
     [entry.weightKg, entry.sleepHours, entry.mood, entry.energy].some(
       (value) => value !== undefined,
@@ -65,6 +75,7 @@ export type QuickLogContext = {
   now: number;
   timeZone: string;
   muscles: { id: string; name: string }[];
+  savedMeals?: { id: string; name: string }[];
 };
 
 const quantities: Readonly<Record<string, number>> = {
@@ -191,6 +202,42 @@ function foodItem(text: string) {
   return { name, grams: grams * count, searchQuery };
 }
 
+export const normalizedLogName = (name: string) =>
+  name.trim().replace(/\s+/g, " ").toLowerCase();
+
+function savedMealMention(
+  content: string,
+  meals: NonNullable<QuickLogContext["savedMeals"]>,
+) {
+  const text = content.replace(/^(?:had|ate)\s+/i, "").trim();
+  // Try the whole name first: recipe names may themselves begin with a number.
+  const exact = meals.find(
+    (m) => normalizedLogName(m.name) === normalizedLogName(text),
+  );
+  if (exact) return { meal: exact, servings: 1 };
+  const portion = text.match(
+    /^(a third|a quarter|half|quarter|-?\d+(?:\.\d+)?)\s+(?:servings?\s+)?(?:of\s+)?(?:(?:a|an|my)\s+)?(.+)$/i,
+  );
+  const raw = portion
+    ? ({ "a third": 1 / 3, "a quarter": 0.25, quarter: 0.25, half: 0.5 }[
+        portion[1].toLowerCase()
+      ] ?? Number(portion[1]))
+    : 1;
+  const name = (portion?.[2] ?? text).replace(/^(?:my|a|an)\s+/i, "");
+  const meal = meals.find(
+    (m) => normalizedLogName(m.name) === normalizedLogName(name),
+  );
+  const explicit =
+    /^(?:my\s|(?:a third|a quarter|half|quarter)\s)|^-?\d+(?:\.\d+)?\s+servings?\b/i.test(
+      text,
+    );
+  if (!meal && !explicit) return null;
+  // Reject out-of-range quantities before rounding to the nearest quarter.
+  const servings =
+    raw > 0 && raw <= 10 ? Math.max(0.25, Math.round(raw * 4) / 4) : raw;
+  return { meal, servings };
+}
+
 export function parseQuickLog(
   text: string,
   context: QuickLogContext,
@@ -306,6 +353,22 @@ export function parseQuickLog(
           clause,
         );
       else if (!unknown.length) leftover.push(clause);
+      continue;
+    }
+    const saved = savedMealMention(content, context.savedMeals ?? []);
+    if (saved) {
+      if (saved.meal)
+        add(
+          {
+            kind: "savedMeal",
+            savedMealId: saved.meal.id,
+            name: saved.meal.name,
+            servings: saved.servings,
+            at,
+          },
+          clause,
+        );
+      else leftover.push(clause);
       continue;
     }
     if (/^(?:had|ate)\b/i.test(content)) {

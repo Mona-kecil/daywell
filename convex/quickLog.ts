@@ -1,12 +1,19 @@
 import { z } from "zod";
 import { ConvexError, v } from "convex/values";
-import { action, internalQuery, internalMutation } from "./_generated/server";
+import {
+  action,
+  mutation,
+  internalQuery,
+  internalMutation,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
+import { loadSavedMeals, logSavedMeal } from "./savedMeals";
 import { requireUser } from "./model";
 import { validHistoryClock } from "./historyData";
 import { localClock, normalizeTimeZone } from "../lib/coach-time";
 import {
   quickLogProposalSchema,
+  normalizedLogName,
   quickLogResultSchema,
   type QuickLogResult,
 } from "../lib/quick-log";
@@ -24,6 +31,31 @@ export const readMuscles = internalQuery({
     return muscles.map((m) => ({ id: m._id, name: m.name }));
   },
 });
+export const readSavedMeals = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return (await loadSavedMeals(ctx, userId)).map((row) => ({
+      id: row._id,
+      name: row.name,
+    }));
+  },
+});
+
+export const applySavedMeal = mutation({
+  args: {
+    savedMealId: v.id("savedMeals"),
+    at: v.number(),
+    servings: v.number(),
+  },
+  handler: async (ctx, args) =>
+    logSavedMeal(ctx, await requireUser(ctx), {
+      id: args.savedMealId,
+      at: args.at,
+      servings: args.servings,
+    }),
+});
+
 export const reserveParse = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -62,7 +94,10 @@ export const parse = action({
     validHistoryClock(Date.now(), args.timeZone);
     const timeZone = normalizeTimeZone(args.timeZone);
     const now = await ctx.runMutation(internal.quickLog.reserveParse, {});
-    const muscles = await ctx.runQuery(internal.quickLog.readMuscles, {});
+    const [muscles, savedMeals] = await Promise.all([
+      ctx.runQuery(internal.quickLog.readMuscles, {}),
+      ctx.runQuery(internal.quickLog.readSavedMeals, {}),
+    ]);
     const clock = localClock(now, timeZone);
     try {
       const result = envelopeSchema.parse(
@@ -72,6 +107,7 @@ export const parse = action({
           timeZone,
           localClock: `${clock.localDay} ${clock.slot}`,
           muscles: muscles.map((m) => m.name),
+          savedMeals: savedMeals.map((m) => m.name),
         }),
       );
       const proposals: QuickLogResult["proposals"] = [];
@@ -108,6 +144,22 @@ export const parse = action({
           value.muscleIds = found.map((m) => m.id);
           value.muscles = found.map((m) => m.name);
           if (!found.length) continue;
+        }
+        if (value.kind === "savedMeal") {
+          const name = z.string().trim().min(1).max(80).safeParse(value.name);
+          if (!name.success) {
+            rejected();
+            continue;
+          }
+          const meal = savedMeals.find(
+            (m) => normalizedLogName(m.name) === normalizedLogName(name.data),
+          );
+          if (!meal) {
+            leftover.push(`Unknown saved meal: ${name.data}`);
+            continue;
+          }
+          value.savedMealId = meal.id;
+          value.name = meal.name;
         }
         if (value.kind === "checkin") {
           for (const key of ["weightKg", "sleepHours", "mood", "energy"])

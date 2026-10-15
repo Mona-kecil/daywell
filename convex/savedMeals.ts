@@ -1,5 +1,10 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import {
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { ownedMeal, requireUser, validTimestamp } from "./model";
 import { savedMealItem } from "./validators";
@@ -47,31 +52,37 @@ async function insertRecipe(ctx: MutationCtx, userId: string, input: unknown) {
   });
 }
 
+export async function loadSavedMeals(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+) {
+  const rows = await ctx.db
+    .query("savedMeals")
+    .withIndex("by_user_used", (q) => q.eq("userId", userId))
+    .order("desc")
+    .take(SAVED_MEAL_LIMIT);
+  return rows.sort(
+    (a, b) =>
+      (b.lastUsedAt ?? -1) - (a.lastUsedAt ?? -1) ||
+      b.createdAt - a.createdAt ||
+      b._creationTime - a._creationTime,
+  );
+}
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUser(ctx);
-    const rows = await ctx.db
-      .query("savedMeals")
-      .withIndex("by_user_used", (q) => q.eq("userId", userId))
-      .order("desc")
-      .take(SAVED_MEAL_LIMIT);
-    return rows
-      .sort(
-        (a, b) =>
-          (b.lastUsedAt ?? -1) - (a.lastUsedAt ?? -1) ||
-          b.createdAt - a.createdAt ||
-          b._creationTime - a._creationTime,
-      )
-      .map((row) => ({
-        id: row._id,
-        name: row.name,
-        servings: row.servings,
-        items: row.items,
-        useCount: row.useCount,
-        lastUsedAt: row.lastUsedAt ?? null,
-        ...servingTotals(row.items, row.servings),
-      }));
+    const rows = await loadSavedMeals(ctx, userId);
+    return rows.map((row) => ({
+      id: row._id,
+      name: row.name,
+      servings: row.servings,
+      items: row.items,
+      useCount: row.useCount,
+      lastUsedAt: row.lastUsedAt ?? null,
+      ...servingTotals(row.items, row.servings),
+    }));
   },
 });
 
@@ -155,30 +166,38 @@ export const log = mutation({
   args: { id: v.id("savedMeals"), at: v.number(), servings: v.number() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    const meal = await ownedSavedMeal(ctx, userId, args.id);
-    validTimestamp(args.at);
-    if (!validEaten(args.servings))
-      throw new ConvexError("Choose servings from 0.25–10 in steps of 0.25.");
-    const id = await ctx.db.insert("meals", {
-      userId,
-      at: args.at,
-      description: meal.name,
-      revision: 0,
-      analysis: { status: "ready" },
-      items: scaleItems(meal.items, args.servings, meal.servings).map(
-        (item, index) => ({
-          ...item,
-          id: `saved:${index}`,
-          searchQuery: item.name,
-          foodDescription: item.name,
-          status: "matched",
-        }),
-      ),
-    });
-    await ctx.db.patch(args.id, {
-      lastUsedAt: Date.now(),
-      useCount: meal.useCount + 1,
-    });
-    return id;
+    return logSavedMeal(ctx, userId, args);
   },
 });
+
+export async function logSavedMeal(
+  ctx: MutationCtx,
+  userId: string,
+  args: { id: Id<"savedMeals">; at: number; servings: number },
+) {
+  const meal = await ownedSavedMeal(ctx, userId, args.id);
+  validTimestamp(args.at);
+  if (!validEaten(args.servings))
+    throw new ConvexError("Choose servings from 0.25–10 in steps of 0.25.");
+  const id = await ctx.db.insert("meals", {
+    userId,
+    at: args.at,
+    description: meal.name,
+    revision: 0,
+    analysis: { status: "ready" },
+    items: scaleItems(meal.items, args.servings, meal.servings).map(
+      (item, index) => ({
+        ...item,
+        id: `saved:${index}`,
+        searchQuery: item.name,
+        foodDescription: item.name,
+        status: "matched",
+      }),
+    ),
+  });
+  await ctx.db.patch(args.id, {
+    lastUsedAt: Date.now(),
+    useCount: meal.useCount + 1,
+  });
+  return id;
+}

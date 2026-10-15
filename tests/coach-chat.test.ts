@@ -573,6 +573,18 @@ describe("coach snapshot", () => {
       ...base,
       muscles,
       suggestions,
+      savedMealRecipes: Array.from({ length: 10 }, (_, i) => ({
+        name: "A saved meal with chicken and vegetables ".repeat(2),
+        createdAt: i,
+        servings: 1,
+        items: [
+          {
+            name: "Chicken",
+            grams: 100,
+            per100g: { kcal: 300, protein: 30, carbs: 10, fat: 10 },
+          },
+        ],
+      })),
       meals: Array.from({ length: 10 }, (_, i) => ({
         at: now - i * 60_000,
         description: "Meal with chicken, rice and vegetables. ".repeat(100),
@@ -580,6 +592,8 @@ describe("coach snapshot", () => {
         items: [item],
       })),
     });
+    expect(snapshot.savedMeals.length).toBeGreaterThan(0);
+    expect(snapshot.savedMeals.length).toBeLessThanOrEqual(10);
     expect(snapshot.today.meals).toHaveLength(6);
     expect(snapshot.today.omittedMeals).toBe(4);
     expect(snapshot.today.nutrients.kcal).toBe(2000);

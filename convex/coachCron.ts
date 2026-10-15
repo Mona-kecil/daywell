@@ -1,3 +1,4 @@
+import { loadSavedMeals } from "./savedMeals";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -58,6 +59,8 @@ export const runUser = internalMutation({
       checkIns: settings.checkIns ?? DEFAULT_CHECK_INS,
     });
     let readiness: ReturnType<typeof readinessForCoach> | undefined;
+    let recipes: ReturnType<typeof loadSavedMeals> | undefined;
+    const loadRecipes = () => (recipes ??= loadSavedMeals(ctx, userId));
     for (const due of slots) {
       const existing = await ctx.db
         .query("coachSent")
@@ -79,6 +82,7 @@ export const runUser = internalMutation({
           due.at,
           settings.timeZone,
           readiness,
+          loadRecipes,
         )
       )[0];
       if (!top) continue;

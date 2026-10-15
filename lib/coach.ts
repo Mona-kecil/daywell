@@ -11,6 +11,14 @@ export const PROTEIN_FOODS = [
   "chicken 100 g ≈ 31 g",
   "tofu 150 g ≈ 18 g",
 ];
+export type CoachSavedMeal = {
+  id: string;
+  name: string;
+  protein: number;
+  kcal: number;
+  lastUsedAt?: number;
+  createdAt: number;
+};
 export type Suggestion = {
   id: string;
   kind:
@@ -25,6 +33,7 @@ export type Suggestion = {
   priority: 1 | 2 | 3;
   title: string;
   body: string;
+  savedMeal?: Pick<CoachSavedMeal, "id" | "name" | "protein" | "kcal">;
 };
 export type CoachInput = {
   now: number;
@@ -35,6 +44,7 @@ export type CoachInput = {
   macros: Macros;
   targets: { kcalTarget?: number; proteinTarget?: number };
   mealCount: number;
+  savedMeals?: CoachSavedMeal[];
   cardio?: { weekActiveMinutes: number; todayMinutes: number; weekday: number };
   steps?: { today: number | null; goal: number; recentDays: number };
   readiness?: Pick<Readiness, "score" | "band"> & {
@@ -70,6 +80,27 @@ export const waterPace = (localMinutes: number) =>
     ),
   );
 
+// Share the trigger with the data loader so cron and Shortcuts skip unused recipes.
+export function foodTargetState({
+  localMinutes,
+  targets,
+  macros,
+}: Pick<CoachInput, "localMinutes" | "targets" | "macros">) {
+  const mealFraction =
+    localMinutes >= 19 * 60 ? 0.8 : localMinutes >= 13 * 60 ? 0.45 : 0;
+  return {
+    mealFraction,
+    proteinBehind:
+      mealFraction > 0 &&
+      targets.proteinTarget !== undefined &&
+      macros.protein < targets.proteinTarget * (mealFraction - 0.2),
+    kcalBehind:
+      mealFraction > 0 &&
+      targets.kcalTarget !== undefined &&
+      macros.kcal < targets.kcalTarget * (mealFraction - 0.2),
+  };
+}
+
 export function coachSuggestions(input: CoachInput): Suggestion[] {
   const { now, localMinutes, waterMl, waterGoal, macros, targets } = input;
   const suggestions: Suggestion[] = [];
@@ -84,16 +115,32 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
       body: `You have logged ${Math.round(waterMl)} of ${Math.round(waterGoal)} ml today.`,
     });
   }
-  // At lunch expect 45% of targets; at dinner expect 80%. A 20% deficit triggers a nudge.
-  const mealFraction =
-    localMinutes >= 19 * 60 ? 0.8 : localMinutes >= 13 * 60 ? 0.45 : 0;
-  const proteinBehind =
-    targets.proteinTarget !== undefined &&
-    macros.protein < targets.proteinTarget * (mealFraction - 0.2);
-  const kcalBehind =
-    targets.kcalTarget !== undefined &&
-    macros.kcal < targets.kcalTarget * (mealFraction - 0.2);
+  const { mealFraction, proteinBehind, kcalBehind } = foodTargetState(input);
   if (mealFraction && (proteinBehind || kcalBehind)) {
+    const saved = proteinBehind
+      ? input.savedMeals
+          ?.filter(
+            (meal) =>
+              meal.protein >= 15 &&
+              (targets.kcalTarget === undefined ||
+                meal.kcal <=
+                  Math.max(0, targets.kcalTarget - macros.kcal) + 150),
+          )
+          .toSorted(
+            (a, b) =>
+              b.protein - a.protein ||
+              (b.lastUsedAt ?? -1) - (a.lastUsedAt ?? -1) ||
+              b.createdAt - a.createdAt,
+          )[0]
+      : undefined;
+    const savedMeal = saved
+      ? {
+          id: saved.id,
+          name: saved.name,
+          protein: Math.round(saved.protein),
+          kcal: Math.round(saved.kcal),
+        }
+      : undefined;
     const remaining =
       targets.proteinTarget === undefined
         ? null
@@ -105,7 +152,10 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
       title: proteinBehind
         ? "Add protein to your next meal"
         : "Make time for your next meal",
-      body: `${remaining === null ? "Try " : `${remaining} g protein left. `}${PROTEIN_FOODS.join("; ")}.`,
+      body: savedMeal
+        ? `${remaining} g protein left. Your ${savedMeal.name} adds ${savedMeal.protein} g (${savedMeal.kcal} kcal).`
+        : `${remaining === null ? "Try " : `${remaining} g protein left. `}${PROTEIN_FOODS.join("; ")}.`,
+      ...(savedMeal ? { savedMeal } : {}),
     });
   }
   if (localMinutes >= 14 * 60 && input.mealCount === 0) {

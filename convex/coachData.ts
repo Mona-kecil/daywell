@@ -1,3 +1,5 @@
+import { loadSavedMeals } from "./savedMeals";
+import { servingTotals } from "../lib/saved-meals";
 import { stepDays } from "./stepsModel";
 import { DEFAULT_STEP_GOAL } from "../lib/steps";
 import { ConvexError } from "convex/values";
@@ -6,6 +8,7 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import {
   coachSuggestions,
+  foodTargetState,
   inReadinessWindow,
   type CoachInput,
 } from "../lib/coach";
@@ -107,8 +110,23 @@ export async function suggestionsFor(
   timeZone: string,
   // Chat loads readiness for its snapshot too; share that read.
   readiness?: Promise<CoachInput["readiness"]>,
+  loadRecipes: () => ReturnType<typeof loadSavedMeals> = () =>
+    loadSavedMeals(ctx, settings.userId),
 ) {
   const today = await todayDataFor(ctx, settings.userId, now, timeZone);
+  const targets = {
+    kcalTarget: settings.kcalTarget,
+    proteinTarget: settings.proteinTarget,
+  };
+  const savedMeals = foodTargetState({ ...today, targets }).proteinBehind
+    ? (await loadRecipes()).map((row) => ({
+        id: row._id,
+        name: row.name,
+        createdAt: row.createdAt,
+        lastUsedAt: row.lastUsedAt,
+        ...servingTotals(row.items, row.servings).perServing,
+      }))
+    : undefined;
   const { localDay } = localClock(now, timeZone);
   const weekday = new Date(`${localDay}T00:00:00Z`).getUTCDay() || 7;
   const monday = mondayOf(localDay);
@@ -153,6 +171,7 @@ export async function suggestionsFor(
   const cardioUser = cardio.length > 0 || recentCardio !== null;
   return coachSuggestions({
     now,
+    savedMeals,
     localMinutes: today.localMinutes,
     timeZone,
     waterGoal: settings.waterGoal,
