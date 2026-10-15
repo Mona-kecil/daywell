@@ -1752,6 +1752,8 @@ h1,
   display: grid;
   gap: 2px;
   min-width: 0;
+  /* Saved meal names can be one long word. */
+  overflow-wrap: anywhere;
 }
 .coach-text strong {
   font-size: 14px;
