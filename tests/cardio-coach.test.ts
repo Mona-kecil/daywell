@@ -181,11 +181,36 @@ describe("cardio coach backend", () => {
       ],
     );
   });
-  it("nudges an empty week but skips cardio above 350 rows without dropping other suggestions", async () => {
+  it("stays quiet for someone with no cardio in the last four weeks", async () => {
     const { t, alice } = await setup();
+    expect(await alice.query(api.coach.suggestions, { now })).toEqual([]);
+    await t.run((ctx) =>
+      ctx.db.insert("cardioSessions", {
+        userId: "alice",
+        day: "2026-09-13",
+        minutes: 30,
+        effort: "easy",
+        kind: "walk",
+        createdAt: now,
+      }),
+    );
+    expect(await alice.query(api.coach.suggestions, { now })).toEqual([]);
+    await t.run((ctx) =>
+      ctx.db.insert("cardioSessions", {
+        userId: "alice",
+        day: "2026-09-14",
+        minutes: 30,
+        effort: "easy",
+        kind: "walk",
+        createdAt: now,
+      }),
+    );
     expect(await alice.query(api.coach.suggestions, { now })).toMatchObject([
       { kind: "cardio", title: "0 of 150 active minutes" },
     ]);
+  });
+  it("skips cardio above 350 rows without dropping other suggestions", async () => {
+    const { t, alice } = await setup();
     await t.run(async (ctx) => {
       // Small seeded values isolate the limit from the on-pace guard.
       for (let i = 0; i < 350; i++)

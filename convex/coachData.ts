@@ -1,4 +1,4 @@
-import { activeMinutes, mondayOf } from "../lib/cardio";
+import { activeMinutes, addDays, mondayOf } from "../lib/cardio";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { coachSuggestions } from "../lib/coach";
@@ -80,7 +80,8 @@ export async function suggestionsFor(
   const today = await todayDataFor(ctx, settings.userId, now, timeZone);
   const { localDay } = localClock(now, timeZone);
   const weekday = new Date(`${localDay}T00:00:00Z`).getUTCDay() || 7;
-  const [habits, habitLogs, cardio] = await Promise.all([
+  const monday = mondayOf(localDay);
+  const [habits, habitLogs, cardio, recentCardio] = await Promise.all([
     ctx.db
       .query("habits")
       .withIndex("by_user", (q) => q.eq("userId", settings.userId))
@@ -95,13 +96,21 @@ export async function suggestionsFor(
     ctx.db
       .query("cardioSessions")
       .withIndex("by_user_day", (q) =>
-        q
-          .eq("userId", settings.userId)
-          .gte("day", mondayOf(localDay))
-          .lte("day", localDay),
+        q.eq("userId", settings.userId).gte("day", monday).lte("day", localDay),
       )
       .take(351),
+    ctx.db
+      .query("cardioSessions")
+      .withIndex("by_user_day", (q) =>
+        q
+          .eq("userId", settings.userId)
+          .gte("day", addDays(monday, -28))
+          .lt("day", monday),
+      )
+      .first(),
   ]);
+  // Only people who do cardio hear about it: something this week or in the four before.
+  const cardioUser = cardio.length > 0 || recentCardio !== null;
   return coachSuggestions({
     now,
     localMinutes: today.localMinutes,
@@ -122,7 +131,7 @@ export async function suggestionsFor(
     })),
     habitLogs,
     cardio:
-      cardio.length > 350
+      cardio.length > 350 || !cardioUser
         ? undefined
         : {
             weekActiveMinutes: cardio.reduce(
