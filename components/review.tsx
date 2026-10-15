@@ -31,9 +31,14 @@ import { WeekStory } from "./week-story";
 type Achievement = FunctionReturnType<typeof api.achievements.list>[number];
 
 // The clock ticks every 15 s; rounding up to the next 5 minutes keeps the
-// subscription stable while still including everything logged so far.
+// subscription stable while still including everything logged so far. It
+// stops at the end of the local day, since queries take "today" from it.
 const STEP = 5 * 60_000;
-export const settledNow = (now: number) => Math.ceil(now / STEP) * STEP;
+export const settledNow = (now: number) =>
+  Math.min(
+    Math.ceil(now / STEP) * STEP,
+    new Date(now).setHours(24, 0, 0, 0) - 1,
+  );
 
 // Keeps the last result while new args load, so cards don't flash.
 export function useLatest<T>(value: T | undefined) {
