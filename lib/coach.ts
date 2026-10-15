@@ -48,6 +48,10 @@ export type CoachInput = {
 
 // Water is paced evenly from 07:00 to 22:00 local time.
 export const WATER_DAY = { start: 7 * 60, end: 22 * 60 };
+// A low-readiness morning swaps the training nudge for an easy one.
+export const inReadinessWindow = (localMinutes: number) =>
+  localMinutes >= 6 * 60 && localMinutes < 14 * 60;
+
 export const waterPace = (localMinutes: number) =>
   Math.max(
     0,
@@ -106,8 +110,7 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
   }
   const takeItEasy =
     input.readiness?.band === "easy" &&
-    localMinutes >= 6 * 60 &&
-    localMinutes < 14 * 60 &&
+    inReadinessWindow(localMinutes) &&
     !input.muscles.some(
       (m) =>
         m.lastTrainedAt !== null &&

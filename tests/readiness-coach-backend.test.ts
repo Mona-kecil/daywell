@@ -63,10 +63,10 @@ describe("readiness coach backend", () => {
     await seed(t);
     const estimate = await alice.query(api.readiness.today, args);
     expect(estimate).toMatchObject({ day, score: 0, band: "easy" });
-    const data = await t.run((ctx) =>
-      todayDataFor(ctx, "alice", now, timeZone),
+    const readiness = await t.run((ctx) =>
+      readinessForCoach(ctx, "alice", now, timeZone),
     );
-    expect(data.readiness).toEqual({
+    expect(readiness).toEqual({
       score: 0,
       band: "easy",
       weakest: "sleep",
@@ -97,10 +97,10 @@ describe("readiness coach backend", () => {
           energy: 5,
         }),
       );
-      const data = await t.run((ctx) =>
-        todayDataFor(ctx, "alice", now, timeZone),
+      const readiness = await t.run((ctx) =>
+        readinessForCoach(ctx, "alice", now, timeZone),
       );
-      expect(data.readiness?.weakest).toBe(weakest);
+      expect(readiness?.weakest).toBe(weakest);
     },
   );
 
@@ -124,10 +124,13 @@ describe("readiness coach backend", () => {
     await expect(alice.query(api.readiness.today, args)).rejects.toThrow(
       "History exceeds readiness limits.",
     );
-    const data = await t.run((ctx) =>
-      todayDataFor(ctx, "alice", now, timeZone),
-    );
-    expect(data).not.toHaveProperty("readiness");
+    // t.run encodes undefined as null, so compare inside the transaction.
+    expect(
+      await t.run(
+        async (ctx) =>
+          (await readinessForCoach(ctx, "alice", now, timeZone)) === undefined,
+      ),
+    ).toBe(true);
     expect(
       (await alice.query(api.coach.suggestions, args)).map((s) => s.kind),
     ).toEqual(["train"]);
@@ -167,6 +170,34 @@ describe("readiness coach backend", () => {
   it("omits null readiness from the chat snapshot", async () => {
     const { t } = setup();
     expect((await snapshot(t)).today).not.toHaveProperty("readiness");
+  });
+
+  it("loads readiness only where the coach can use it", async () => {
+    const { t, alice } = setup();
+    await seed(t);
+    const load = vi.spyOn(readinessBackend, "loadReadiness");
+    await t.run((ctx) => todayDataFor(ctx, "alice", now, timeZone));
+    expect(load).not.toHaveBeenCalled();
+    await alice.query(api.coach.suggestions, args);
+    expect(load).toHaveBeenCalledTimes(1);
+    load.mockClear();
+    await snapshot(t);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["05:59", Date.parse("2026-10-14T22:59Z")],
+    ["14:00", Date.parse("2026-10-15T07:00Z")],
+  ])("skips the readiness history outside 06:00-14:00 (%s)", async (_, at) => {
+    const { t, alice } = setup();
+    await seed(t);
+    vi.setSystemTime(at - 60_000);
+    const load = vi.spyOn(readinessBackend, "loadReadiness");
+    const kinds = (
+      await alice.query(api.coach.suggestions, { now: at, timeZone })
+    ).map((s) => s.kind);
+    expect(kinds).not.toContain("readiness");
+    expect(load).not.toHaveBeenCalled();
   });
 
   it("persists a readiness push payload through the cron", async () => {

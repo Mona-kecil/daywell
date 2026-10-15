@@ -231,6 +231,7 @@ export const readReply = internalQuery({
           .take(12),
       ]);
     const settings = storedSettings ?? { userId, waterGoal: 2500 };
+    const loading = readinessForCoach(ctx, userId, now, args.timeZone);
     const [muscles, suggestions, readiness] = await Promise.all([
       Promise.all(
         groups.map(async (m) => {
@@ -252,8 +253,8 @@ export const readReply = internalQuery({
           };
         }),
       ),
-      suggestionsFor(ctx, settings, now, args.timeZone),
-      readinessForCoach(ctx, userId, now, args.timeZone),
+      suggestionsFor(ctx, settings, now, args.timeZone, loading),
+      loading,
     ]);
     return {
       kind: "ready",

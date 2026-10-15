@@ -2,7 +2,11 @@ import { ConvexError } from "convex/values";
 import { activeMinutes, addDays, mondayOf } from "../lib/cardio";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { coachSuggestions, type CoachInput } from "../lib/coach";
+import {
+  coachSuggestions,
+  inReadinessWindow,
+  type CoachInput,
+} from "../lib/coach";
 import { localClock } from "../lib/coach-time";
 import { mealTotals, sumNutrients } from "../lib/nutrients";
 import { loadReadiness, READINESS_LIMIT_MESSAGE } from "./readiness";
@@ -37,7 +41,7 @@ export async function todayDataFor(
   const { localDay, localMinutes } = localClock(now, timeZone);
   // A civil day can span 25 hours during a DST fold. Include an extra hour for historical offsets.
   const start = Math.max(0, now - 26 * 3_600_000);
-  const [water, meals, groups, readiness] = await Promise.all([
+  const [water, meals, groups] = await Promise.all([
     ctx.db
       .query("water")
       .withIndex("by_user_time", (q) =>
@@ -54,7 +58,6 @@ export async function todayDataFor(
       .query("muscles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
-    readinessForCoach(ctx, userId, now, timeZone),
   ]);
   const todayMeals = meals.filter(
     (m) => localClock(m.at, timeZone).localDay === localDay,
@@ -89,7 +92,6 @@ export async function todayDataFor(
     ),
     mealCount: todayMeals.length,
     muscles,
-    ...(readiness === undefined ? {} : { readiness }),
   };
 }
 
@@ -101,39 +103,49 @@ export async function suggestionsFor(
   >,
   now: number,
   timeZone: string,
+  // Chat loads readiness for its snapshot too; share that read.
+  readiness?: Promise<CoachInput["readiness"]>,
 ) {
   const today = await todayDataFor(ctx, settings.userId, now, timeZone);
   const { localDay } = localClock(now, timeZone);
   const weekday = new Date(`${localDay}T00:00:00Z`).getUTCDay() || 7;
   const monday = mondayOf(localDay);
-  const [habits, habitLogs, cardio, recentCardio] = await Promise.all([
-    ctx.db
-      .query("habits")
-      .withIndex("by_user", (q) => q.eq("userId", settings.userId))
-      .filter((q) => q.eq(q.field("archivedAt"), undefined))
-      .collect(),
-    ctx.db
-      .query("habitLogs")
-      .withIndex("by_user_day", (q) =>
-        q.eq("userId", settings.userId).eq("day", today.day),
-      )
-      .collect(),
-    ctx.db
-      .query("cardioSessions")
-      .withIndex("by_user_day", (q) =>
-        q.eq("userId", settings.userId).gte("day", monday).lte("day", localDay),
-      )
-      .take(351),
-    ctx.db
-      .query("cardioSessions")
-      .withIndex("by_user_day", (q) =>
-        q
-          .eq("userId", settings.userId)
-          .gte("day", addDays(monday, -28))
-          .lt("day", monday),
-      )
-      .first(),
-  ]);
+  const [habits, habitLogs, cardio, recentCardio, todayReadiness] =
+    await Promise.all([
+      ctx.db
+        .query("habits")
+        .withIndex("by_user", (q) => q.eq("userId", settings.userId))
+        .filter((q) => q.eq(q.field("archivedAt"), undefined))
+        .collect(),
+      ctx.db
+        .query("habitLogs")
+        .withIndex("by_user_day", (q) =>
+          q.eq("userId", settings.userId).eq("day", today.day),
+        )
+        .collect(),
+      ctx.db
+        .query("cardioSessions")
+        .withIndex("by_user_day", (q) =>
+          q
+            .eq("userId", settings.userId)
+            .gte("day", monday)
+            .lte("day", localDay),
+        )
+        .take(351),
+      ctx.db
+        .query("cardioSessions")
+        .withIndex("by_user_day", (q) =>
+          q
+            .eq("userId", settings.userId)
+            .gte("day", addDays(monday, -28))
+            .lt("day", monday),
+        )
+        .first(),
+      // Up to a month of history, so only read it when it can change a nudge.
+      inReadinessWindow(today.localMinutes)
+        ? (readiness ?? readinessForCoach(ctx, settings.userId, now, timeZone))
+        : undefined,
+    ]);
   // Only people who do cardio hear about it: something this week or in the four before.
   const cardioUser = cardio.length > 0 || recentCardio !== null;
   return coachSuggestions({
@@ -149,7 +161,7 @@ export async function suggestionsFor(
       proteinTarget: settings.proteinTarget,
     },
     muscles: today.muscles,
-    readiness: today.readiness,
+    readiness: todayReadiness,
     habits: habits.map((habit) => ({
       id: habit._id,
       name: habit.name,
