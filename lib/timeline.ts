@@ -1,4 +1,15 @@
+import type { CardioEffort, CardioKind } from "./cardio";
+
 export type TimelineEvent =
+  | {
+      kind: "cardio";
+      at: number;
+      id: string;
+      activity: CardioKind;
+      effort: CardioEffort;
+      minutes: number;
+      distanceKm: number | null;
+    }
   | { kind: "water"; at: number; ml: number; drinks: number }
   | { kind: "meal"; at: number; id: string; title: string; kcal: number | null }
   | {
@@ -14,12 +25,14 @@ export const DRINK_GAP_MS = 30 * 60_000;
 
 type Sip = { at: number; amountMl: number };
 
-// Newest first: water grouped into sittings, then meals and workouts as-is.
+// Newest first: water grouped into sittings, then meals, workouts, and cardio as-is.
 export function dayTimeline({
   water,
   meals,
   workouts,
+  cardio = [],
 }: {
+  cardio?: Omit<Extract<TimelineEvent, { kind: "cardio" }>, "kind">[];
   water: Sip[];
   meals: { id: string; at: number; title: string; kcal: number | null }[];
   workouts: { id: string; at: number; muscles: string[]; note: string }[];
@@ -41,5 +54,6 @@ export function dayTimeline({
     })),
     ...meals.map((m) => ({ kind: "meal" as const, ...m })),
     ...workouts.map((w) => ({ kind: "workout" as const, ...w })),
+    ...cardio.map((row) => ({ kind: "cardio" as const, ...row })),
   ].sort((a, b) => b.at - a.at);
 }

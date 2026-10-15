@@ -1,3 +1,4 @@
+import { activeMinutes, ACTIVE_MINUTES_GOAL } from "./cardio";
 import { localClock } from "./coach-time";
 import {
   DAY_MS,
@@ -30,6 +31,9 @@ export function weeklySummary(input: HistoryInput) {
   const water = data.water.filter((w) => inWeek(w.at));
   const meals = data.meals.filter((m) => inWeek(m.at));
   const checkins = data.checkins.filter((c) => c.day >= fromDay);
+  const cardio = data.cardio?.filter(
+    (row) => row.day >= fromDay && row.day <= toDay,
+  );
   const sleep = checkins.flatMap((c) =>
     c.sleepHours === undefined ? [] : [c.sleepHours],
   );
@@ -38,6 +42,7 @@ export function weeklySummary(input: HistoryInput) {
     ...water.map((w) => localClock(w.at, data.timeZone).localDay),
     ...meals.map((m) => localClock(m.at, data.timeZone).localDay),
     ...checkins.map((c) => c.day),
+    ...(cardio ?? []).map((row) => row.day),
   ]);
   const avgWaterMl = water.reduce((sum, w) => sum + w.amountMl, 0) / 7;
   const activeHabits = (data.habits ?? []).filter(
@@ -58,6 +63,22 @@ export function weeklySummary(input: HistoryInput) {
     return sum + dayNumber(toDay) - dayNumber(startDay) + 1;
   }, 0);
   return {
+    ...(cardio === undefined
+      ? {}
+      : {
+          cardioSessions: cardio.length,
+          cardioMinutes:
+            Math.round(cardio.reduce((sum, row) => sum + row.minutes, 0) * 10) /
+            10,
+          cardioActiveMinutes:
+            Math.round(
+              cardio.reduce(
+                (sum, row) => sum + activeMinutes(row.minutes, row.effort),
+                0,
+              ) * 10,
+            ) / 10,
+          cardioGoal: ACTIVE_MINUTES_GOAL,
+        }),
     ...(data.habits === undefined ? {} : { habitsDone, habitsPossible }),
     fromDay,
     toDay,
@@ -84,12 +105,16 @@ export function weeklyReviewText(summary: WeeklySummary) {
     summary.avgSleepHours === null
       ? "Sleep not logged"
       : `Sleep ${summary.avgSleepHours.toFixed(1)} h avg`;
+  const cardio =
+    summary.cardioSessions !== undefined && summary.cardioSessions > 0
+      ? ` Cardio ${count(summary.cardioSessions, "session")}, ${Math.round(summary.cardioActiveMinutes ?? 0)} of ${summary.cardioGoal} active min.`
+      : "";
   const habits =
     summary.habitsPossible !== undefined && summary.habitsPossible > 0
       ? ` Habits ${summary.habitsDone}/${summary.habitsPossible} done.`
       : "";
   return {
     title: "Your weekly review",
-    body: `${count(summary.workouts, "workout")} · ${count(summary.totalSets, "set")} · ${count(summary.newPRs, "new PR")}. ${sleep}. Water ${Math.round(summary.avgWaterMl)} / ${summary.waterGoalMl} ml avg (${Math.round(summary.waterGoalPercent)}%). Logged ${summary.daysLogged}/7 days.${habits}`,
+    body: `${count(summary.workouts, "workout")} · ${count(summary.totalSets, "set")} · ${count(summary.newPRs, "new PR")}. ${sleep}. Water ${Math.round(summary.avgWaterMl)} / ${summary.waterGoalMl} ml avg (${Math.round(summary.waterGoalPercent)}%).${cardio} Logged ${summary.daysLogged}/7 days.${habits}`,
   };
 }

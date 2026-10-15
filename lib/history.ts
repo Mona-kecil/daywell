@@ -1,3 +1,4 @@
+import type { CardioEffort } from "./cardio";
 import { localClock } from "./coach-time";
 import { e1rm, type StrengthSet } from "./strength";
 
@@ -61,6 +62,7 @@ export type HistoryInput = {
     energy?: number;
     note?: string;
   }[];
+  cardio?: { day: string; minutes: number; effort: CardioEffort }[];
   habits?: { _id: string; createdAt: number; archivedAt?: number }[];
   habitLogs?: { habitId: string; day: string; _creationTime: number }[];
 };
@@ -80,6 +82,7 @@ export function historyThroughNow(input: HistoryInput): HistoryInput {
   const today = localClock(input.now, input.timeZone).localDay;
   return {
     ...input,
+    cardio: input.cardio?.filter((row) => row.day <= today),
     habitLogs: input.habitLogs?.filter(
       (log) => log.day <= today && log._creationTime <= input.now,
     ),

@@ -376,6 +376,7 @@ describe("cardio week", () => {
     expect(result.sessions).toEqual([
       {
         id: walk,
+        createdAt: NOW + 1,
         kind: "walk",
         effort: "easy",
         day: TODAY,
@@ -388,6 +389,7 @@ describe("cardio week", () => {
       },
       {
         id: ride,
+        createdAt: NOW + 1,
         kind: "ride",
         effort: "moderate",
         day: "2026-10-14",
@@ -400,6 +402,7 @@ describe("cardio week", () => {
       },
       {
         id: run,
+        createdAt: NOW,
         kind: "run",
         effort: "hard",
         day: "2026-10-14",
@@ -412,6 +415,7 @@ describe("cardio week", () => {
       },
       {
         id: monday,
+        createdAt: NOW,
         kind: "run",
         effort: "moderate",
         day: MONDAY,
