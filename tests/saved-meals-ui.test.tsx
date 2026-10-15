@@ -24,6 +24,7 @@ vi.mock("convex/react", () => ({
       return Promise.resolve("meal1");
     };
   },
+  useAction: () => async () => [],
 }));
 
 HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
