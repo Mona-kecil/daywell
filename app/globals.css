@@ -2923,7 +2923,7 @@ h1,
 }
 .manual-macros {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin-top: 8px;
 }
@@ -2933,7 +2933,23 @@ h1,
 .manual-macros input {
   width: 100%;
   margin-top: 3px;
+  padding-inline: 10px;
   font-variant-numeric: tabular-nums;
+}
+.manual-macros input::-webkit-inner-spin-button,
+.manual-macros input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.manual-macros input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+/* Four macro fields can't fit decimals on the narrowest phones. */
+@media (max-width: 374px) {
+  .manual-macros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .capture-card dialog {
   text-align: start;
@@ -6102,15 +6118,15 @@ h1,
   background: var(--green);
   color: var(--surface);
 }
-.saved-meals ul {
+.saved-meals > ul {
   list-style: none;
   padding: 0;
   margin: 4px 0 0;
 }
-.saved-meals li + li {
+.saved-meals > ul > li + li {
   border-top: 1px solid var(--border);
 }
-.saved-meals li button {
+.saved-meals > ul > li > button {
   width: 100%;
   min-height: 56px;
   display: grid;
@@ -6122,7 +6138,7 @@ h1,
   text-align: left;
   color: inherit;
 }
-.saved-meals li button > svg {
+.saved-meals > ul > li > button > svg {
   grid-column: 2;
   grid-row: 1 / span 2;
   color: var(--green);
@@ -6423,4 +6439,11 @@ h1,
 .fasting-card .text-button {
   min-height: 44px;
   white-space: nowrap;
+}
+.saved-new {
+  min-height: 44px;
+  margin-top: 6px;
+}
+.manual-meal .saved-servings {
+  margin-top: 14px;
 }

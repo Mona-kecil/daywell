@@ -239,6 +239,77 @@ describe("saved meals", () => {
     ]);
   });
 
+  it("builds a saved meal from scratch", async () => {
+    render(<SavedMeals />);
+    await userEvent.click(
+      within(card()).getByRole("button", { name: /New saved meal/ }),
+    );
+    const sheet = screen.getByRole("dialog", { name: "New saved meal" });
+    const field = (label: string | RegExp) =>
+      within(sheet).getByLabelText(label);
+    await userEvent.type(field("Name"), "   ");
+    await userEvent.type(field("Food 1 name"), "Oats");
+    await userEvent.clear(field(/^Food 1 grams/));
+    await userEvent.type(field(/^Food 1 grams/), "160");
+    await userEvent.type(field("Food 1 kcal"), "608");
+    await userEvent.type(field("Food 1 Protein g"), "22");
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: "Save meal" }),
+    );
+    expect(within(sheet).getByRole("alert").textContent).toBe(
+      "Give the meal a name.",
+    );
+    expect(state.calls).toEqual([]);
+
+    await userEvent.clear(field("Name"));
+    await userEvent.type(field("Name"), " Oats batch ");
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: "One serving more" }),
+    );
+    expect(
+      within(sheet).getByText(/2 servings of 304 kcal · P 11/),
+    ).toBeTruthy();
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: "Save meal" }),
+    );
+    expect(state.calls).toEqual([
+      [
+        "savedMeals:create",
+        {
+          name: "Oats batch",
+          servings: 2,
+          items: [
+            {
+              name: "Oats",
+              grams: 160,
+              per100g: {
+                kcal: 380,
+                protein: expect.closeTo(13.75, 9),
+                carbs: 0,
+                fat: 0,
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+    expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull();
+
+    cleanup();
+    state.list = Array.from({ length: 60 }, (_, i) => ({
+      ...oats,
+      id: `s${i}`,
+    }));
+    render(<SavedMeals />);
+    expect(
+      (
+        within(card()).getByRole("button", {
+          name: /New saved meal/,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
   it("adds up a shopping list and keeps it on the device", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", {

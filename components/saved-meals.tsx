@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { scaleItems } from "@/lib/saved-meals";
+import { SAVED_MEAL_LIMIT, scaleItems } from "@/lib/saved-meals";
 import { scaleNutrients, sumNutrients, type Macros } from "@/lib/nutrients";
 import { ShoppingBody } from "./shopping";
 import { SectionTitle, Sheet, useTask } from "./ui";
+import { MakesPicker } from "./makes-picker";
+import { ManualBody } from "./meal-add";
 
 type Saved = FunctionReturnType<typeof api.savedMeals.list>[number];
 
@@ -46,6 +48,7 @@ export function SavedMeals() {
   const saved = useQuery(api.savedMeals.list, {});
   const [openId, setOpenId] = useState<Id<"savedMeals"> | null>(null);
   const [shopping, setShopping] = useState(false);
+  const [creating, setCreating] = useState(false);
   if (saved === undefined) return null;
   const open = saved.find((m) => m.id === openId);
   return (
@@ -91,9 +94,27 @@ export function SavedMeals() {
       ) : (
         <p className="muted small saved-empty">
           <BookmarkPlus size={16} aria-hidden /> Open a logged meal below and
-          tap <strong>Save for next time</strong>.
+          tap <strong>Save for next time</strong>, or build one here.
         </p>
       )}
+      <button
+        type="button"
+        className="text-button saved-new"
+        aria-haspopup="dialog"
+        disabled={saved.length >= SAVED_MEAL_LIMIT}
+        onClick={() => setCreating(true)}
+      >
+        <Plus size={16} /> New saved meal
+      </button>
+      <Sheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="New saved meal"
+      >
+        {creating && (
+          <ManualBody mode="save" onDone={() => setCreating(false)} />
+        )}
+      </Sheet>
       <Sheet
         open={shopping}
         onClose={() => setShopping(false)}
@@ -281,36 +302,7 @@ function EditSaved({
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
-      <div className="row spaced saved-servings">
-        <span id="saved-makes">Makes</span>
-        <div
-          className="serving-picker small-picker"
-          role="group"
-          aria-labelledby="saved-makes"
-        >
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="One serving fewer"
-            disabled={servings <= 1}
-            onClick={() => setServings((n) => n - 1)}
-          >
-            <Minus size={18} />
-          </button>
-          <output>
-            {servings} {servings === 1 ? "serving" : "servings"}
-          </output>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="One serving more"
-            disabled={servings >= 20}
-            onClick={() => setServings((n) => n + 1)}
-          >
-            <Plus size={18} />
-          </button>
-        </div>
-      </div>
+      <MakesPicker id="saved-makes" value={servings} onChange={setServings} />
       <p className="muted small">Amounts are for the whole recipe.</p>
       <ul className="saved-foods editable">
         {items.map((item) => (

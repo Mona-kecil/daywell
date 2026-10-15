@@ -12,6 +12,8 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { manualError, manualMealSchema, mealSummary } from "@/lib/manual-meal";
+import { savedMealSchema } from "@/lib/saved-meals";
+import { MakesPicker } from "./makes-picker";
 import { scaleNutrients, sumNutrients, type Macros } from "@/lib/nutrients";
 import { Sheet, timeLabel, useTask } from "./ui";
 
@@ -316,10 +318,21 @@ export function ManualMealSheet({
 }
 
 // People know a portion's label values, so convert them to per-100 g here.
-function ManualBody({ onDone }: { onDone: () => void }) {
-  const addManual = useMutation(api.meals.addManual);
+// In save mode the same form builds a saved meal instead of logging one.
+export function ManualBody({
+  onDone,
+  mode = "log",
+}: {
+  onDone: () => void;
+  mode?: "log" | "save";
+}) {
+  const addManual = useMutation(api.meals.addManual),
+    create = useMutation(api.savedMeals.create),
+    remove = useMutation(api.savedMeals.remove);
   const { run, pending } = useTask();
+  const saving = mode === "save";
   const [description, setDescription] = useState("");
+  const [servings, setServings] = useState(1);
   const [rows, setRows] = useState<Row[]>([blank(0)]);
   const [error, setError] = useState<string | null>(null);
   const update = (key: number, patch: Partial<Row>) =>
@@ -348,6 +361,30 @@ function ManualBody({ onDone }: { onDone: () => void }) {
   );
   const save = (e: FormEvent) => {
     e.preventDefault();
+    if (saving) {
+      const recipe = { name: description.trim(), items, servings };
+      const parsed = savedMealSchema.safeParse(recipe);
+      if (!parsed.success) {
+        const issues = parsed.error.issues;
+        setError(
+          issues.some((i) => i.path[0] === "name")
+            ? "Give the meal a name."
+            : manualError(issues, items),
+        );
+        return;
+      }
+      setError(null);
+      void run(
+        async () => {
+          const id = await create(recipe);
+          onDone();
+          return id;
+        },
+        `Saved ${recipe.name}`,
+        (id) => remove({ id }),
+      );
+      return;
+    }
     const meal = {
       at: Date.now(),
       description: description.trim() || mealSummary(items.map((i) => i.name)),
@@ -370,17 +407,33 @@ function ManualBody({ onDone }: { onDone: () => void }) {
       <p className="muted small">
         Enter each food’s amount and its nutrition for that amount, as on the
         label.
+        {saving &&
+          " For a batch, enter the whole recipe and how many servings it makes."}
       </p>
       <label htmlFor="manual-description">
-        Meal name <span className="muted">(optional)</span>
+        {saving ? (
+          "Name"
+        ) : (
+          <>
+            Meal name <span className="muted">(optional)</span>
+          </>
+        )}
       </label>
       <input
         id="manual-description"
-        maxLength={4000}
-        placeholder="Lunch at the café"
+        required={saving}
+        maxLength={saving ? 80 : 4000}
+        placeholder={saving ? "Overnight oats" : "Lunch at the café"}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+      {saving && (
+        <MakesPicker
+          id="manual-makes"
+          value={servings}
+          onChange={setServings}
+        />
+      )}
       <ol className="manual-items">
         {rows.map((r, i) => (
           <li key={r.key}>
@@ -454,6 +507,18 @@ function ManualBody({ onDone }: { onDone: () => void }) {
       </button>
       <p className="nutrient-line small" aria-live="polite">
         Total: {macroLine(total)}
+        {saving && servings > 1 && (
+          <>
+            <br />
+            {servings} servings of{" "}
+            {macroLine({
+              kcal: total.kcal / servings,
+              protein: total.protein / servings,
+              fat: total.fat / servings,
+              carbs: total.carbs / servings,
+            })}
+          </>
+        )}
       </p>
       {error && (
         <p className="small amber-text" role="alert">
@@ -461,7 +526,7 @@ function ManualBody({ onDone }: { onDone: () => void }) {
         </p>
       )}
       <button className="primary-button full" disabled={pending}>
-        Log meal
+        {saving ? "Save meal" : "Log meal"}
       </button>
     </form>
   );

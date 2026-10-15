@@ -11,6 +11,7 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 - **Readiness** on Today: a 0–100 estimate from last night's sleep, your recent sleep, how you feel, soreness and training load. It never says "Ready to push" while any one factor is weak.
 - **Readiness in the coach**: on a low morning (06:00–14:00, nothing trained yet) the coach suggests taking it easy instead of a workout, and "Ask your coach" knows today's score.
 - **Fasting timer**: Today's meals shows how long ago you last ate. Turn on the timer to track the fast against a 12–20 hour goal, with a ring, the time you'll reach it and a small celebration when you do. Your next logged meal starts it again.
+- **New saved meal**: build a saved meal from scratch in Saved meals. Name it, enter the whole recipe's foods and say how many servings it makes; you'll see each serving's calories and macros before you save.
 - **Shopping list**: from Saved meals, choose how many servings of each meal you'll make. Their foods add up into one list with amounts rounded up, which you can tick off, share or copy. The list stays on your phone.
 - **Saved meals**: tap "Save for next time" on a logged meal to keep its foods and amounts. Log it again from Meals in quarter servings (½, 1, 1½, 2 or any amount up to 10), with the foods and macros scaled before you log. Rename it, change its amounts or how many servings it makes, or delete it.
 - **Steps** on Today: your daily count against a goal (8,000 unless you change it), the week by day, days at goal, streak, 28-day average and best day. Enter steps by hand, or send them from Apple Health with a Shortcut. On evenings when you're within 4,000 of the goal, the coach suggests a walk.
@@ -21,6 +22,7 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 - This month's recap reads as "so far" through its last day.
 - "See habits" on a coach suggestion now scrolls to your habits, and cardio reminders open Train.
 - Insights and readiness no longer jump to tomorrow in the last five minutes before midnight.
+- On narrow phones, the calorie and macro fields in "Enter a meal" wrap to two rows so values like 64.5 are no longer cut off.
 
 ## 2026-10-15
 
