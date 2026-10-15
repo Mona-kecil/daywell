@@ -30,13 +30,15 @@ export async function stepSettings(
   userId: string,
   now?: number,
 ) {
-  let read = ctx.db
+  const rows = await ctx.db
     .query("settings")
-    .withIndex("by_user", (q) => q.eq("userId", userId));
-  if (now !== undefined)
-    read = read.filter((q) => q.lte(q.field("_creationTime"), now));
-  const rows = await read.take(LIMITS.settings + 1);
-  return bounded(rows, LIMITS.settings)[0] ?? null;
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .take(LIMITS.settings + 1);
+  return (
+    bounded(rows, LIMITS.settings).filter(
+      (row) => now === undefined || row._creationTime <= now,
+    )[0] ?? null
+  );
 }
 
 export async function stepDays(
@@ -52,14 +54,10 @@ export async function stepDays(
     .withIndex("by_user_day", (q) =>
       q.eq("userId", userId).gte("day", fromDay).lte("day", toDay),
     )
-    .filter((q) =>
-      q.and(
-        q.lte(q.field("_creationTime"), now),
-        q.lte(q.field("updatedAt"), now),
-      ),
-    )
     .take(limit + 1);
-  return bounded(rows, limit);
+  return bounded(rows, limit).filter(
+    (row) => row._creationTime <= now && row.updatedAt <= now,
+  );
 }
 
 export async function allSteps(ctx: QueryCtx | MutationCtx, userId: string) {

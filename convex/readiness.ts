@@ -44,7 +44,6 @@ export async function loadReadiness(
       .withIndex("by_user_day", (q) =>
         q.eq("userId", userId).gte("day", shiftDay(day, -28)).lte("day", day),
       )
-      .filter((q) => q.lte(q.field("_creationTime"), now))
       .take(LIMITS.checkins + 1),
     ctx.db
       .query("strengthSets")
@@ -54,42 +53,43 @@ export async function loadReadiness(
           .gte("trainedAt", localDayStart(loadFromDay, timeZone))
           .lte("trainedAt", now),
       )
-      .filter((q) => q.lte(q.field("_creationTime"), now))
       .take(LIMITS.sets + 1),
     ctx.db
       .query("cardioSessions")
       .withIndex("by_user_day", (q) =>
         q.eq("userId", userId).gte("day", loadFromDay).lte("day", day),
       )
-      .filter((q) =>
-        q.and(
-          q.lte(q.field("createdAt"), now),
-          q.lte(q.field("_creationTime"), now),
-        ),
-      )
       .take(LIMITS.cardio + 1),
     ctx.db
       .query("muscles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.lte(q.field("_creationTime"), now))
       .take(LIMITS.muscles + 1),
   ]);
+  // Count every indexed row against the cap before excluding post-slot writes.
   const dailyLoad = new Map<string, number>();
-  for (const row of bounded(sets, LIMITS.sets)) {
+  for (const row of bounded(sets, LIMITS.sets).filter(
+    (row) => row._creationTime <= now,
+  )) {
     const setDay = localClock(row.trainedAt, timeZone).localDay;
     dailyLoad.set(setDay, (dailyLoad.get(setDay) ?? 0) + 1);
   }
-  for (const row of bounded(cardio, LIMITS.cardio)) {
+  for (const row of bounded(cardio, LIMITS.cardio).filter(
+    (row) => row.createdAt <= now && row._creationTime <= now,
+  )) {
     dailyLoad.set(
       row.day,
       (dailyLoad.get(row.day) ?? 0) +
         activeMinutes(row.minutes, row.effort) / 10,
     );
   }
-  const groups = bounded(muscles, LIMITS.muscles);
+  const groups = bounded(muscles, LIMITS.muscles).filter(
+    (row) => row._creationTime <= now,
+  );
   return readiness({
     day,
-    checkins: bounded(checkins, LIMITS.checkins),
+    checkins: bounded(checkins, LIMITS.checkins).filter(
+      (row) => row._creationTime <= now,
+    ),
     soreMuscles: groups.filter(
       (row) => row.soreUntil !== undefined && row.soreUntil > now,
     ).length,

@@ -20,6 +20,7 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 
 ### Fixed
 
+- Coach reminders read a hard-bounded amount of history, even with heavily backdated logs.
 - One failing Insights card now shows "Try again" instead of taking down the whole tab.
 - This month's recap reads as "so far" through its last day.
 - "See habits" on a coach suggestion now scrolls to your habits, and cardio reminders open Train.

@@ -77,7 +77,10 @@ export const runUser = internalMutation({
     });
     // One slot: 1 settings + 1 sent + 1,000 water + 300 meals + 50 muscles
     // + 50 last workouts + 200 habits + 400 logs + 351 cardio + 1 recent cardio
-    // + 8 steps + 5,444 readiness = 7,806 documents at the existing history caps.
+    // + 8 steps + 5,444 readiness + 60 saved meals = 7,866 documents.
+    // Readiness: 30 check-ins + 5,001 sets + 401 cardio + 12 muscles = 5,444.
+    // Caps apply before JS filters. A unique() read stops at two on duplicates
+    // and aborts before loading history, so it cannot exceed this budget.
     const due = slots
       .filter((slot) => slot.at >= now - COACH_FRESHNESS_MS)
       .at(-1);
