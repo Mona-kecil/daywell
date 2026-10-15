@@ -1,3 +1,4 @@
+import { activeMinutes, addDays, mondayOf } from "../lib/cardio";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { coachSuggestions } from "../lib/coach";
@@ -77,7 +78,10 @@ export async function suggestionsFor(
   timeZone: string,
 ) {
   const today = await todayDataFor(ctx, settings.userId, now, timeZone);
-  const [habits, habitLogs] = await Promise.all([
+  const { localDay } = localClock(now, timeZone);
+  const weekday = new Date(`${localDay}T00:00:00Z`).getUTCDay() || 7;
+  const monday = mondayOf(localDay);
+  const [habits, habitLogs, cardio, recentCardio] = await Promise.all([
     ctx.db
       .query("habits")
       .withIndex("by_user", (q) => q.eq("userId", settings.userId))
@@ -89,7 +93,24 @@ export async function suggestionsFor(
         q.eq("userId", settings.userId).eq("day", today.day),
       )
       .collect(),
+    ctx.db
+      .query("cardioSessions")
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", settings.userId).gte("day", monday).lte("day", localDay),
+      )
+      .take(351),
+    ctx.db
+      .query("cardioSessions")
+      .withIndex("by_user_day", (q) =>
+        q
+          .eq("userId", settings.userId)
+          .gte("day", addDays(monday, -28))
+          .lt("day", monday),
+      )
+      .first(),
   ]);
+  // Only people who do cardio hear about it: something this week or in the four before.
+  const cardioUser = cardio.length > 0 || recentCardio !== null;
   return coachSuggestions({
     now,
     localMinutes: today.localMinutes,
@@ -109,5 +130,18 @@ export async function suggestionsFor(
       order: habit.order,
     })),
     habitLogs,
+    cardio:
+      cardio.length > 350 || !cardioUser
+        ? undefined
+        : {
+            weekActiveMinutes: cardio.reduce(
+              (sum, row) => sum + activeMinutes(row.minutes, row.effort),
+              0,
+            ),
+            todayMinutes: cardio
+              .filter((row) => row.day === localDay)
+              .reduce((sum, row) => sum + row.minutes, 0),
+            weekday,
+          },
   });
 }

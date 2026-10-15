@@ -12,6 +12,7 @@ export const HISTORY_LIMITS = {
   muscles: 11,
   habits: 1000,
   habitLogs: 10000,
+  cardio: 350,
 };
 
 export function validHistoryClock(now: number, timeZone: string) {
@@ -49,6 +50,7 @@ export async function historyFor(
     checkins,
     habits,
     habitLogs,
+    cardio,
   ] = await Promise.all([
     ctx.db
       .query("settings")
@@ -92,6 +94,14 @@ export async function historyFor(
         q.eq("userId", userId).gte("day", fromDay).lte("day", today),
       )
       .take(HISTORY_LIMITS.habitLogs + 1),
+    mode === "weekly"
+      ? ctx.db
+          .query("cardioSessions")
+          .withIndex("by_user_day", (q) =>
+            q.eq("userId", userId).gte("day", fromDay).lte("day", today),
+          )
+          .take(HISTORY_LIMITS.cardio + 1)
+      : undefined,
   ]);
   for (const [length, limit] of [
     [workouts.length, HISTORY_LIMITS.workouts],
@@ -101,6 +111,7 @@ export async function historyFor(
     [muscles.length, HISTORY_LIMITS.muscles],
     [habits.length, HISTORY_LIMITS.habits],
     [habitLogs.length, HISTORY_LIMITS.habitLogs],
+    [cardio?.length ?? 0, HISTORY_LIMITS.cardio],
   ])
     if (length > limit) throw new ConvexError("History exceeds review limits.");
   return {
@@ -114,5 +125,14 @@ export async function historyFor(
     checkins,
     habits,
     habitLogs,
+    ...(cardio === undefined
+      ? {}
+      : {
+          cardio: cardio.map(({ day, minutes, effort }) => ({
+            day,
+            minutes,
+            effort,
+          })),
+        }),
   };
 }

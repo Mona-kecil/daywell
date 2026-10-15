@@ -1,3 +1,4 @@
+import { ACTIVE_MINUTES_GOAL } from "./cardio";
 import { readyAt } from "./forecast";
 import { localClock } from "./coach-time";
 import { recovery } from "./recovery";
@@ -11,7 +12,7 @@ export const PROTEIN_FOODS = [
 ];
 export type Suggestion = {
   id: string;
-  kind: "water" | "food" | "train" | "rest" | "habit";
+  kind: "water" | "food" | "train" | "rest" | "habit" | "cardio";
   priority: 1 | 2 | 3;
   title: string;
   body: string;
@@ -25,6 +26,7 @@ export type CoachInput = {
   macros: Macros;
   targets: { kcalTarget?: number; proteinTarget?: number };
   mealCount: number;
+  cardio?: { weekActiveMinutes: number; todayMinutes: number; weekday: number };
   habits?: {
     id: string;
     name: string;
@@ -160,6 +162,27 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
         priority: 3,
         title: `${remaining.length} ${remaining.length === 1 ? "habit" : "habits"} left today`,
         body: `${names.join(", ")}.`,
+      });
+    }
+  }
+  if (
+    localMinutes >= 17 * 60 &&
+    input.cardio &&
+    input.cardio.todayMinutes === 0
+  ) {
+    const { weekActiveMinutes, weekday } = input.cardio;
+    const paceTarget = Math.round((ACTIVE_MINUTES_GOAL * weekday) / 7);
+    if (weekActiveMinutes < paceTarget) {
+      const minutes = Math.min(
+        45,
+        Math.max(10, Math.ceil((paceTarget - weekActiveMinutes) / 5) * 5),
+      );
+      suggestions.push({
+        id: "today:cardio",
+        kind: "cardio",
+        priority: 3,
+        title: `${Math.round(weekActiveMinutes)} of ${ACTIVE_MINUTES_GOAL} active minutes`,
+        body: `A ${minutes}-minute brisk walk tonight gets you back on pace for the week.`,
       });
     }
   }

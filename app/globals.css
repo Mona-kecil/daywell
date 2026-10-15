@@ -3009,6 +3009,12 @@ h1,
   border-radius: 99px;
   background: var(--blue);
 }
+.week-cardio {
+  margin-top: 14px;
+}
+.week-cardio .week-water-track span {
+  background: var(--frequency);
+}
 /* Achievements */
 .badge-grid {
   display: grid;
@@ -3177,6 +3183,10 @@ h1,
 .day-timeline li.workout {
   --tone: var(--green);
   --tone-soft: var(--green-soft);
+}
+.day-timeline li.cardio {
+  --tone: var(--frequency);
+  --tone-soft: color-mix(in srgb, var(--frequency) 14%, var(--surface));
 }
 .timeline-text {
   display: flex;

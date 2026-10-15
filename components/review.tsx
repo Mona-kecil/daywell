@@ -7,6 +7,7 @@ import {
   Check,
   Droplet,
   Droplets,
+  Footprints,
   Dumbbell,
   HeartPulse,
   Layers,
@@ -59,6 +60,10 @@ export function WeeklyReview({ now }: { now: number }) {
   const [playing, setPlaying] = useState(false);
   if (!review) return null;
   const water = Math.min(100, review.waterGoalPercent);
+  const cardioPercent = Math.min(
+    100,
+    ((review.cardioActiveMinutes ?? 0) / (review.cardioGoal ?? 150)) * 100,
+  );
   return (
     <section className="card weekly-review" aria-labelledby="week-title">
       <SectionTitle
@@ -130,6 +135,31 @@ export function WeeklyReview({ now }: { now: number }) {
           <span style={{ width: `${water}%` }} />
         </div>
       </div>
+      {!!review.cardioSessions && (
+        <div className="week-water week-cardio">
+          <div className="row spaced small">
+            <span>
+              <Footprints size={15} aria-hidden /> Cardio{" "}
+              {review.cardioSessions}{" "}
+              {review.cardioSessions === 1 ? "session" : "sessions"}
+            </span>
+            <strong>
+              {whole(review.cardioActiveMinutes ?? 0)} of {review.cardioGoal}{" "}
+              active min
+            </strong>
+          </div>
+          <div
+            className="week-water-track"
+            role="meter"
+            aria-label="Active cardio minutes against the weekly goal"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(cardioPercent)}
+          >
+            <span style={{ width: `${cardioPercent}%` }} />
+          </div>
+        </div>
+      )}
       <button
         type="button"
         className="soft-button week-play"

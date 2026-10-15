@@ -191,6 +191,7 @@ export const week = query({
         const p = pace(row.kind, row.distanceKm ?? null, row.minutes);
         return {
           id: row._id,
+          createdAt: row.createdAt,
           kind: row.kind,
           effort: row.effort,
           day: row.day,
