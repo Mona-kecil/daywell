@@ -22,14 +22,19 @@ import {
   type MealItem,
   type Macros,
 } from "@/lib/nutrients";
-import { AddMealOptions, RecentMeals } from "./meal-add";
+import {
+  AddMealOptions,
+  FoodMatches,
+  RecentMeals,
+  type FoodHit,
+} from "./meal-add";
 import { CloseTheGap } from "./gap";
 import { PhotoWall } from "./photo-wall";
 import { SaveMealButton, SavedMeals } from "./saved-meals";
 import { MacroSummary } from "./today";
 import { Empty, SectionTitle, useTask, timeLabel } from "./ui";
 type Meal = FunctionReturnType<typeof api.meals.today>[number];
-function FoodItem({
+export function FoodItem({
   item,
   mealId,
   disabled,
@@ -40,9 +45,20 @@ function FoodItem({
 }) {
   const setGrams = useMutation(api.meals.setGrams),
     remove = useMutation(api.meals.removeItem);
-  const research = useAction(api.mealActions.research);
+  const find = useAction(api.food.search),
+    pick = useAction(api.mealActions.pickMatch);
   const [searching, setSearching] = useState(false);
+  const [matches, setMatches] = useState<{
+    query: string;
+    hits: FoodHit[];
+  } | null>(null);
   const { run, pending } = useTask();
+  const choose = (query: string, hit: FoodHit) =>
+    run(async () => {
+      await pick({ id: mealId, itemId: item.id, query, fdcId: hit.fdcId });
+      setSearching(false);
+      setMatches(null);
+    }, `Matched ${item.name}`);
   const nutrients =
     item.status === "matched" ? scaleNutrients(item.per100g, item.grams) : null;
   return (
@@ -126,7 +142,10 @@ function FoodItem({
       <button
         className="text-button"
         disabled={disabled || pending}
-        onClick={() => setSearching(!searching)}
+        onClick={() => {
+          setSearching(!searching);
+          setMatches(null);
+        }}
         aria-expanded={searching}
       >
         <Search size={15} />
@@ -134,21 +153,14 @@ function FoodItem({
       </button>
       {searching && (
         <form
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
-            const data = new FormData(e.currentTarget);
-            if (
-              await run(
-                () =>
-                  research({
-                    id: mealId,
-                    itemId: item.id,
-                    query: String(data.get("query")),
-                  }),
-                "Food search finished",
-              )
-            )
-              setSearching(false);
+            const query = String(new FormData(e.currentTarget).get("query"))
+              .trim()
+              .replace(/\s+/g, " ");
+            void run(async () =>
+              setMatches({ query, hits: await find({ query }) }),
+            );
           }}
         >
           <label htmlFor={`query-${mealId}-${item.id}`}>
@@ -157,8 +169,9 @@ function FoodItem({
           <input
             id={`query-${mealId}-${item.id}`}
             name="query"
-            defaultValue={item.searchQuery}
-            maxLength={200}
+            defaultValue={item.searchQuery.slice(0, 80)}
+            minLength={2}
+            maxLength={80}
             required
             disabled={disabled}
           />
@@ -169,6 +182,15 @@ function FoodItem({
             {pending ? "Searching…" : "Search USDA"}
           </button>
         </form>
+      )}
+      {searching && matches && (
+        <FoodMatches
+          label={`USDA matches for ${item.name}`}
+          query={matches.query}
+          hits={matches.hits}
+          onPick={(hit) => void choose(matches.query, hit)}
+          onClose={() => setMatches(null)}
+        />
       )}
     </div>
   );

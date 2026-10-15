@@ -18,7 +18,7 @@ import { scaleNutrients, sumNutrients, type Macros } from "@/lib/nutrients";
 import { Sheet, timeLabel, useTask } from "./ui";
 
 type Product = NonNullable<FunctionReturnType<typeof api.food.lookupBarcode>>;
-type FoodHit = FunctionReturnType<typeof api.food.search>[number];
+export type FoodHit = FunctionReturnType<typeof api.food.search>[number];
 
 const whole = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -638,7 +638,7 @@ export function AddMealOptions() {
   );
 }
 
-function FoodMatches({
+export function FoodMatches({
   label,
   query,
   hits,

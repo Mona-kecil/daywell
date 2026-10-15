@@ -2931,7 +2931,7 @@ h1,
   white-space: nowrap;
 }
 .food-matches {
-  margin: 0 0 8px;
+  margin: 8px 0;
 }
 .food-matches > ul {
   list-style: none;
