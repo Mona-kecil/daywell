@@ -83,6 +83,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   );
 }
 export const useToast = () => useContext(Feedback);
+// Smooth scrolling unless the person asked for less motion.
+export const scrollMotion = (): ScrollBehavior =>
+  matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+
 export function useTask() {
   const notify = useContext(Feedback);
   const [pending, setPending] = useState(false);

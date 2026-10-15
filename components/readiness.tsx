@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import type { Readiness } from "@/lib/readiness";
 import { deviceTimeZone } from "./coach";
 import { settledNow, useLatest } from "./review";
-import { SectionTitle } from "./ui";
+import { SectionTitle, scrollMotion } from "./ui";
 
 type Factor = Readiness["components"][number];
 
@@ -77,7 +77,7 @@ const FACTORS: Record<
 // The check-in card on Today carries id="checkin".
 function focusCheckin(selector: string) {
   const field = document.querySelector<HTMLElement>(`#checkin ${selector}`);
-  field?.scrollIntoView({ behavior: "smooth", block: "center" });
+  field?.scrollIntoView({ behavior: scrollMotion(), block: "center" });
   field?.focus({ preventScroll: true });
 }
 
@@ -113,7 +113,11 @@ export function ReadinessCard({ now }: { now: number }) {
   if (!data) return null;
   const band = data.band && BANDS[data.band];
   return (
-    <section className="card readiness-card" aria-labelledby="readiness-title">
+    <section
+      id="readiness"
+      className="card readiness-card"
+      aria-labelledby="readiness-title"
+    >
       <SectionTitle
         title="Readiness"
         id="readiness-title"

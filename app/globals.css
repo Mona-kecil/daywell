@@ -4636,6 +4636,12 @@ h1,
   }
 }
 /* Readiness */
+/* Coach nudges scroll these into view; keep them clear of the status bar. */
+#readiness,
+#habits {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 16px);
+}
+
 .readiness-head {
   display: flex;
   align-items: center;

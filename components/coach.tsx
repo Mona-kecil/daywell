@@ -29,7 +29,7 @@ import type { Suggestion } from "@/lib/coach";
 import { dayKey } from "@/lib/insights";
 import { CoachChatSheet } from "./coach-chat";
 import { ShortcutsSettings } from "./shortcuts";
-import { Sheet, useTask } from "./ui";
+import { Sheet, scrollMotion, useTask } from "./ui";
 import type { Tab } from "./tracker";
 
 export const deviceTimeZone = () =>
@@ -40,12 +40,25 @@ const KIND = {
   food: { Icon: Utensils, tone: "amber", tab: "meals", cta: "Log a meal" },
   train: { Icon: Dumbbell, tone: "green", tab: "train", cta: "Log workout" },
   rest: { Icon: Moon, tone: "green", tab: "train", cta: "See recovery" },
-  habit: { Icon: ListChecks, tone: "green", tab: "today", cta: "See habits" },
-  readiness: { Icon: Gauge, tone: "blue", tab: "today", cta: "See readiness" },
+  habit: {
+    Icon: ListChecks,
+    tone: "green",
+    tab: "today",
+    cta: "See habits",
+    card: "habits",
+  },
+  readiness: {
+    Icon: Gauge,
+    tone: "blue",
+    tab: "today",
+    cta: "See readiness",
+    card: "readiness",
+  },
   cardio: { Icon: Footprints, tone: "green", tab: "train", cta: "Log cardio" },
 } satisfies Record<
   Suggestion["kind"],
-  { Icon: typeof Droplets; tone: string; tab: Tab; cta: string }
+  // card: the section on Today to scroll to, since the coach is already there.
+  { Icon: typeof Droplets; tone: string; tab: Tab; cta: string; card?: string }
 >;
 
 export function CoachCard({
@@ -86,13 +99,21 @@ export function CoachCard({
       ) : (
         <ol className="coach-list">
           {suggestions.map((s) => {
-            const { Icon, tone, tab, cta } = KIND[s.kind];
+            const kind = KIND[s.kind];
+            const { Icon, tone, tab, cta } = kind;
+            const card = "card" in kind ? kind.card : undefined;
             return (
               <li key={s.id}>
                 <button
                   type="button"
                   className="coach-item"
-                  onClick={() => onTab(tab)}
+                  onClick={() => {
+                    onTab(tab);
+                    if (card)
+                      document
+                        .getElementById(card)
+                        ?.scrollIntoView({ behavior: scrollMotion() });
+                  }}
                 >
                   <span className={`icon-tile small-tile ${tone}`}>
                     <Icon size={18} />

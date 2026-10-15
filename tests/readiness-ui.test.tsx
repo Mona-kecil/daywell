@@ -38,8 +38,12 @@ const full: Readiness = {
 
 beforeEach(() => {
   mocks.data = full;
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("readiness card", () => {
   it("shows the score, the band and every factor, biggest drag first", () => {

@@ -7,7 +7,13 @@ self.addEventListener("push", (event) => {
   }
   if (!data || typeof data.title !== "string" || typeof data.body !== "string")
     return;
-  const tabs = { water: "water", food: "meals", train: "train", rest: "train" };
+  const tabs = {
+    water: "water",
+    food: "meals",
+    train: "train",
+    rest: "train",
+    cardio: "train",
+  };
   const tab = tabs[data.kind];
   event.waitUntil(
     self.registration.showNotification(data.title, {

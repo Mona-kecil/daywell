@@ -108,7 +108,11 @@ function HabitsBody({ habits, today }: { habits: Habit[]; today: string }) {
   const celebrations = useCrossing(allDone);
 
   return (
-    <section className="card habits-card" aria-labelledby="habits-title">
+    <section
+      id="habits"
+      className="card habits-card"
+      aria-labelledby="habits-title"
+    >
       <SectionTitle
         id="habits-title"
         title="Daily habits"
