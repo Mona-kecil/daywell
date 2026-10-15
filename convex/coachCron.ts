@@ -5,6 +5,9 @@ import { dueSlots } from "../lib/coach-time";
 import { DEFAULT_CHECK_INS, inReadinessWindow } from "../lib/coach";
 import { readinessForCoach, suggestionsFor } from "./coachData";
 
+export const COACH_FANOUT_PAGE = 200;
+export const COACH_FRESHNESS_MS = 2 * 3_600_000;
+
 export const run = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -15,13 +18,18 @@ export const run = internalMutation({
       .unique();
     const since = cursor?.lastRunAt ?? now - 15 * 60_000;
     // Drain a long outage in daily batches instead of exceeding a mutation's execution limit.
-    const until = Math.min(now, since + 24 * 3_600_000);
+    const until = cursor?.pageCursor
+      ? (cursor.windowUntil ?? Math.min(now, since + 24 * 3_600_000))
+      : Math.min(now, since + 24 * 3_600_000);
     if (until <= since) return;
     const users = await ctx.db
       .query("settings")
       .withIndex("by_reminders", (q) => q.eq("remindersEnabled", true))
-      .collect();
-    for (const settings of users) {
+      .paginate({
+        numItems: COACH_FANOUT_PAGE,
+        cursor: cursor?.pageCursor ?? null,
+      });
+    for (const settings of users.page) {
       if (!settings.timeZone) continue;
       const slots = dueSlots({
         since,
@@ -36,9 +44,19 @@ export const run = internalMutation({
         until,
       });
     }
-    if (cursor) await ctx.db.patch(cursor._id, { lastRunAt: until });
-    else
-      await ctx.db.insert("coachRuns", { key: "check-ins", lastRunAt: until });
+    // Every invocation writes this document, so OCC serializes cron/continuation races.
+    // The page's schedules and cursor update commit in the same transaction.
+    const progress = users.isDone
+      ? { lastRunAt: until, windowUntil: undefined, pageCursor: undefined }
+      : {
+          lastRunAt: since,
+          windowUntil: until,
+          pageCursor: users.continueCursor,
+        };
+    if (cursor) await ctx.db.patch(cursor._id, progress);
+    else await ctx.db.insert("coachRuns", { key: "check-ins", ...progress });
+    if (!users.isDone)
+      await ctx.scheduler.runAfter(0, internal.coachCron.run, {});
   },
 });
 
@@ -57,49 +75,46 @@ export const runUser = internalMutation({
       timeZone: settings.timeZone,
       checkIns: settings.checkIns ?? DEFAULT_CHECK_INS,
     });
-    let readiness: ReturnType<typeof readinessForCoach> | undefined;
-    for (const due of slots) {
-      const existing = await ctx.db
-        .query("coachSent")
-        .withIndex("by_user_day_slot", (q) =>
-          q
-            .eq("userId", userId)
-            .eq("localDay", due.localDay)
-            .eq("slot", due.slot),
-        )
-        .unique();
-      if (existing) continue;
-      // Reuse the first in-window estimate throughout this user's outage batch.
-      if (inReadinessWindow(due.localMinutes))
-        readiness ??= readinessForCoach(ctx, userId, due.at, settings.timeZone);
-      const top = (
-        await suggestionsFor(
-          ctx,
-          settings,
-          due.at,
-          settings.timeZone,
-          readiness,
-        )
-      )[0];
-      if (!top) continue;
-      const sentId = await ctx.db.insert("coachSent", {
-        userId,
-        localDay: due.localDay,
-        slot: due.slot,
-        createdAt: now,
-        delivery: {
-          status: "pending",
-          payload: {
-            title: top.title,
-            body: top.body,
-            kind: top.kind,
-            slot: `${due.localDay}/${due.slot}`,
-          },
+    // One slot: 1 settings + 1 sent + 1,000 water + 300 meals + 50 muscles
+    // + 50 last workouts + 200 habits + 400 logs + 351 cardio + 1 recent cardio
+    // + 8 steps + 5,444 readiness = 7,806 documents at the existing history caps.
+    const due = slots
+      .filter((slot) => slot.at >= now - COACH_FRESHNESS_MS)
+      .at(-1);
+    if (!due) return;
+    const existing = await ctx.db
+      .query("coachSent")
+      .withIndex("by_user_day_slot", (q) =>
+        q
+          .eq("userId", userId)
+          .eq("localDay", due.localDay)
+          .eq("slot", due.slot),
+      )
+      .unique();
+    // A retry must not backfill an older slot after the latest one was sent.
+    if (existing) return;
+    const readiness = inReadinessWindow(due.localMinutes)
+      ? readinessForCoach(ctx, userId, due.at, settings.timeZone)
+      : undefined;
+    const top = (
+      await suggestionsFor(ctx, settings, due.at, settings.timeZone, readiness)
+    )[0];
+    if (!top) return;
+    const sentId = await ctx.db.insert("coachSent", {
+      userId,
+      localDay: due.localDay,
+      slot: due.slot,
+      createdAt: now,
+      delivery: {
+        status: "pending",
+        payload: {
+          title: top.title,
+          body: top.body,
+          kind: top.kind,
+          slot: `${due.localDay}/${due.slot}`,
         },
-      });
-      await ctx.scheduler.runAfter(0, internal.pushActions.deliver, {
-        sentId,
-      });
-    }
+      },
+    });
+    await ctx.scheduler.runAfter(0, internal.pushActions.deliver, { sentId });
   },
 });

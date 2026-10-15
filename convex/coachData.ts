@@ -13,6 +13,12 @@ import { localClock } from "../lib/coach-time";
 import { mealTotals, sumNutrients } from "../lib/nutrients";
 import { loadReadiness, READINESS_LIMIT_MESSAGE } from "./readiness";
 
+export const COACH_WATER_LIMIT = 1_000;
+export const COACH_MEAL_LIMIT = 300;
+export const COACH_HABIT_LIMIT = 200;
+export const COACH_HABIT_LOG_LIMIT = 400;
+export const COACH_MUSCLE_LIMIT = 50;
+
 export async function readinessForCoach(
   ctx: QueryCtx | MutationCtx,
   userId: string,
@@ -43,23 +49,26 @@ export async function todayDataFor(
   const { localDay, localMinutes } = localClock(now, timeZone);
   // A civil day can span 25 hours during a DST fold. Include an extra hour for historical offsets.
   const start = Math.max(0, now - 26 * 3_600_000);
+  // Caps keep the first N indexed rows. Heavy water days sum only those rows
+  // in the 26-hour window; water and meal totals can undercount the local day.
+  // Muscle suggestions consider only the first COACH_MUSCLE_LIMIT groups.
   const [water, meals, groups] = await Promise.all([
     ctx.db
       .query("water")
       .withIndex("by_user_time", (q) =>
         q.eq("userId", userId).gte("at", start).lte("at", now),
       )
-      .collect(),
+      .take(COACH_WATER_LIMIT),
     ctx.db
       .query("meals")
       .withIndex("by_user_time", (q) =>
         q.eq("userId", userId).gte("at", start).lte("at", now),
       )
-      .collect(),
+      .take(COACH_MEAL_LIMIT),
     ctx.db
       .query("muscles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect(),
+      .take(COACH_MUSCLE_LIMIT),
   ]);
   const todayMeals = meals.filter(
     (m) => localClock(m.at, timeZone).localDay === localDay,
@@ -117,14 +126,14 @@ export async function suggestionsFor(
       ctx.db
         .query("habits")
         .withIndex("by_user", (q) => q.eq("userId", settings.userId))
-        .filter((q) => q.eq(q.field("archivedAt"), undefined))
-        .collect(),
+        // Cap before filtering so archived habits also count against the scan budget.
+        .take(COACH_HABIT_LIMIT),
       ctx.db
         .query("habitLogs")
         .withIndex("by_user_day", (q) =>
           q.eq("userId", settings.userId).eq("day", today.day),
         )
-        .collect(),
+        .take(COACH_HABIT_LOG_LIMIT),
       ctx.db
         .query("cardioSessions")
         .withIndex("by_user_day", (q) =>
@@ -170,11 +179,14 @@ export async function suggestionsFor(
       goal: settings.stepGoal ?? DEFAULT_STEP_GOAL,
       recentDays: new Set(steps.map((row) => row.day)).size,
     },
-    habits: habits.map((habit) => ({
-      id: habit._id,
-      name: habit.name,
-      order: habit.order,
-    })),
+    // Caps can omit active habits or completion logs beyond the first N rows.
+    habits: habits
+      .filter((habit) => habit.archivedAt === undefined)
+      .map((habit) => ({
+        id: habit._id,
+        name: habit.name,
+        order: habit.order,
+      })),
     habitLogs,
     cardio:
       cardio.length > 350 || !cardioUser

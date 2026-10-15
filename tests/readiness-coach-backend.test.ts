@@ -3,7 +3,12 @@ import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
 import { api, internal } from "../convex/_generated/api";
-import { readinessForCoach, todayDataFor } from "../convex/coachData";
+import {
+  COACH_WATER_LIMIT,
+  readinessForCoach,
+  todayDataFor,
+} from "../convex/coachData";
+import { COACH_FANOUT_PAGE, COACH_FRESHNESS_MS } from "../convex/coachCron";
 import * as readinessBackend from "../convex/readiness";
 import { buildCoachSnapshot, type CoachSnapshotInput } from "../lib/coach-chat";
 
@@ -201,6 +206,237 @@ describe("readiness coach backend", () => {
     expect(load).not.toHaveBeenCalled();
   });
 
+  it("T1 pages fan-out, advances the cursor on the last page and sends once", async () => {
+    const { t } = setup();
+    const at = Date.parse("2026-10-15T03:01Z");
+    const since = at - 15 * 60_000;
+    expect(COACH_FANOUT_PAGE).toBe(200);
+    vi.setSystemTime(at);
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 405; i++)
+        await ctx.db.insert("settings", {
+          userId: `user-${i}`,
+          waterGoal: 2500,
+          timeZone,
+          remindersEnabled: true,
+          checkIns: ["10:00"],
+        });
+      await ctx.db.insert("coachRuns", { key: "check-ins", lastRunAt: since });
+    });
+    for (let page = 0; page < 2; page++) {
+      const before = await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      );
+      await t.mutation(internal.coachCron.run, {});
+      const jobs = await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      );
+      const added = jobs.filter(
+        (job) => !before.some((old) => old._id === job._id),
+      );
+      expect(added.length).toBeLessThanOrEqual(201);
+      expect(
+        added.filter((job) => job.name === "coachCron:runUser"),
+      ).toHaveLength(200);
+      expect(added.filter((job) => job.name === "coachCron:run")).toHaveLength(
+        1,
+      );
+      expect(
+        await t.run((ctx) => ctx.db.query("coachRuns").unique()),
+      ).toMatchObject({
+        lastRunAt: since,
+        windowUntil: at,
+        pageCursor: expect.any(String),
+      });
+    }
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    const cursor = await t.run((ctx) => ctx.db.query("coachRuns").unique());
+    expect(cursor).toMatchObject({ lastRunAt: at });
+    expect(cursor).not.toHaveProperty("windowUntil");
+    expect(cursor).not.toHaveProperty("pageCursor");
+    const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+    expect(sent).toHaveLength(405);
+    expect(new Set(sent.map((row) => row.userId)).size).toBe(405);
+    expect(
+      sent.every((row) => row.localDay === day && row.slot === "10:00"),
+    ).toBe(true);
+    await t.mutation(internal.coachCron.run, {});
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect(
+      await t.run((ctx) => ctx.db.query("coachSent").collect()),
+    ).toHaveLength(405);
+    expect(
+      await t.run((ctx) =>
+        ctx.db.system.query("_scheduled_functions").collect(),
+      ),
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ state: { kind: "failed" } }),
+      ]),
+    );
+  });
+
+  it.each([false, true])(
+    "T2 sends only the latest fresh outage slot (already sent: %s)",
+    async (alreadySent) => {
+      const { t } = setup();
+      const at = Date.parse("2026-10-15T23:30Z");
+      vi.setSystemTime(at);
+      await t.run(async (ctx) => {
+        await ctx.db.insert("settings", {
+          userId: "alice",
+          waterGoal: 2500,
+          timeZone: "UTC",
+          remindersEnabled: true,
+          checkIns: Array.from(
+            { length: 24 },
+            (_, hour) => `${String(hour).padStart(2, "0")}:00`,
+          ),
+        });
+        await ctx.db.insert("muscles", {
+          userId: "alice",
+          name: "back",
+          cooldownHours: 24,
+        });
+        if (alreadySent)
+          await ctx.db.insert("coachSent", {
+            userId: "alice",
+            localDay: day,
+            slot: "23:00",
+            createdAt: at,
+            delivery: { status: "attempted", at },
+          });
+      });
+      await t.mutation(internal.coachCron.runUser, {
+        userId: "alice",
+        since: at - 24 * 3_600_000,
+        until: at,
+      });
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+      const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+      expect(sent).toMatchObject([
+        { userId: "alice", localDay: day, slot: "23:00" },
+      ]);
+    },
+  );
+
+  it.each([0, 1])(
+    "T2 keeps the two-hour freshness boundary (%s ms past)",
+    async (past) => {
+      const { t } = setup();
+      const slotAt = Date.parse("2026-10-15T10:00Z");
+      vi.setSystemTime(slotAt + COACH_FRESHNESS_MS + past);
+      await t.run((ctx) =>
+        ctx.db.insert("settings", {
+          userId: "alice",
+          waterGoal: 2500,
+          timeZone: "UTC",
+          remindersEnabled: true,
+          checkIns: ["10:00"],
+        }),
+      );
+      await t.mutation(internal.coachCron.runUser, {
+        userId: "alice",
+        since: slotAt - 60_000,
+        until: slotAt,
+      });
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+      expect(
+        await t.run((ctx) => ctx.db.query("coachSent").collect()),
+      ).toHaveLength(past === 0 ? 1 : 0);
+    },
+  );
+
+  it("keeps a pending page's window fixed when the next cron fires", async () => {
+    const { t } = setup();
+    const at = Date.parse("2026-10-15T03:01Z");
+    const later = at + 15 * 60_000;
+    vi.setSystemTime(at);
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 205; i++)
+        await ctx.db.insert("settings", {
+          userId: `user-${i}`,
+          waterGoal: 2500,
+          timeZone,
+          remindersEnabled: true,
+          checkIns: ["10:00", "10:15"],
+        });
+    });
+    await t.mutation(internal.coachCron.run, {});
+    vi.setSystemTime(later);
+    // Interleave a cron before the queued continuation. It must finish the old window.
+    await t.mutation(internal.coachCron.run, {});
+    expect(
+      await t.run((ctx) => ctx.db.query("coachRuns").unique()),
+    ).toMatchObject({ lastRunAt: at });
+    const jobs = await t.run((ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const users = jobs.filter((job) => job.name === "coachCron:runUser");
+    expect(users).toHaveLength(205);
+    expect(users.every((job) => job.args[0].until === at)).toBe(true);
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+    for (const slot of ["10:00", "10:15"])
+      expect(sent.filter((row) => row.slot === slot)).toHaveLength(205);
+    expect(new Set(sent.map((row) => `${row.userId}/${row.slot}`)).size).toBe(
+      410,
+    );
+    expect(
+      await t.run((ctx) => ctx.db.query("coachRuns").unique()),
+    ).toMatchObject({ lastRunAt: later });
+  });
+
+  it("T3 caps a 1,500-row water day and runs the user's outage batch", async () => {
+    const { t } = setup();
+    const at = Date.parse("2026-10-15T20:30Z");
+    vi.setSystemTime(at - 60_000);
+    await t.run((ctx) =>
+      ctx.db.insert("settings", {
+        userId: "alice",
+        waterGoal: 5000,
+        timeZone: "UTC",
+        remindersEnabled: true,
+        checkIns: Array.from(
+          { length: 24 },
+          (_, hour) => `${String(hour).padStart(2, "0")}:00`,
+        ),
+      }),
+    );
+    for (let batch = 0; batch < 3; batch++)
+      await t.run(async (ctx) => {
+        for (let i = 0; i < 500; i++)
+          await ctx.db.insert("water", {
+            userId: "alice",
+            amountMl: 1,
+            at: at - 3_600_000 + batch * 500 + i,
+          });
+      });
+    vi.setSystemTime(at);
+    expect(
+      (await t.run((ctx) => todayDataFor(ctx, "alice", at, "UTC"))).waterMl,
+    ).toBe(COACH_WATER_LIMIT);
+    await expect(
+      t.mutation(internal.coachCron.runUser, {
+        userId: "alice",
+        since: at - 24 * 3_600_000,
+        until: at,
+      }),
+    ).resolves.not.toThrow();
+    const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      slot: "20:00",
+      delivery: {
+        payload: {
+          kind: "water",
+          body: `You have logged ${COACH_WATER_LIMIT} of 5000 ml today.`,
+        },
+      },
+    });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  });
+
   it("fans out two reminder users without loading history in the parent cron", async () => {
     const { t } = setup();
     const at = Date.parse("2026-10-15T03:01Z");
@@ -253,7 +489,7 @@ describe("readiness coach backend", () => {
   });
 
   it.each([false, true])(
-    "loads readiness once for three outage slots, including limit degradation (%s)",
+    "loads readiness for the latest fresh outage slot, including limit degradation (%s)",
     async (overflow) => {
       const { t } = setup();
       await seed(t);
@@ -298,19 +534,21 @@ describe("readiness coach backend", () => {
       await t.finishAllScheduledFunctions(() => vi.runAllTimers());
 
       expect(load).toHaveBeenCalledTimes(1);
-      expect(load.mock.calls[0].slice(1)).toEqual(["alice", now, timeZone]);
+      expect(load.mock.calls[0].slice(1)).toEqual([
+        "alice",
+        Date.parse("2026-10-15T06:59Z"),
+        timeZone,
+      ]);
       const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
-      expect(sent).toHaveLength(3);
+      expect(sent).toHaveLength(1);
       expect(sent.map((row) => [row.userId, row.localDay, row.slot])).toEqual([
-        ["alice", day, "06:30"],
-        ["alice", day, "09:00"],
         ["alice", day, "13:59"],
       ]);
       expect(sent.every((row) => row.createdAt === at)).toBe(true);
       const deliveries = await t.run((ctx) =>
         ctx.db.query("pushDeliveries").collect(),
       );
-      expect(deliveries).toHaveLength(3);
+      expect(deliveries).toHaveLength(1);
       expect(
         deliveries.every(
           (row) => row.payload.kind === (overflow ? "train" : "readiness"),
@@ -326,10 +564,10 @@ describe("readiness coach backend", () => {
       expect(load).toHaveBeenCalledTimes(1);
       expect(
         await t.run((ctx) => ctx.db.query("coachSent").collect()),
-      ).toHaveLength(3);
+      ).toHaveLength(1);
       expect(
         await t.run((ctx) => ctx.db.query("pushDeliveries").collect()),
-      ).toHaveLength(3);
+      ).toHaveLength(1);
     },
   );
 
