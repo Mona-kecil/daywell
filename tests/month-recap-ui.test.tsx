@@ -144,6 +144,42 @@ describe("monthly recap pages", () => {
     expect(text(page.cardio)).toBe("8 sessions, 4 h 5 min in all.");
     expect(text(page.best)).toBe("You got your cardio in.");
   });
+  it("keeps the last day of this month in progress", () => {
+    const lastDay = {
+      ...full,
+      month: "2026-10",
+      fromDay: "2026-10-01",
+      toDay: "2026-10-31",
+      days: 31,
+      daysLogged: 31,
+    };
+    const slides = recapSlides(lastDay as unknown as Recap, true);
+    expect(slides[0].eyebrow).toBe("October so far");
+    expect(slides.at(-1)?.eyebrow).toBe("That's October so far");
+    expect(recapSlides(lastDay as unknown as Recap, false)[0].eyebrow).toBe(
+      "October 2026",
+    );
+  });
+
+  it("compares a past month off lifting with the month before", () => {
+    const training = (previousWorkouts: number) =>
+      recapSlides({
+        ...empty,
+        month: "2026-09",
+        fromDay: "2026-09-01",
+        toDay: "2026-09-30",
+        days: 30,
+        previous: { ...empty.previous, workouts: previousWorkouts },
+      } as unknown as Recap).find((s) => s.key === "training")!;
+    expect(text(training(4))).toBe(
+      "No workouts logged this month, after 4 in August.",
+    );
+    expect(text(training(1))).toBe(
+      "No workouts logged this month, after 1 in August.",
+    );
+    expect(text(training(0))).toBe("No workouts logged this month.");
+  });
+
   it("compares a month in progress only once it is ahead", () => {
     const training = (workouts: number) =>
       recapSlides({
@@ -228,6 +264,19 @@ afterEach(() => {
 });
 
 describe("monthly recap card", () => {
+  it("plays this month as in progress on its last day", async () => {
+    mocks.data["2026-10"] = {
+      ...full,
+      month: "2026-10",
+      fromDay: "2026-10-01",
+      toDay: "2026-10-31",
+      days: 31,
+    };
+    render(<MonthRecap now={new Date(2026, 9, 31, 21).getTime()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Play October" }));
+    expect(screen.getByRole("dialog", { name: "October so far" })).toBeTruthy();
+  });
+
   it("opens on last month early in a month and plays it", async () => {
     render(<MonthRecap now={new Date(2026, 9, 5, 12).getTime()} />);
     expect(mocks.args.at(-1)?.month).toBe("2026-09");

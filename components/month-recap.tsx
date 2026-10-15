@@ -73,10 +73,15 @@ const capitalize = (name: string) =>
 const signedKg = (kg: number) =>
   kg === 0 ? "±0 kg" : `${kg > 0 ? "+" : "−"}${oneDp(Math.abs(kg))} kg`;
 
-export function recapSlides(recap: Recap): Slide[] {
+// The card knows whether this is the current month; on its last day the
+// month is full length but still underway.
+export function recapSlides(
+  recap: Recap,
+  inProgress = recap.days < daysIn(recap.month),
+): Slide[] {
   const name = monthName(recap.month);
   const previous = monthName(shiftMonth(recap.month, -1));
-  const soFar = recap.days < daysIn(recap.month);
+  const soFar = inProgress;
   const title = soFar
     ? `${name} so far`
     : `${name} ${monthDate(recap.month).getFullYear()}`;
@@ -130,7 +135,10 @@ export function recapSlides(recap: Recap): Slide[] {
       icon: Dumbbell,
       eyebrow: "Training",
       big: "A month off lifting",
-      text: "No workouts logged this month.",
+      text:
+        !soFar && recap.previous.workouts
+          ? `No workouts logged this month, after ${whole(recap.previous.workouts)} in ${previous}.`
+          : "No workouts logged this month.",
     });
 
   if (recap.topMuscles.length)
@@ -240,6 +248,7 @@ export function MonthRecap({ now }: { now: number }) {
   const [playing, setPlaying] = useState(false);
   if (!recap) return null;
   const name = monthName(recap.month);
+  const slides = recapSlides(recap, recap.month === thisMonth);
   const civil = (day: string) =>
     new Date(`${day}T12:00:00`).toLocaleDateString([], {
       month: "short",
@@ -315,8 +324,8 @@ export function MonthRecap({ now }: { now: number }) {
       )}
       {playing && (
         <StoryPlayer
-          label={recapSlides(recap)[0].eyebrow}
-          slides={recapSlides(recap)}
+          label={slides[0].eyebrow}
+          slides={slides}
           onClose={() => setPlaying(false)}
         />
       )}
