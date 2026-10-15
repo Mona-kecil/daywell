@@ -183,6 +183,48 @@ describe("manual meal form", () => {
     );
   });
 
+  it("drops a removed food's matches instead of showing them on a new one", async () => {
+    mocks.action.mockResolvedValueOnce([
+      {
+        fdcId: 171688,
+        description: "Apples, raw, with skin",
+        dataType: "SR Legacy",
+        per100g: { kcal: 52, protein: 0.3, carbs: 13.8, fat: 0.2 },
+      },
+    ] as never);
+    sheet(<ManualMealSheet open onClose={() => {}} />);
+    await userEvent.click(screen.getByText("Add another food"));
+    await userEvent.type(screen.getByLabelText("Food 2 name"), "apple");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Search USDA for food 2" }),
+    );
+    await screen.findByRole("group", { name: "USDA matches for food 2" });
+    await userEvent.click(screen.getByRole("button", { name: "Remove food 2" }));
+    await userEvent.click(screen.getByText("Add another food"));
+    expect(screen.queryByRole("group", { name: /USDA matches/ })).toBeNull();
+  });
+
+  it("shows which food is searching, even when searching it again", async () => {
+    let answer!: (hits: never) => void;
+    mocks.action.mockResolvedValueOnce([] as never);
+    mocks.action.mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    sheet(<ManualMealSheet open onClose={() => {}} />);
+    await userEvent.click(screen.getByText("Add another food"));
+    await userEvent.type(screen.getByLabelText("Food 1 name"), "zzqx");
+    await userEvent.type(screen.getByLabelText("Food 2 name"), "rice");
+    const first = screen.getByRole("button", { name: "Search USDA for food 1" });
+    await userEvent.click(first);
+    await screen.findByRole("status");
+    await userEvent.click(first);
+    expect(first.textContent).toBe("Searching…");
+    expect(
+      screen.getByRole("button", { name: "Search USDA for food 2" }).textContent,
+    ).toBe("Search USDA");
+    await act(async () => answer([] as never));
+  });
+
   it("keeps a fallback name from many long foods within the limit", () => {
     const names = Array.from({ length: 21 }, (_, i) => `${i}`.padEnd(200, "x"));
     const description = mealSummary(names);

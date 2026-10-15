@@ -350,6 +350,9 @@ export function ManualBody({
     query: string;
     hits: FoodHit[];
   } | null>(null);
+  const [searching, setSearching] = useState<number | null>(null);
+  // Keys are never reused, so open matches can't move onto a new row.
+  const nextKey = useRef(1);
   const saving = mode === "save";
   const [description, setDescription] = useState("");
   const [servings, setServings] = useState(1);
@@ -359,6 +362,7 @@ export function ManualBody({
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const search = (r: Row) => {
     const query = r.name.trim().replace(/\s+/g, " ").slice(0, 80);
+    setSearching(r.key);
     void lookup.run(async () =>
       setMatches({ key: r.key, query, hits: await findFood({ query }) }),
     );
@@ -525,7 +529,7 @@ export function ManualBody({
                 onClick={() => search(r)}
               >
                 <Search size={15} />
-                {lookup.pending && matches?.key !== r.key
+                {lookup.pending && searching === r.key
                   ? "Searching…"
                   : "Search USDA"}
               </button>
@@ -574,9 +578,10 @@ export function ManualBody({
         type="button"
         className="text-button"
         disabled={rows.length >= 30}
-        onClick={() =>
-          setRows((rs) => [...rs, blank(Math.max(...rs.map((r) => r.key)) + 1)])
-        }
+        onClick={() => {
+          const key = nextKey.current++;
+          setRows((rs) => [...rs, blank(key)]);
+        }}
       >
         <Plus size={15} /> Add another food
       </button>
