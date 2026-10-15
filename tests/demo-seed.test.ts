@@ -39,7 +39,30 @@ it("demo seed replaces thirty-six days, deletes old photos, and preserves other 
       (m) => m.analysis.status === "ready" && mealTotals(m.items).kcal > 0,
     ),
   ).toBe(true);
+  const savedMeals = await dev.query(api.savedMeals.list, {});
+  expect(savedMeals).toHaveLength(2);
+  expect(savedMeals.map((meal) => meal.name).sort()).toEqual([
+    "Chicken rice bowl",
+    "Oatmeal with banana and Greek yogurt",
+  ]);
+  expect(savedMeals.every((meal) => meal.totals.kcal > 0)).toBe(true);
+  expect(
+    savedMeals.find((meal) => meal.servings === 2)?.perServing.kcal,
+  ).toBeGreaterThan(0);
+  const custom = {
+    name: "Old recipe",
+    items: savedMeals[0].items,
+    servings: 1,
+  };
+  await dev.mutation(api.savedMeals.create, custom);
+  await other.mutation(api.savedMeals.create, custom);
   const second = await dev.action(api.demoSeed.run, input);
+  expect(await dev.query(api.savedMeals.list, {})).toHaveLength(2);
+  for (const meal of savedMeals)
+    expect(await t.run((ctx) => ctx.db.get(meal.id))).toBeNull();
+  expect(await other.query(api.savedMeals.list, {})).toMatchObject([
+    { name: "Old recipe", useCount: 0 },
+  ]);
   expect(second).toEqual(first);
   expect(second).toEqual({
     days: 36,

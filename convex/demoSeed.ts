@@ -1,4 +1,5 @@
 import { v, ConvexError } from "convex/values";
+import type { FunctionArgs } from "convex/server";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -76,7 +77,7 @@ export const run = action({
       throw new ConvexError("Demo photo exceeds 3 MB.");
     const stored: Id<"_storage">[] = [];
     try {
-      const meals = [];
+      const meals: FunctionArgs<typeof internal.demo.replace>["meals"] = [];
       // Keep the caller's recent civil-day starts; add history for patterns.
       const days = Array.from(
         { length: 36 },
@@ -105,11 +106,43 @@ export const run = action({
           meals.push({ storageId, at, description: menu.description, items });
         }
       }
+      const savedMeals = [
+        {
+          description: menus[0].description,
+          name: menus[0].description,
+          servings: 2,
+        },
+        {
+          description: menus[1].description,
+          name: "Chicken rice bowl",
+          servings: 1,
+        },
+      ].map(({ description, name, servings }) => {
+        const meal = meals.find((meal) => meal.description === description);
+        if (!meal) throw new ConvexError("Missing demo recipe.");
+        return {
+          name,
+          servings,
+          items: meal.items.flatMap((item) =>
+            item.status === "matched"
+              ? [
+                  {
+                    name: item.name,
+                    grams: item.grams * servings,
+                    fdcId: item.fdcId,
+                    per100g: item.per100g,
+                  },
+                ]
+              : [],
+          ),
+        };
+      });
       return await ctx.runMutation(internal.demo.replace, {
         now: args.now,
         days: args.days,
         checkinDays: args.checkinDays,
         meals,
+        savedMeals,
       });
     } catch (error) {
       for (const id of stored) await ctx.storage.delete(id);

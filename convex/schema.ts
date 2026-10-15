@@ -5,6 +5,7 @@ import {
   cardioEffort,
   habitIcon,
   mealItem,
+  savedMealItem,
   progressPose,
   pushKeys,
   pushPayload,
@@ -212,6 +213,15 @@ export default defineSchema({
   })
     .index("by_user_day", ["userId", "day", "takenAt"])
     .index("by_storage", ["storageId"]),
+  savedMeals: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    items: v.array(savedMealItem),
+    servings: v.number(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    useCount: v.number(),
+  }).index("by_user_used", ["userId", "lastUsedAt"]),
   meals: defineTable({
     userId: v.string(),
     storageId: v.optional(v.id("_storage")),

@@ -4,6 +4,7 @@ import { allSteps } from "./stepsModel";
 import { cardioHistory } from "./cardioModel";
 import { requireUser } from "./model";
 import { mealTotals } from "../lib/nutrients";
+import { SAVED_MEAL_LIMIT, servingTotals } from "../lib/saved-meals";
 
 export const all = query({
   args: {},
@@ -20,6 +21,7 @@ export const all = query({
       habits,
       habitLogs,
       meals,
+      savedMeals,
       checkins,
       progressPhotos,
       steps,
@@ -64,6 +66,10 @@ export const all = query({
         .query("meals")
         .withIndex("by_user_time", (q) => q.eq("userId", userId))
         .collect(),
+      ctx.db
+        .query("savedMeals")
+        .withIndex("by_user_used", (q) => q.eq("userId", userId))
+        .take(SAVED_MEAL_LIMIT),
       ctx.db
         .query("bodyCheckins")
         .withIndex("by_user_day", (q) => q.eq("userId", userId))
@@ -172,6 +178,16 @@ export const all = query({
         totals: mealTotals(m.items),
         status: m.analysis.status,
         ...(m.analysis.status === "error" ? { error: m.analysis.message } : {}),
+      })),
+      savedMeals: savedMeals.map((meal) => ({
+        id: meal._id,
+        name: meal.name,
+        items: meal.items,
+        servings: meal.servings,
+        createdAt: meal.createdAt,
+        lastUsedAt: meal.lastUsedAt ?? null,
+        useCount: meal.useCount,
+        ...servingTotals(meal.items, meal.servings),
       })),
       progressPhotos: progressPhotos.map((photo) => ({
         pose: photo.pose,

@@ -56,6 +56,7 @@ import type * as quickLogProviders_types from "../quickLogProviders/types.js";
 import type * as readiness from "../readiness.js";
 import type * as recap from "../recap.js";
 import type * as routines from "../routines.js";
+import type * as savedMeals from "../savedMeals.js";
 import type * as shortcuts from "../shortcuts.js";
 import type * as steps from "../steps.js";
 import type * as stepsModel from "../stepsModel.js";
@@ -122,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   readiness: typeof readiness;
   recap: typeof recap;
   routines: typeof routines;
+  savedMeals: typeof savedMeals;
   shortcuts: typeof shortcuts;
   steps: typeof steps;
   stepsModel: typeof stepsModel;

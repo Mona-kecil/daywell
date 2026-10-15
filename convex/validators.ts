@@ -9,6 +9,12 @@ export const macros = v.object({
   carbs: v.number(),
   fat: v.number(),
 });
+export const savedMealItem = v.object({
+  name: v.string(),
+  grams: v.number(),
+  fdcId: v.optional(v.number()),
+  per100g: macros,
+});
 const itemFields = {
   id: v.string(),
   name: v.string(),

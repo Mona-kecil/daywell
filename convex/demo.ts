@@ -7,7 +7,8 @@ import { internalMutation } from "./_generated/server";
 import { allSteps, upsertSteps } from "./stepsModel";
 import { cardioHistory } from "./cardioModel";
 import type { CardioKind, CardioEffort } from "../lib/cardio";
-import { mealItem } from "./validators";
+import { mealItem, savedMealItem } from "./validators";
+import { SAVED_MEAL_LIMIT, savedMealSchema } from "../lib/saved-meals";
 import { seedExercises } from "./exerciseModel";
 import { requireUser, createWorkout, validLocalDay } from "./model";
 import { MUSCLE_DEFAULTS } from "../lib/recovery";
@@ -32,6 +33,15 @@ export const replace = internalMutation({
     now: v.number(),
     days: v.array(v.number()),
     checkinDays: v.optional(v.array(v.string())),
+    savedMeals: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          items: v.array(savedMealItem),
+          servings: v.number(),
+        }),
+      ),
+    ),
     meals: v.array(
       v.object({
         storageId: v.id("_storage"),
@@ -45,6 +55,10 @@ export const replace = internalMutation({
     await requireDevUser(ctx);
     if (args.days.length !== 14)
       throw new ConvexError("Seed requires fourteen days.");
+    const savedMeals = savedMealSchema
+      .array()
+      .max(SAVED_MEAL_LIMIT)
+      .parse(args.savedMeals ?? []);
     const checkinDays =
       args.checkinDays ??
       Array.from({ length: 90 }, (_, i) =>
@@ -74,6 +88,10 @@ export const replace = internalMutation({
       for (const row of rows) await ctx.db.delete(row._id);
     for (const row of await allSteps(ctx, userId)) await ctx.db.delete(row._id);
     const records = [
+      ...(await ctx.db
+        .query("savedMeals")
+        .withIndex("by_user_used", (q) => q.eq("userId", userId))
+        .take(SAVED_MEAL_LIMIT)),
       ...(await ctx.db
         .query("bodyCheckins")
         .withIndex("by_user_day", (q) => q.eq("userId", userId))
@@ -320,6 +338,13 @@ export const replace = internalMutation({
         ...meal,
         revision: 1,
         analysis: { status: "ready" },
+      });
+    for (const recipe of savedMeals)
+      await ctx.db.insert("savedMeals", {
+        userId,
+        ...recipe,
+        createdAt: args.now,
+        useCount: 0,
       });
     let checkins = 0;
     for (const [offset, day] of checkinDays.entries()) {
