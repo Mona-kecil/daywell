@@ -23,6 +23,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 async function seed(t: ReturnType<typeof setup>["t"]) {
@@ -200,6 +201,242 @@ describe("readiness coach backend", () => {
     expect(load).not.toHaveBeenCalled();
   });
 
+  it("fans out two reminder users without loading history in the parent cron", async () => {
+    const { t } = setup();
+    const at = Date.parse("2026-10-15T03:01Z");
+    vi.setSystemTime(at);
+    await t.run(async (ctx) => {
+      for (const userId of ["alice", "bob"])
+        await ctx.db.insert("settings", {
+          userId,
+          waterGoal: 2500,
+          timeZone,
+          remindersEnabled: true,
+          checkIns: ["10:00"],
+        });
+    });
+    const load = vi.spyOn(readinessBackend, "loadReadiness");
+    await t.mutation(internal.coachCron.run, {});
+    const parentLoads = load.mock.calls.length;
+    const jobs = await t.run((ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const before = await t.run((ctx) => ctx.db.query("coachSent").collect());
+    const cursor = await t.run((ctx) => ctx.db.query("coachRuns").unique());
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    expect(parentLoads).toBe(0);
+    expect(before).toEqual([]);
+    expect(jobs).toHaveLength(2);
+    expect(jobs).toEqual(
+      expect.arrayContaining(
+        ["alice", "bob"].map((userId) =>
+          expect.objectContaining({
+            name: "coachCron:runUser",
+            args: [{ userId, since: at - 15 * 60_000, until: at }],
+            state: { kind: "pending" },
+          }),
+        ),
+      ),
+    );
+    expect(cursor).toMatchObject({ key: "check-ins", lastRunAt: at });
+    expect(load).toHaveBeenCalledTimes(2);
+    const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+    expect(sent).toHaveLength(2);
+    expect(sent).toEqual(
+      expect.arrayContaining(
+        ["alice", "bob"].map((userId) =>
+          expect.objectContaining({ userId, localDay: day, slot: "10:00" }),
+        ),
+      ),
+    );
+  });
+
+  it.each([false, true])(
+    "loads readiness once for three outage slots, including limit degradation (%s)",
+    async (overflow) => {
+      const { t } = setup();
+      await seed(t);
+      const since = Date.parse("2026-10-14T22:00Z");
+      const at = Date.parse("2026-10-15T07:01Z");
+      await t.run(async (ctx) => {
+        await ctx.db.insert("settings", {
+          userId: "alice",
+          waterGoal: 0,
+          timeZone,
+          remindersEnabled: true,
+          checkIns: ["06:30", "09:00", "13:59"],
+        });
+        await ctx.db.insert("coachRuns", {
+          key: "check-ins",
+          lastRunAt: since,
+        });
+        await ctx.db.insert("muscles", {
+          userId: "alice",
+          name: "back",
+          cooldownHours: 24,
+        });
+        await ctx.db.insert("pushSubscriptions", {
+          userId: "alice",
+          endpoint: "https://fcm.googleapis.com/fcm/send/alice",
+          keys: { p256dh: "B".repeat(87), auth: "a".repeat(22) },
+          createdAt: Date.now(),
+        });
+        if (overflow)
+          for (let i = 0; i < 29; i++)
+            await ctx.db.insert("bodyCheckins", {
+              userId: "alice",
+              day,
+              sleepHours: 4,
+              energy: 1,
+            });
+      });
+      vi.setSystemTime(at);
+      vi.stubEnv("PUSH_PROVIDER", "fake");
+      const load = vi.spyOn(readinessBackend, "loadReadiness");
+      await t.mutation(internal.coachCron.run, {});
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(load.mock.calls[0].slice(1)).toEqual(["alice", now, timeZone]);
+      const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+      expect(sent).toHaveLength(3);
+      expect(sent.map((row) => [row.userId, row.localDay, row.slot])).toEqual([
+        ["alice", day, "06:30"],
+        ["alice", day, "09:00"],
+        ["alice", day, "13:59"],
+      ]);
+      expect(sent.every((row) => row.createdAt === at)).toBe(true);
+      const deliveries = await t.run((ctx) =>
+        ctx.db.query("pushDeliveries").collect(),
+      );
+      expect(deliveries).toHaveLength(3);
+      expect(
+        deliveries.every(
+          (row) => row.payload.kind === (overflow ? "train" : "readiness"),
+        ),
+      ).toBe(true);
+
+      await t.mutation(internal.coachCron.runUser, {
+        userId: "alice",
+        since,
+        until: at,
+      });
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(
+        await t.run((ctx) => ctx.db.query("coachSent").collect()),
+      ).toHaveLength(3);
+      expect(
+        await t.run((ctx) => ctx.db.query("pushDeliveries").collect()),
+      ).toHaveLength(3);
+    },
+  );
+
+  it.each(["deleted", "disabled", "no-zone", "rescheduled"])(
+    "rechecks settings before processing a queued user (%s)",
+    async (change) => {
+      const { t } = setup();
+      const id = await t.run((ctx) =>
+        ctx.db.insert("settings", {
+          userId: "alice",
+          waterGoal: 2500,
+          timeZone,
+          remindersEnabled: true,
+          checkIns: ["06:30"],
+        }),
+      );
+      vi.setSystemTime(now);
+      const load = vi.spyOn(readinessBackend, "loadReadiness");
+      await t.mutation(internal.coachCron.run, {});
+      await t.run(async (ctx) => {
+        if (change === "deleted") await ctx.db.delete(id);
+        else if (change === "disabled")
+          await ctx.db.patch(id, { remindersEnabled: false });
+        else if (change === "no-zone")
+          await ctx.db.patch(id, { timeZone: undefined });
+        else await ctx.db.patch(id, { checkIns: ["10:00"] });
+      });
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+      expect(load).not.toHaveBeenCalled();
+      expect(await t.run((ctx) => ctx.db.query("coachSent").collect())).toEqual(
+        [],
+      );
+    },
+  );
+
+  it.each([
+    ["05:59", Date.parse("2026-10-14T22:59Z")],
+    ["14:00", Date.parse("2026-10-15T07:00Z")],
+  ])("keeps cron readiness lazy outside the window (%s)", async (slot, at) => {
+    const { t } = setup();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("settings", {
+        userId: "alice",
+        waterGoal: 0,
+        timeZone,
+        remindersEnabled: true,
+        checkIns: [slot],
+      });
+      await ctx.db.insert("muscles", {
+        userId: "alice",
+        name: "back",
+        cooldownHours: 24,
+      });
+    });
+    vi.setSystemTime(at);
+    const load = vi.spyOn(readinessBackend, "loadReadiness");
+    await t.mutation(internal.coachCron.run, {});
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect(load).not.toHaveBeenCalled();
+    expect(
+      await t.run((ctx) => ctx.db.query("coachSent").collect()),
+    ).toMatchObject([{ userId: "alice", slot }]);
+  });
+
+  it("isolates a failed user job while advancing the cursor and processing another user", async () => {
+    const { t } = setup();
+    const at = Date.parse("2026-10-15T03:01Z");
+    vi.setSystemTime(at);
+    await t.run(async (ctx) => {
+      for (const userId of ["alice", "bob"])
+        await ctx.db.insert("settings", {
+          userId,
+          waterGoal: 2500,
+          timeZone,
+          remindersEnabled: true,
+          checkIns: ["10:00"],
+        });
+    });
+    const originalLoad = readinessBackend.loadReadiness;
+    vi.spyOn(readinessBackend, "loadReadiness").mockImplementation(
+      (ctx, userId, at, zone) => {
+        if (userId === "alice") throw new Error("Database unavailable.");
+        return originalLoad(ctx, userId, at, zone);
+      },
+    );
+    await t.mutation(internal.coachCron.run, {});
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    const jobs = await t.run((ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    expect(jobs.filter((job) => job.state.kind === "failed")).toMatchObject([
+      { name: "coachCron:runUser", args: [{ userId: "alice" }] },
+    ]);
+    expect(
+      await t.run((ctx) => ctx.db.query("coachRuns").unique()),
+    ).toMatchObject({
+      lastRunAt: at,
+    });
+    const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      userId: "bob",
+      localDay: day,
+      slot: "10:00",
+    });
+  });
+
   it("persists a readiness push payload through the cron", async () => {
     const { t } = setup();
     await seed(t);
@@ -214,6 +451,8 @@ describe("readiness coach backend", () => {
     );
     vi.setSystemTime(now);
     await t.mutation(internal.coachCron.run, {});
+    vi.runAllTimers();
+    await t.finishInProgressScheduledFunctions();
     const sent = await t.run((ctx) => ctx.db.query("coachSent").collect());
     expect(sent).toHaveLength(1);
     expect(sent[0].delivery).toMatchObject({
