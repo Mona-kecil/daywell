@@ -103,3 +103,33 @@ it("auth config excludes the dev issuer in production and retains WorkOS", async
     (await import("../convex/auth.config")).default.providers,
   ).toHaveLength(3);
 });
+
+it("auth config permits missing credentials in Convex's auth environment", async () => {
+  const env = new Proxy(
+    {},
+    {
+      get(_target, name) {
+        throw new Error(
+          `Environment variable ${String(name)} is used in auth config file but its value was not set`,
+        );
+      },
+    },
+  );
+  vi.stubGlobal("process", { ...process, env });
+  expect((await import("../convex/auth.config")).default.providers).toEqual([]);
+});
+
+it("auth config preserves unexpected environment failures", async () => {
+  const env = new Proxy(
+    {},
+    {
+      get() {
+        throw new Error("Environment service failed");
+      },
+    },
+  );
+  vi.stubGlobal("process", { ...process, env });
+  await expect(import("../convex/auth.config")).rejects.toThrow(
+    "Environment service failed",
+  );
+});

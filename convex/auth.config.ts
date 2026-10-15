@@ -1,7 +1,21 @@
 import { isLocalDeployment } from "../lib/local-deployment";
 import type { AuthConfig } from "convex/server";
-const clientId = process.env.WORKOS_CLIENT_ID;
-const devJwks = process.env.DEV_AUTH_JWKS;
+function optionalAuthEnv(name: "WORKOS_CLIENT_ID" | "DEV_AUTH_JWKS") {
+  try {
+    return process.env[name];
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        `Environment variable ${name} is used in auth config file but its value was not set`,
+      )
+    )
+      return undefined;
+    throw error;
+  }
+}
+const clientId = optionalAuthEnv("WORKOS_CLIENT_ID");
+const devJwks = optionalAuthEnv("DEV_AUTH_JWKS");
 export default {
   providers: [
     ...(devJwks && isLocalDeployment(process.env)
