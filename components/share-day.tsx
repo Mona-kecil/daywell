@@ -1,7 +1,10 @@
 "use client";
 import { Download, Share2 } from "lucide-react";
+import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { api } from "@/convex/_generated/api";
 import { dayKey } from "@/lib/insights";
+import { minutesLabel } from "./cardio";
 import type { Ring } from "./day-rings";
 import { Sheet, useToast } from "./ui";
 
@@ -10,6 +13,7 @@ export type DaySnapshot = {
   rings: Ring[];
   trained: string[];
   meals: number;
+  cardioMinutes?: number;
 };
 
 const W = 1080;
@@ -19,6 +23,18 @@ const RING_COLOR = {
   protein: "--c-protein",
   kcal: "--c-carbs",
 };
+
+// Cardio is drawn whole; only the muscle list gives way when space runs out.
+export function dayLine(trained: string[], cardioMinutes: number) {
+  const cardio =
+    cardioMinutes > 0 ? `${minutesLabel(cardioMinutes)} cardio` : "";
+  if (trained.length)
+    return {
+      trained: `Trained ${trained.join(", ")}`,
+      cardio: cardio && ` · ${cardio}`,
+    };
+  return { trained: cardio ? "" : "Rest day", cardio };
+}
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -118,10 +134,12 @@ async function drawDay(day: DaySnapshot) {
   ctx.stroke();
   ctx.fillStyle = token("--text");
   ctx.font = `500 32px ${body}`;
-  const trained = day.trained.length
-    ? `Trained ${day.trained.join(", ")}`
-    : "Rest day";
-  ctx.fillText(fit(ctx, trained, W - 240), 120, 1212);
+  const line = dayLine(day.trained, day.cardioMinutes ?? 0);
+  const cardioWidth = ctx.measureText(line.cardio).width;
+  const trained = line.trained
+    ? fit(ctx, line.trained, W - 240 - cardioWidth)
+    : "";
+  ctx.fillText(trained + line.cardio, 120, 1212);
   ctx.fillStyle = token("--green");
   ctx.font = `500 30px ${display}`;
   ctx.fillText("Daywell", 120, 1262);
@@ -153,6 +171,9 @@ function fit(ctx: CanvasRenderingContext2D, text: string, width: number) {
 
 export function ShareDayButton({ day }: { day: DaySnapshot }) {
   const [open, setOpen] = useState(false);
+  const today = dayKey(new Date(day.now));
+  const week = useQuery(api.cardio.week, { today });
+  const cardioMinutes = week?.days.find((d) => d.day === today)?.minutes;
   return (
     <>
       <button
@@ -165,7 +186,11 @@ export function ShareDayButton({ day }: { day: DaySnapshot }) {
         <Share2 size={19} />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Share your day">
-        <SharePreview day={day} />
+        {/* Redraw once today's cardio arrives. */}
+        <SharePreview
+          key={week === undefined ? "loading" : "ready"}
+          day={{ ...day, cardioMinutes }}
+        />
       </Sheet>
     </>
   );
