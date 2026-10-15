@@ -25,6 +25,7 @@ import {
 import { AddMealOptions, RecentMeals } from "./meal-add";
 import { CloseTheGap } from "./gap";
 import { PhotoWall } from "./photo-wall";
+import { SaveMealButton, SavedMeals } from "./saved-meals";
 import { MacroSummary } from "./today";
 import { Empty, SectionTitle, useTask, timeLabel } from "./ui";
 type Meal = FunctionReturnType<typeof api.meals.today>[number];
@@ -432,6 +433,14 @@ function MealCard({ meal, now }: { meal: Meal; now: number }) {
                       Totals exclude unmatched foods.
                     </p>
                   )}
+                  <SaveMealButton
+                    mealId={meal._id}
+                    description={meal.description}
+                    matched={
+                      meal.items.filter((item) => item.status === "matched")
+                        .length
+                    }
+                  />
                 </div>
               )}
             </>
@@ -537,6 +546,7 @@ export function Meals({
         </p>
         <AddMealOptions />
       </section>
+      <SavedMeals />
       <RecentMeals />
       <section>
         <SectionTitle
