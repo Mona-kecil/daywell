@@ -100,7 +100,24 @@ The installed `@convex-dev/workos` 0.0.3 helper targets `authkit-react`. This ap
 
 `WORKOS_API_KEY` is required by the Next.js server. A Convex WorkOS user-sync component would also need it in the deployment environment. This app uses the JWT subject as its user ID and does not install that component.
 
-For a later Vercel deployment, set the Next.js variables in Vercel, update the WorkOS redirect URI to your HTTPS origin, and point the app at the intended Convex deployment. No hosted deployment was made during this task.
+## Production
+
+- Source: [Mona-kecil/daywell](https://github.com/Mona-kecil/daywell), a public repository.
+- App: [daywell-blue.vercel.app](https://daywell-blue.vercel.app).
+- Convex production: `healthy-basilisk-506` at `https://healthy-basilisk-506.convex.cloud`, in project `mk-489dd/daywell`.
+
+The app shows its setup screen until WorkOS is configured. Vercel has `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, and a generated `WORKOS_COOKIE_PASSWORD`. Convex has a separate production VAPID keypair and uses `PUSH_PROVIDER=webpush`. The three AI providers use `openai`; requests return configuration errors until credentials and models are set. Production has no dev-auth, fixture, or fake-provider settings.
+
+Complete the production setup:
+
+1. Create a WorkOS production application. Register `https://daywell-blue.vercel.app/callback` as its redirect URI and `https://daywell-blue.vercel.app` as its homepage.
+2. Set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and `NEXT_PUBLIC_WORKOS_REDIRECT_URI` on Vercel's Production environment. Use the callback URI above. Keep the generated cookie password.
+3. Set the same `WORKOS_CLIENT_ID` on Convex production. This app does not use WorkOS component sync, so Convex does not need `WORKOS_API_KEY`.
+4. Set `OPENAI_API_KEY`, `OPENAI_VISION_MODEL`, and `OPENAI_CHAT_MODEL` on Convex production. Choose models that support each provider's documented input and structured output requirements.
+5. Optionally set `USDA_FDC_API_KEY` on Convex production. Without it, live nutrition search uses the public `DEMO_KEY` and its smaller quota.
+6. Redeploy Vercel after changing its environment, then test login, logging, meal analysis, and push delivery with your account.
+
+GitHub is connected to the Vercel project, so pushes to `main` trigger frontend deployments. Convex function deployments remain a separate step. Run `pnpm exec convex deploy -y` from a checkout configured for this cloud project. Keep the main development checkout's anonymous local `.env.local` separate. No production credentials belong in Git.
 
 ## Configure meal analysis
 
