@@ -105,6 +105,8 @@ export default defineSchema({
   coachRuns: defineTable({
     key: v.union(v.literal("check-ins"), v.literal("weekly-review")),
     lastRunAt: v.number(),
+    windowUntil: v.optional(v.number()),
+    pageCursor: v.optional(v.string()),
   }).index("by_key", ["key"]),
   pushDeliveries: defineTable({
     sentId: v.id("coachSent"),
