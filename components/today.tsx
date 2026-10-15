@@ -24,6 +24,7 @@ import { DayTimeline } from "./timeline";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { CardBoundary } from "./card-boundary";
 import { ReadinessCard } from "./readiness";
+import { StepsCard } from "./steps";
 
 // Ring targets when the user hasn't set their own in Settings.
 const PROTEIN_TARGET_G = 120;
@@ -171,6 +172,9 @@ export function Today({
         <Burst count={celebrations} />
         <DayRings rings={rings} />
       </section>
+      <CardBoundary title="Steps">
+        <StepsCard now={now} />
+      </CardBoundary>
       <section className="card recovery-card">
         <div className="card-top">
           <span className="icon-tile green">

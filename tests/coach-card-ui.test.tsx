@@ -37,6 +37,7 @@ beforeEach(() => {
   mocks.data = [
     suggestion("readiness", "Readiness 31: take it easy"),
     suggestion("habit", "Two habits left"),
+    suggestion("steps", "2,000 steps to your goal"),
     suggestion("water", "Drink a glass"),
   ];
 });
@@ -52,13 +53,14 @@ function renderToday() {
       <CoachCard now={Date.parse("2026-10-15T01:00Z")} onTab={onTab} />
       <section id="readiness" />
       <section id="habits" />
+      <section id="steps" />
     </>,
   );
   return onTab;
 }
 
 describe("coach card", () => {
-  it("scrolls to the readiness and habits cards on Today", async () => {
+  it("scrolls to the readiness, habits and steps cards on Today", async () => {
     const onTab = renderToday();
     await userEvent.click(
       screen.getByRole("button", { name: /Readiness 31: take it easy/ }),
@@ -66,9 +68,13 @@ describe("coach card", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /Two habits left/ }),
     );
+    await userEvent.click(
+      screen.getByRole("button", { name: /2,000 steps to your goal/ }),
+    );
     expect(scrolled).toEqual([
       { id: "readiness", behavior: "smooth" },
       { id: "habits", behavior: "smooth" },
+      { id: "steps", behavior: "smooth" },
     ]);
     expect(onTab).toHaveBeenCalledWith("today");
   });

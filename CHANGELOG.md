@@ -10,6 +10,7 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 - **Monthly recap** on Insights: training, cardio, water, weight and habits for this month or last, with a tap-through story.
 - **Readiness** on Today: a 0–100 estimate from last night's sleep, your recent sleep, how you feel, soreness and training load. It never says "Ready to push" while any one factor is weak.
 - **Readiness in the coach**: on a low morning (06:00–14:00, nothing trained yet) the coach suggests taking it easy instead of a workout, and "Ask your coach" knows today's score.
+- **Steps** on Today: your daily count against a goal (8,000 unless you change it), the week by day, days at goal, streak, 28-day average and best day. Enter steps by hand, or send them from Apple Health with a Shortcut. On evenings when you're within 4,000 of the goal, the coach suggests a walk.
 
 ### Fixed
 

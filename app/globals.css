@@ -4638,7 +4638,8 @@ h1,
 /* Readiness */
 /* Coach nudges scroll these into view; keep them clear of the status bar. */
 #readiness,
-#habits {
+#habits,
+#steps {
   scroll-margin-top: calc(env(safe-area-inset-top) + 16px);
 }
 
@@ -6008,6 +6009,70 @@ h1,
   margin: -4px 0 0;
   min-height: 1.4em;
   font-variant-numeric: tabular-nums;
+}
+/* Steps reuse the cardio week bars; each past day is a button. */
+.steps-week li {
+  display: flex;
+}
+.steps-day {
+  display: grid;
+  grid-template-rows: 16px 64px 18px;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.steps-day .cardio-week-bar.short {
+  background: color-mix(in srgb, var(--green) 45%, transparent);
+}
+.steps-goal {
+  position: absolute;
+  inset: auto 0 0;
+  border-top: 2px dashed color-mix(in srgb, var(--text) 45%, transparent);
+}
+.steps-stats {
+  margin: 14px 0 0;
+}
+.steps-note {
+  margin: 12px 0 0;
+}
+.steps-note:empty {
+  display: none;
+}
+.steps-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 14px;
+}
+.steps-actions button {
+  min-height: 44px;
+}
+@media (max-width: 359px) {
+  .steps-actions {
+    grid-template-columns: 1fr;
+  }
+}
+.steps-form {
+  display: grid;
+  gap: 12px;
+}
+.steps-form > label,
+.steps-form > p {
+  margin: 0;
+}
+.steps-form .text-button {
+  justify-self: start;
+  min-height: 44px;
+}
+.steps-form .danger {
+  color: var(--amber);
 }
 .pick-grid {
   display: grid;

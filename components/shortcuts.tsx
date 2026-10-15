@@ -20,12 +20,25 @@ const ROUTES = [
     body: '{ "timeZone": "Europe/London", "weightKg": 72.4, "sleepHours": 7.5 }',
   },
   {
+    path: "/shortcuts/steps",
+    method: "POST",
+    title: "Send steps",
+    body: '{ "steps": 8421, "timeZone": "Europe/London" }',
+    hint: "Get the number from Find Health Samples: Steps, starting today, grouped by day. A personal automation at 9 pm can send it every evening. Sending again replaces that day’s count.",
+  },
+  {
     path: "/shortcuts/today?timeZone=Europe/London",
     method: "GET",
     title: "Today’s summary",
     body: null,
   },
-];
+] satisfies {
+  path: string;
+  method: string;
+  title: string;
+  body: string | null;
+  hint?: string;
+}[];
 
 function siteUrl() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -82,8 +95,9 @@ export function ShortcutsSettings() {
     <div className="sheet-section shortcuts">
       <h3>Apple Shortcuts</h3>
       <p className="muted small">
-        Log water and check-ins from Siri, the Action Button or a Home Screen
-        shortcut, without opening Daywell.
+        Log water and check-ins, or send your steps from Apple Health, with
+        Siri, the Action Button or a Home Screen shortcut, without opening
+        Daywell.
       </p>
       {status === undefined ? (
         <p role="status" className="muted small">
@@ -198,6 +212,7 @@ export function ShortcutsSettings() {
                       {r.body.replace("Europe/London", zone)}
                     </code>
                   )}
+                  {"hint" in r && <p className="muted small">{r.hint}</p>}
                 </li>
               );
             })}
