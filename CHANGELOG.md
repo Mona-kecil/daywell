@@ -6,6 +6,7 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 
 ### Added
 
+- Pick a specific USDA match for a food in a photo meal (backend): `mealActions.pickMatch`.
 - **Search USDA from manual entry.** Each food in "Enter manually" and "New saved meal" can be looked up by name. Picking one of up to 8 USDA matches fills its macros, which follow the amount until you type over them.
 - **Cardio everywhere**: a cardio nudge from the coach for people who do cardio, plus cardio in the weekly review, the week story, the "Your day" timeline and the share card.
 - **Monthly recap** on Insights: training, cardio, water, weight and habits for this month or last, with a tap-through story.

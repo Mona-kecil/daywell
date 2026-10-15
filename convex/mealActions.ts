@@ -4,7 +4,8 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireUser } from "./model";
 import { fdcMode } from "../lib/local-deployment";
-import { groundFood } from "../lib/fdc";
+import { groundFood, searchFoods } from "../lib/fdc";
+import type { MealItem } from "../lib/nutrients";
 import { mealVisionProvider } from "./mealVision";
 
 async function analyze(ctx: ActionCtx, id: Id<"meals">): Promise<void> {
@@ -118,6 +119,69 @@ export const research = action({
         },
       });
     }
+  },
+});
+
+export const pickMatch = action({
+  args: {
+    id: v.id("meals"),
+    itemId: v.string(),
+    query: v.string(),
+    fdcId: v.number(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    await requireUser(ctx);
+    const meal = await ctx.runQuery(internal.meals.read, { id: args.id });
+    const query = args.query.trim().replace(/\s+/g, " ");
+    if (query.length < 2 || query.length > 80)
+      throw new ConvexError("Search for a food name of 2 to 80 characters.");
+    if (meal.analysis.status === "analyzing")
+      throw new ConvexError("Wait for the analysis to finish.");
+    const item = meal.items.find((item) => item.id === args.itemId);
+    if (!item) throw new ConvexError("Item not found.");
+    let hits: Awaited<ReturnType<typeof searchFoods>>;
+    try {
+      hits = await searchFoods(
+        query,
+        process.env.USDA_FDC_API_KEY,
+        fdcMode(process.env),
+      );
+    } catch {
+      throw new ConvexError(
+        "Food search is unavailable right now. Please try again.",
+      );
+    }
+    const hit = hits.find((hit) => hit.fdcId === args.fdcId);
+    if (!hit)
+      throw new ConvexError(
+        "That food is no longer in the USDA results. Search again.",
+      );
+    const revision = await ctx.runMutation(internal.meals.begin, {
+      id: args.id,
+      expectedRevision: meal.revision,
+    });
+    await ctx.runMutation(internal.meals.complete, {
+      id: args.id,
+      revision,
+      result: {
+        status: "ready",
+        description: meal.description,
+        items: meal.items.map((entry): MealItem =>
+          entry.id === item.id
+            ? {
+                id: item.id,
+                name: item.name,
+                grams: item.grams,
+                status: "matched",
+                fdcId: hit.fdcId,
+                foodDescription: hit.description,
+                per100g: hit.per100g,
+                searchQuery: query,
+              }
+            : entry,
+        ),
+      },
+    });
   },
 });
 
