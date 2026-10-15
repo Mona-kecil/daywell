@@ -27,6 +27,7 @@ export type CoachSnapshotInput = {
     mood?: number;
     energy?: number;
   } | null;
+  readiness?: CoachInput["readiness"];
   suggestions: Pick<Suggestion, "kind" | "title" | "body">[];
 };
 
@@ -66,6 +67,7 @@ export function buildCoachSnapshot(input: CoachSnapshotInput) {
           .reduce((sum, w) => sum + w.amountMl, 0),
       ),
       waterGoalMl: input.waterGoal,
+      ...(input.readiness?.score != null ? { readiness: input.readiness } : {}),
       nutrients: {
         kcal: round(totals.kcal),
         protein: round(totals.protein),

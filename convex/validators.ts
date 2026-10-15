@@ -39,6 +39,7 @@ export const pushPayload = v.object({
     v.literal("rest"),
     v.literal("habit"),
     v.literal("cardio"),
+    v.literal("readiness"),
     v.literal("weekly-review"),
   ),
 });

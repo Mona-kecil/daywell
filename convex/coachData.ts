@@ -1,9 +1,32 @@
+import { ConvexError } from "convex/values";
 import { activeMinutes, addDays, mondayOf } from "../lib/cardio";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { coachSuggestions } from "../lib/coach";
+import { coachSuggestions, type CoachInput } from "../lib/coach";
 import { localClock } from "../lib/coach-time";
 import { mealTotals, sumNutrients } from "../lib/nutrients";
+import { loadReadiness, READINESS_LIMIT_MESSAGE } from "./readiness";
+
+export async function readinessForCoach(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+  now: number,
+  timeZone: string,
+): Promise<CoachInput["readiness"]> {
+  try {
+    const result = await loadReadiness(ctx, userId, now, timeZone);
+    const weakest = result.components[0];
+    return {
+      score: result.score,
+      band: result.band,
+      ...(weakest && weakest.score < 50 ? { weakest: weakest.key } : {}),
+    };
+  } catch (error) {
+    if (error instanceof ConvexError && error.data === READINESS_LIMIT_MESSAGE)
+      return undefined;
+    throw error;
+  }
+}
 
 export async function todayDataFor(
   ctx: QueryCtx | MutationCtx,
@@ -14,7 +37,7 @@ export async function todayDataFor(
   const { localDay, localMinutes } = localClock(now, timeZone);
   // A civil day can span 25 hours during a DST fold. Include an extra hour for historical offsets.
   const start = Math.max(0, now - 26 * 3_600_000);
-  const [water, meals, groups] = await Promise.all([
+  const [water, meals, groups, readiness] = await Promise.all([
     ctx.db
       .query("water")
       .withIndex("by_user_time", (q) =>
@@ -31,6 +54,7 @@ export async function todayDataFor(
       .query("muscles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
+    readinessForCoach(ctx, userId, now, timeZone),
   ]);
   const todayMeals = meals.filter(
     (m) => localClock(m.at, timeZone).localDay === localDay,
@@ -65,6 +89,7 @@ export async function todayDataFor(
     ),
     mealCount: todayMeals.length,
     muscles,
+    ...(readiness === undefined ? {} : { readiness }),
   };
 }
 
@@ -124,6 +149,7 @@ export async function suggestionsFor(
       proteinTarget: settings.proteinTarget,
     },
     muscles: today.muscles,
+    readiness: today.readiness,
     habits: habits.map((habit) => ({
       id: habit._id,
       name: habit.name,

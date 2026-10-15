@@ -2,6 +2,7 @@ import { ACTIVE_MINUTES_GOAL } from "./cardio";
 import { readyAt } from "./forecast";
 import { localClock } from "./coach-time";
 import { recovery } from "./recovery";
+import type { Readiness } from "./readiness";
 import type { Macros } from "./nutrients";
 
 export const DEFAULT_CHECK_INS = ["10:00", "13:00", "16:00", "19:30"];
@@ -12,7 +13,7 @@ export const PROTEIN_FOODS = [
 ];
 export type Suggestion = {
   id: string;
-  kind: "water" | "food" | "train" | "rest" | "habit" | "cardio";
+  kind: "water" | "food" | "train" | "rest" | "habit" | "cardio" | "readiness";
   priority: 1 | 2 | 3;
   title: string;
   body: string;
@@ -27,6 +28,9 @@ export type CoachInput = {
   targets: { kcalTarget?: number; proteinTarget?: number };
   mealCount: number;
   cardio?: { weekActiveMinutes: number; todayMinutes: number; weekday: number };
+  readiness?: Pick<Readiness, "score" | "band"> & {
+    weakest?: Readiness["components"][number]["key"];
+  };
   habits?: {
     id: string;
     name: string;
@@ -98,6 +102,35 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
       priority: 2,
       title: "Log lunch when you have a moment",
       body: "No meals logged today. Add lunch so your totals can guide your next meal.",
+    });
+  }
+  const takeItEasy =
+    input.readiness?.band === "easy" &&
+    localMinutes >= 6 * 60 &&
+    localMinutes < 14 * 60 &&
+    !input.muscles.some(
+      (m) =>
+        m.lastTrainedAt !== null &&
+        localClock(m.lastTrainedAt, input.timeZone ?? "UTC").localDay ===
+          localClock(now, input.timeZone ?? "UTC").localDay,
+    );
+  if (takeItEasy) {
+    const reasons = {
+      sleep: "Last night was short.",
+      sleepTrend: "You've slept less than usual lately.",
+      feel: "You're running low today.",
+      soreness: "Several muscle groups are still sore.",
+      load: "Your training load is well above your usual week.",
+    } satisfies Record<Readiness["components"][number]["key"], string>;
+    const reason = input.readiness?.weakest
+      ? reasons[input.readiness.weakest]
+      : "Several signals are low.";
+    suggestions.push({
+      id: "today:readiness",
+      kind: "readiness",
+      priority: 2,
+      title: `Readiness ${input.readiness?.score}: take it easy`,
+      body: `${reason} A walk, mobility or a stretch fits today better than a hard session.`,
     });
   }
   const groups = input.muscles
@@ -189,6 +222,7 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
   // One nudge per kind, so two food reminders never crowd out the rest.
   const kinds = new Set<Suggestion["kind"]>();
   return suggestions
+    .filter((s) => !takeItEasy || s.kind !== "train")
     .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id, "en"))
     .filter((s) => !kinds.has(s.kind) && kinds.add(s.kind))
     .slice(0, 3);
