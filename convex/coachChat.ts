@@ -11,7 +11,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./model";
 import { validHistoryClock } from "./historyData";
-import { suggestionsFor } from "./coachData";
+import { readinessForCoach, suggestionsFor } from "./coachData";
 import { localClock, normalizeTimeZone } from "../lib/coach-time";
 import { shiftDay } from "../lib/history";
 import {
@@ -231,7 +231,8 @@ export const readReply = internalQuery({
           .take(12),
       ]);
     const settings = storedSettings ?? { userId, waterGoal: 2500 };
-    const [muscles, suggestions] = await Promise.all([
+    const loading = readinessForCoach(ctx, userId, now, args.timeZone);
+    const [muscles, suggestions, readiness] = await Promise.all([
       Promise.all(
         groups.map(async (m) => {
           const last = await ctx.db
@@ -252,7 +253,8 @@ export const readReply = internalQuery({
           };
         }),
       ),
-      suggestionsFor(ctx, settings, now, args.timeZone),
+      suggestionsFor(ctx, settings, now, args.timeZone, loading),
+      loading,
     ]);
     return {
       kind: "ready",
@@ -271,6 +273,7 @@ export const readReply = internalQuery({
           muscles,
           checkin,
           suggestions,
+          readiness,
         }),
         messages: recent
           .reverse()

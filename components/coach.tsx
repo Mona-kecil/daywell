@@ -10,6 +10,7 @@ import {
   Moon,
   ListChecks,
   Footprints,
+  Gauge,
   Plus,
   Sparkles,
   Utensils,
@@ -40,6 +41,7 @@ const KIND = {
   train: { Icon: Dumbbell, tone: "green", tab: "train", cta: "Log workout" },
   rest: { Icon: Moon, tone: "green", tab: "train", cta: "See recovery" },
   habit: { Icon: ListChecks, tone: "green", tab: "today", cta: "See habits" },
+  readiness: { Icon: Gauge, tone: "blue", tab: "today", cta: "See readiness" },
   cardio: { Icon: Footprints, tone: "green", tab: "train", cta: "Log cardio" },
 } satisfies Record<
   Suggestion["kind"],
