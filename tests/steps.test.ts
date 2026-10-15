@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { runInNewContext } from "node:vm";
 import { ModuleKind, transpileModule } from "typescript";
 import { describe, expect, it } from "vitest";
-import { stepCount, stepGoal, stepWeek } from "../lib/steps";
+import { STREAK_CAP, stepCount, stepGoal, stepWeek } from "../lib/steps";
 import { coachSuggestions, type CoachInput } from "../lib/coach";
 import { buildCoachSnapshot, type CoachSnapshotInput } from "../lib/coach-chat";
 import * as cardio from "../lib/cardio";
@@ -28,7 +28,7 @@ const nudge = (changes: Partial<CoachInput> = {}) =>
 describe("step counts and goals", () => {
   it.each([
     [0, 0],
-    [-0.4, 0],
+    [0.4, 0],
     [99999.6, 100000],
     [100000, 100000],
     [100000.4, 100000],
@@ -36,7 +36,7 @@ describe("step counts and goals", () => {
   ])("rounds %s to %s before checking bounds", (value, expected) => {
     expect(stepCount(value)).toBe(expected);
   });
-  it.each([-1, 100000.6, NaN, Infinity, -Infinity])(
+  it.each([-1, -0.4, 100000.6, NaN, Infinity, -Infinity])(
     "rejects count %s",
     (value) => expect(() => stepCount(value)).toThrow("0–100,000"),
   );
@@ -191,13 +191,14 @@ describe("steps coach", () => {
 });
 
 describe("step history math", () => {
-  it("bounds a complete streak at 366 days", () => {
+  it("caps a year-long streak at STREAK_CAP", () => {
     const rows = Array.from({ length: 500 }, (_, i) => ({
       day: cardio.addDays("2026-10-15", -i),
       count: 8000,
     }));
-    expect(stepWeek("2026-10-15", 8000, rows).streak).toBe(366);
-    expect(stepWeek("2026-10-16", 8000, rows).streak).toBe(366);
+    expect(stepWeek("2026-10-15", 8000, rows).streak).toBe(STREAK_CAP);
+    expect(stepWeek("2026-10-16", 8000, rows).streak).toBe(STREAK_CAP);
+    expect(STREAK_CAP).toBe(365);
   });
   it("keeps zero distinct from missing and excludes today from average28", () => {
     const result = stepWeek("2026-10-15", 8000, [

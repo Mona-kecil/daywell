@@ -144,6 +144,12 @@ describe("steps card", () => {
     ).toBeTruthy();
   });
 
+  it("shows a capped streak as a lower bound", () => {
+    state.week = { ...week, streak: 365 };
+    render(<StepsCard now={now} />);
+    expect(stat("Streak")).toBe("365+ days");
+  });
+
   it("dates the last sync", () => {
     expect(syncLine(null, now)).toBeNull();
     expect(syncLine(now - 30_000, now)).toBe(
@@ -205,8 +211,11 @@ describe("steps card", () => {
     const save = within(sheet).getByRole("button", { name: "Save steps" });
     expect(within(sheet).queryByRole("button", { name: /Remove/ })).toBeNull();
     const field = within(sheet).getByLabelText(/^Steps/);
-    await userEvent.type(field, "100001");
-    expect((save as HTMLButtonElement).disabled).toBe(true);
+    for (const bad of ["100001", "100000.1", "6500.5", "-1"]) {
+      await userEvent.clear(field);
+      await userEvent.type(field, bad);
+      expect((save as HTMLButtonElement).disabled, bad).toBe(true);
+    }
     await userEvent.clear(field);
     await userEvent.type(field, "6500");
     await userEvent.click(save);

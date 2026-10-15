@@ -86,6 +86,8 @@ describe("Apple Shortcuts settings", () => {
     expect(
       screen.getByText("https://happy-otter-123.convex.site/shortcuts/steps"),
     ).toBeTruthy();
-    expect(screen.getByText(/Find Health Samples: Steps/)).toBeTruthy();
+    expect(
+      screen.getByText(/count iPhone and Apple Watch steps twice/),
+    ).toBeTruthy();
   });
 });

@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Footprints, Plus, Target } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { DEFAULT_STEP_GOAL, STREAK_CAP } from "@/lib/steps";
 import { dayKey } from "@/lib/insights";
 import { deviceTimeZone } from "./coach";
 import { settledNow, useLatest } from "./review";
@@ -12,7 +13,6 @@ import { Progress, SectionTitle, Sheet, timeLabel, useTask } from "./ui";
 type Week = FunctionReturnType<typeof api.steps.week>;
 type Editing = { day: string; count: number | null } | "goal" | null;
 
-export const DEFAULT_STEP_GOAL = 8000;
 const MAX_STEPS = 100_000;
 
 export const steps = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -157,6 +157,7 @@ export function StepsCard({ now }: { now: number }) {
             <dt>Streak</dt>
             <dd>
               {week.streak}
+              {week.streak >= STREAK_CAP && "+"}
               <small> {week.streak === 1 ? "day" : "days"}</small>
             </dd>
           </div>
@@ -246,9 +247,9 @@ function StepsForm({
   const n = Number(value);
   const valid =
     value.trim() !== "" &&
-    Number.isFinite(n) &&
+    Number.isInteger(n) &&
     n >= 0 &&
-    Math.round(n) <= MAX_STEPS &&
+    n <= MAX_STEPS &&
     day >= earliest &&
     day <= today;
   // Only the day the sheet opened on is known to have a count to remove.
@@ -258,7 +259,7 @@ function StepsForm({
     e.preventDefault();
     if (!valid) return;
     const ok = await run(
-      () => set({ day, count: Math.round(n), timeZone: deviceTimeZone() }),
+      () => set({ day, count: n, timeZone: deviceTimeZone() }),
       `${steps(n)} steps saved`,
     );
     if (ok) onDone();

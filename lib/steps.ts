@@ -2,10 +2,12 @@ import { ConvexError } from "convex/values";
 import { addDays, mondayOf } from "./cardio";
 
 export const DEFAULT_STEP_GOAL = 8000;
+// The week query reads a year back, so longer streaks show as "365+".
+export const STREAK_CAP = 365;
 
 export function stepCount(value: number): number {
   const count = Math.round(value);
-  if (!Number.isFinite(value) || count < 0 || count > 100000)
+  if (!Number.isFinite(value) || value < 0 || count > 100000)
     throw new ConvexError("Steps must round to a count from 0–100,000.");
   return count === 0 ? 0 : count;
 }
@@ -29,7 +31,7 @@ export function stepWeek(
   });
   let streak = 0;
   const end = (counts.get(today) ?? -1) >= goal ? today : addDays(today, -1);
-  for (let i = 0; i < 366; i++) {
+  for (let i = 0; i < STREAK_CAP; i++) {
     if ((counts.get(addDays(end, -i)) ?? -1) < goal) break;
     streak++;
   }

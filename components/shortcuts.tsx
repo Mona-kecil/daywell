@@ -24,7 +24,7 @@ const ROUTES = [
     method: "POST",
     title: "Send steps",
     body: '{ "steps": 8421, "timeZone": "Europe/London" }',
-    hint: "Get the number from Find Health Samples: Steps, starting today, grouped by day. A personal automation at 9 pm can send it every evening. Sending again replaces that day’s count.",
+    hint: "Send the day’s total as the Health app shows it. Adding up raw samples can count iPhone and Apple Watch steps twice, so check the Shortcut’s number against Health before you automate it. Sending again replaces that day’s count.",
   },
   {
     path: "/shortcuts/today?timeZone=Europe/London",
