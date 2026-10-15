@@ -6359,3 +6359,68 @@ h1,
   justify-content: center;
   gap: 8px;
 }
+
+/* Fasting timer */
+.fast-prompt {
+  margin-top: 12px;
+  gap: 10px;
+}
+.fasting-card {
+  position: relative;
+}
+.fast-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 4px 0 16px;
+}
+.fast-body svg {
+  flex: none;
+  width: clamp(84px, 28vw, 112px);
+  height: auto;
+  aspect-ratio: 1;
+}
+.fast-arc {
+  fill: none;
+  stroke: var(--green);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fasting-card.reached .fast-arc {
+  stroke: var(--c-protein);
+}
+.fast-readout {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.fast-readout strong {
+  font-size: clamp(22px, 7vw, 28px);
+  white-space: nowrap;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.fast-goals {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--bg);
+}
+/* Joined segments keep five 44px targets on a 320px screen. */
+.fast-goals .chip {
+  min-height: 44px;
+  padding-inline: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.fast-goals .chip[aria-pressed="true"] {
+  background: var(--green);
+}
+.fasting-card .text-button {
+  min-height: 44px;
+  white-space: nowrap;
+}

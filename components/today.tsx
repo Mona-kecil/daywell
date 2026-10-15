@@ -25,6 +25,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { CardBoundary } from "./card-boundary";
 import { ReadinessCard } from "./readiness";
 import { StepsCard } from "./steps";
+import { FastingCard, FastingPrompt } from "./fasting";
 
 // Ring targets when the user hasn't set their own in Settings.
 const PROTEIN_TARGET_G = 120;
@@ -275,7 +276,9 @@ export function Today({
           {mealCount} {mealCount === 1 ? "meal" : "meals"} logged
           {pendingMeals > 0 ? ` · ${pendingMeals} awaiting analysis` : ""}
         </p>
+        <FastingPrompt meals={meals} now={now} />
       </section>
+      <FastingCard meals={meals} now={now} />
       <CheckInCard now={now} />
       <HabitsCard now={now} />
       <BreathCard />
