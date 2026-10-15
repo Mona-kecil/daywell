@@ -1765,7 +1765,9 @@ h1,
 .coach-log {
   min-height: 44px;
   margin: -4px 4px 12px 52px;
-  text-align: left;
+}
+.coach-log svg {
+  flex-shrink: 0;
 }
 .coach-ask {
   margin-left: auto;
@@ -3506,15 +3508,31 @@ h1,
 .proposal-body .row {
   margin: 0;
 }
+/* Stacked: beside the icon and toggle there's no room for both at 320px. */
 .proposal-servings {
-  gap: 10px;
+  display: grid;
+  gap: 6px;
 }
 .proposal-servings > span {
-  min-width: 0;
   overflow-wrap: anywhere;
 }
 .proposal-servings .serving-picker {
-  flex: 0 0 150px;
+  width: min(100%, 190px);
+}
+.proposal-servings output {
+  white-space: nowrap;
+}
+.proposal-body {
+  container-type: inline-size;
+}
+.proposal-body .row > .muted {
+  white-space: nowrap;
+}
+/* The group's label names the servings when the word doesn't fit. */
+@container (max-width: 175px) {
+  .proposal-servings .picker-unit {
+    display: none;
+  }
 }
 .proposal-toggle {
   flex: none;

@@ -151,9 +151,10 @@ export function CoachCard({
                     type="button"
                     className="soft-button coach-log"
                     disabled={pending}
+                    aria-label={`Log 1 serving of ${s.savedMeal.name}`}
                     onClick={() => s.savedMeal && logMeal(s.savedMeal)}
                   >
-                    <Plus size={16} /> Log 1 serving of {s.savedMeal.name}
+                    <Plus size={16} /> Log 1 serving
                   </button>
                 )}
               </li>

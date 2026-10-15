@@ -476,13 +476,14 @@ function Detail({
       );
     case "savedMeal": {
       // Quarter steps, as Saved meals logs them.
+      const [amount, unit] = servingLabel(p.servings).split(" ");
       const step = (by: number) =>
         onChange({
           ...p,
           servings: Math.min(10, Math.max(0.25, p.servings + by)),
         });
       return (
-        <div className="row spaced proposal-servings">
+        <div className="proposal-servings">
           <span className="small">{p.name}</span>
           <div
             className="serving-picker small-picker"
@@ -498,7 +499,10 @@ function Detail({
             >
               <Minus size={16} />
             </button>
-            <output>{servingLabel(p.servings)}</output>
+            <output>
+              {amount}
+              <span className="picker-unit"> {unit}</span>
+            </output>
             <button
               type="button"
               className="icon-button"

@@ -118,7 +118,11 @@ describe("saved meals from the coach", () => {
     });
     await userEvent.click(more);
     await userEvent.click(more);
-    expect(within(results).getByText("¾ serving")).toBeTruthy();
+    expect(
+      within(results)
+        .getByRole("group", { name: "Servings of Chicken rice bowl" })
+        .querySelector("output")?.textContent,
+    ).toBe("¾ serving");
     await userEvent.click(
       within(results).getByRole("button", { name: "Log 1 entry" }),
     );
