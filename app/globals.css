@@ -248,6 +248,7 @@ main {
   background: var(--surface);
 }
 .icon-tile.blue,
+.pill.blue,
 .soft-button.blue {
   background: var(--blue-soft);
   color: var(--blue);
@@ -4632,6 +4633,103 @@ h1,
   .story-progress > span > span {
     animation: none;
     width: 100%;
+  }
+}
+/* Readiness */
+.readiness-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.readiness-head > p {
+  margin: 0;
+}
+.readiness-dial-wrap {
+  position: relative;
+  flex: 0 0 120px;
+}
+.readiness-dial {
+  display: block;
+  width: 120px;
+  height: 66px;
+}
+.readiness-dial path {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.readiness-dial .dial-track {
+  stroke: var(--track);
+}
+.readiness-dial .dial-arc {
+  stroke: var(--green);
+  transition: stroke-dashoffset 0.6s ease;
+}
+.readiness-dial.amber .dial-arc {
+  stroke: var(--amber);
+}
+.readiness-dial.blue .dial-arc {
+  stroke: var(--blue);
+}
+.readiness-score {
+  position: absolute;
+  inset: auto 0 0;
+  margin: 0;
+  text-align: center;
+  line-height: 1;
+}
+.readiness-score strong {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.readiness-score span {
+  font-size: 12px;
+}
+.readiness-factors {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.readiness-factors li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  row-gap: 4px;
+  align-items: baseline;
+}
+.readiness-factors li > .small {
+  text-align: right;
+}
+.readiness-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--track);
+  overflow: hidden;
+}
+.readiness-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--frequency);
+}
+.readiness-missing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.readiness-missing .soft-button {
+  min-height: 44px;
+}
+.readiness-note {
+  margin: 12px 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .readiness-dial .dial-arc {
+    transition: none;
   }
 }
 .week-play {

@@ -77,7 +77,11 @@ function CheckInForm({
   };
 
   return (
-    <section className="card checkin-card" aria-labelledby={`${id}-title`}>
+    <section
+      className="card checkin-card"
+      id="checkin"
+      aria-labelledby={`${id}-title`}
+    >
       <SectionTitle
         title="How are you today?"
         id={`${id}-title`}

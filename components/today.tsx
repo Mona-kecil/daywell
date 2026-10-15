@@ -22,6 +22,8 @@ import { HabitsCard } from "./habits";
 import { CaffeineCard } from "./caffeine";
 import { DayTimeline } from "./timeline";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { CardBoundary } from "./card-boundary";
+import { ReadinessCard } from "./readiness";
 
 // Ring targets when the user hasn't set their own in Settings.
 const PROTEIN_TARGET_G = 120;
@@ -142,6 +144,9 @@ export function Today({
       </section>
       <QuickLogButton />
       <CoachCard now={now} onTab={onTab} />
+      <CardBoundary title="Readiness">
+        <ReadinessCard now={now} />
+      </CardBoundary>
       <section className="card burst-anchor rings-card">
         <SectionTitle
           title="Today so far"

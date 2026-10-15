@@ -142,6 +142,9 @@ export function readiness(input: ReadinessInput): Readiness {
           components.reduce((sum, row) => sum + row.score * row.weight, 0) /
             totalWeight,
         );
+  // One weak factor (a short night, a load spike) rules out "push" even when
+  // the others carry the average.
+  const flagged = components.some((row) => oneDp(row.score) < 50);
   const missing: Readiness["missing"] = [];
   if (today?.sleepHours === undefined) missing.push("sleep");
   if (feel.length === 0) missing.push("feel");
@@ -151,7 +154,7 @@ export function readiness(input: ReadinessInput): Readiness {
     band:
       score === null
         ? null
-        : score >= 75
+        : score >= 75 && !flagged
           ? "push"
           : score >= 50
             ? "steady"

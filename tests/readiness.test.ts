@@ -342,6 +342,28 @@ describe("combined estimate", () => {
     expect(result).toMatchObject({ score, band });
   });
 
+  it("never says push while one factor is below 50", () => {
+    // Sleep 9 h, nothing sore, energy and mood 5/5: everything else maxed.
+    const base = {
+      ...input,
+      checkins: [{ day, sleepHours: 9, energy: 5, mood: 5 }],
+      totalMuscles: 11,
+    };
+    const spike = readiness({ ...base, dailyLoad: loadAtRatio(1.7) });
+    expect(component(spike, "load")?.score).toBeLessThan(50);
+    expect(spike.score).toBeGreaterThanOrEqual(75);
+    expect(spike.band).toBe("steady");
+    const edge = readiness({ ...base, dailyLoad: loadAtRatio(1.65) });
+    expect(component(edge, "load")?.score).toBe(50);
+    expect(edge.band).toBe("push");
+    const shortNight = readiness({
+      ...base,
+      checkins: [{ day, sleepHours: 5.4, energy: 5, mood: 5 }],
+    });
+    expect(shortNight.score).toBeGreaterThanOrEqual(75);
+    expect(shortNight.band).toBe("steady");
+  });
+
   it("lists only today's missing loggable inputs", () => {
     expect(readiness(input).missing).toEqual(["sleep", "feel"]);
     expect(
