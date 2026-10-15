@@ -23,7 +23,7 @@ export function monthRange(month: string, today: string) {
   return { fromDay, toDay, days: dayNumber(toDay) - dayNumber(fromDay) + 1 };
 }
 
-type RecapInput = Omit<HistoryInput, "muscleIds"> & {
+type RecapInput = Omit<HistoryInput, "muscleIds" | "cardio"> & {
   month: string;
   muscles: { _id: string; name: string }[];
   cardio: {

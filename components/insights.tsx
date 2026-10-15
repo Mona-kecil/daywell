@@ -38,6 +38,7 @@ import { ConsistencyCalendar } from "./consistency";
 import { DriversCard } from "./drivers";
 import { YearPixels } from "./pixels";
 import { EatingWindowCard } from "./eating";
+import { MonthRecap } from "./month-recap";
 import { Achievements, WeeklyReview } from "./review";
 import { ProgressPhotos } from "./progress-photos";
 import { WeightGoalCard } from "./weight-goal";
@@ -84,6 +85,7 @@ export function Insights({ now }: { now: number }) {
         }
       >
         <WeeklyReview now={now} />
+        <MonthRecap now={now} />
       </InsightsView>
       <Achievements now={now} />
       <WeightGoalCard now={now} />

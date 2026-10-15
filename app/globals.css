@@ -4638,6 +4638,14 @@ h1,
   width: 100%;
   margin-top: 12px;
 }
+.month-recap > .segmented {
+  display: flex;
+  margin: 4px 0 12px;
+}
+.month-recap > .segmented button {
+  flex: 1;
+  min-height: 44px;
+}
 /* Soreness */
 .sore-row {
   display: grid;

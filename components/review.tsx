@@ -33,10 +33,10 @@ type Achievement = FunctionReturnType<typeof api.achievements.list>[number];
 // The clock ticks every 15 s; rounding up to the next 5 minutes keeps the
 // subscription stable while still including everything logged so far.
 const STEP = 5 * 60_000;
-const settledNow = (now: number) => Math.ceil(now / STEP) * STEP;
+export const settledNow = (now: number) => Math.ceil(now / STEP) * STEP;
 
 // Keeps the last result while new args load, so cards don't flash.
-function useLatest<T>(value: T | undefined) {
+export function useLatest<T>(value: T | undefined) {
   const [last, setLast] = useState(value);
   if (value !== undefined && value !== last) setLast(value);
   return value ?? last;

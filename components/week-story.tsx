@@ -20,7 +20,7 @@ import { minutesLabel } from "./cardio";
 
 type Review = FunctionReturnType<typeof api.coach.weeklyReview>;
 type Lift = FunctionReturnType<typeof api.trends.list>["lifts"][number];
-type Slide = {
+export type Slide = {
   key: string;
   icon: LucideIcon;
   eyebrow: string;
@@ -168,11 +168,28 @@ export function WeekStory({
   now: number;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
   const trends = useQuery(api.trends.list, {
     now: Math.ceil(now / 300_000) * 300_000,
   });
-  const slides = storySlides(review, trends?.lifts ?? []);
+  return (
+    <StoryPlayer
+      label="Your week"
+      slides={storySlides(review, trends?.lifts ?? [])}
+      onClose={onClose}
+    />
+  );
+}
+
+export function StoryPlayer({
+  label,
+  slides,
+  onClose,
+}: {
+  label: string;
+  slides: Slide[];
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [held, setHeld] = useState(false);
@@ -226,7 +243,7 @@ export function WeekStory({
     <dialog
       ref={ref}
       className="story"
-      aria-label="Your week"
+      aria-label={label}
       aria-roledescription="story"
       onClose={onClose}
       onKeyDown={(e) => {
