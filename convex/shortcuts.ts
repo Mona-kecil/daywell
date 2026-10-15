@@ -6,6 +6,7 @@ import { createWater, requireUser, validTimestamp } from "./model";
 import { upsertCheckin } from "./checkinModel";
 import { todayDataFor } from "./coachData";
 import { localClock, normalizeTimeZone } from "../lib/coach-time";
+import { stepSettings, upsertSteps } from "./stepsModel";
 import { recovery } from "../lib/recovery";
 
 export async function hashToken(token: string): Promise<string> {
@@ -78,6 +79,11 @@ const waterInput = z.strictObject({
   amountMl: z.number(),
   at: z.number().optional(),
 });
+const stepsInput = z.strictObject({
+  steps: z.number(),
+  day: z.string().optional(),
+  timeZone: z.string().optional(),
+});
 const checkinInput = z.strictObject({
   day: z.string().optional(),
   timeZone: z.string().optional(),
@@ -101,6 +107,7 @@ type ShortcutResponse = {
   status: number;
   body:
     | { error: string }
+    | { ok: true; day: string; steps: number }
     | { ok: true; id: Id<"water"> | Id<"bodyCheckins"> }
     | {
         day: string;
@@ -117,7 +124,12 @@ type ShortcutResponse = {
 export const request = internalMutation({
   args: {
     hash: v.string(),
-    kind: v.union(v.literal("water"), v.literal("checkin"), v.literal("today")),
+    kind: v.union(
+      v.literal("water"),
+      v.literal("checkin"),
+      v.literal("today"),
+      v.literal("steps"),
+    ),
     body: v.string(),
     timeZone: v.optional(v.string()),
   },
@@ -179,6 +191,22 @@ export const request = internalMutation({
             day: day ?? localClock(now, zone ?? "UTC").localDay,
           });
           return { status: 200, body: { ok: true, id } };
+        }
+        case "steps": {
+          const input = stepsInput.parse(JSON.parse(args.body));
+          if (input.day === undefined && input.timeZone === undefined)
+            throw new ConvexError("Provide a day or an IANA timeZone.");
+          const settings = await stepSettings(ctx, userId);
+          const timeZone = validTimeZone(
+            input.timeZone ?? settings?.timeZone ?? "UTC",
+          );
+          const result = await upsertSteps(ctx, userId, {
+            day: input.day ?? localClock(now, timeZone).localDay,
+            count: input.steps,
+            timeZone,
+            source: "shortcut",
+          });
+          return { status: 200, body: { ok: true, ...result } };
         }
         case "today": {
           const timeZone = validTimeZone(args.timeZone);

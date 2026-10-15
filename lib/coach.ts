@@ -13,7 +13,15 @@ export const PROTEIN_FOODS = [
 ];
 export type Suggestion = {
   id: string;
-  kind: "water" | "food" | "train" | "rest" | "habit" | "cardio" | "readiness";
+  kind:
+    | "water"
+    | "food"
+    | "train"
+    | "rest"
+    | "habit"
+    | "cardio"
+    | "readiness"
+    | "steps";
   priority: 1 | 2 | 3;
   title: string;
   body: string;
@@ -28,6 +36,7 @@ export type CoachInput = {
   targets: { kcalTarget?: number; proteinTarget?: number };
   mealCount: number;
   cardio?: { weekActiveMinutes: number; todayMinutes: number; weekday: number };
+  steps?: { today: number | null; goal: number; recentDays: number };
   readiness?: Pick<Readiness, "score" | "band"> & {
     weakest?: Readiness["components"][number]["key"];
   };
@@ -221,6 +230,27 @@ export function coachSuggestions(input: CoachInput): Suggestion[] {
         body: `A ${minutes}-minute brisk walk tonight gets you back on pace for the week.`,
       });
     }
+  }
+  if (
+    localMinutes >= 17 * 60 &&
+    localMinutes < 22 * 60 &&
+    input.steps &&
+    input.steps.today !== null &&
+    input.steps.today < input.steps.goal &&
+    input.steps.goal - input.steps.today <= 4000 &&
+    input.steps.recentDays >= 3
+  ) {
+    const remaining = input.steps.goal - input.steps.today;
+    suggestions.push({
+      id: "today:steps",
+      kind: "steps",
+      priority: 3,
+      title: `${remaining.toLocaleString("en-US")} steps to your goal`,
+      body:
+        remaining > 1000
+          ? "A 20-minute walk is about 2,000 steps."
+          : "A short walk after dinner gets you there.",
+    });
   }
   // One nudge per kind, so two food reminders never crowd out the rest.
   const kinds = new Set<Suggestion["kind"]>();
