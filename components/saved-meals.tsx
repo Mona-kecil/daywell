@@ -24,8 +24,9 @@ const NAME_MAX = 80;
 const whole = (n: number) => Math.round(n).toLocaleString("en-US");
 const macroLine = (m: Macros) =>
   `${whole(m.kcal)} kcal · P ${whole(m.protein)} · F ${whole(m.fat)} · C ${whole(m.carbs)} g`;
+// Tenths, as logging stores them, so the preview matches the meal.
 const grams = (n: number) =>
-  `${n.toLocaleString("en-US", { maximumFractionDigits: n < 10 ? 1 : 0 })} g`;
+  `${n.toLocaleString("en-US", { maximumFractionDigits: 1 })} g`;
 
 const QUARTERS = ["", "¼", "½", "¾"];
 // "1½ servings", "¾ serving": eaten amounts move in quarter steps.

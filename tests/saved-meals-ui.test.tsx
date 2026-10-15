@@ -131,9 +131,15 @@ describe("saved meals", () => {
     ).toBe("true");
     expect(within(sheet).getByText("40 g")).toBeTruthy();
     expect(within(sheet).getByText("75 g")).toBeTruthy();
+    // The preview shows the tenth of a gram that log stores.
     await userEvent.click(
-      within(sheet).getByRole("button", { name: "A quarter serving less" }),
+      within(sheet).getByRole("button", { name: "A quarter serving more" }),
     );
+    expect(within(sheet).getByText("112.5 g")).toBeTruthy();
+    for (let i = 0; i < 2; i++)
+      await userEvent.click(
+        within(sheet).getByRole("button", { name: "A quarter serving less" }),
+      );
     expect(
       (
         within(sheet).getByRole("button", {
