@@ -1,9 +1,61 @@
 import { z } from "zod";
-import { extractPer100g, fdcFoodSchema, type MealItem } from "./nutrients";
+import {
+  extractPer100g,
+  fdcFoodSchema,
+  type Macros,
+  type MealItem,
+} from "./nutrients";
 import { fixtureSearch, fixtureBarcode } from "./fdc-fixtures";
 import { validBarcode, barcodeKey } from "./barcode";
 
 const searchSchema = z.object({ foods: z.array(z.unknown()).default([]) });
+const searchFoodSchema = fdcFoodSchema.extend({
+  dataType: z.string().default(""),
+});
+
+export type FoodHit = {
+  fdcId: number;
+  description: string;
+  dataType: string;
+  per100g: Macros;
+};
+
+export async function searchFoods(
+  query: string,
+  apiKey = "DEMO_KEY",
+  mode = "live",
+): Promise<FoodHit[]> {
+  const normalized = query.trim().replace(/\s+/g, " ");
+  if (normalized.length < 2 || normalized.length > 80)
+    throw new Error("Search for a food name of 2 to 80 characters.");
+  try {
+    const result = searchSchema.parse(
+      mode === "fixture"
+        ? fixtureSearch(normalized)
+        : await searchLive(normalized, apiKey),
+    );
+    const hits: FoodHit[] = [];
+    const seen = new Set<number>();
+    for (const candidate of result.foods) {
+      const food = searchFoodSchema.safeParse(candidate);
+      if (!food.success || seen.has(food.data.fdcId)) continue;
+      const per100g = extractPer100g(food.data);
+      if (!per100g) continue;
+      seen.add(food.data.fdcId);
+      hits.push({
+        fdcId: food.data.fdcId,
+        description: food.data.description,
+        dataType: food.data.dataType,
+        per100g,
+      });
+      if (hits.length === 8) break;
+    }
+    return hits;
+  } catch {
+    throw new Error("Food search is unavailable right now. Please try again.");
+  }
+}
+
 export async function groundFood(
   input: { id: string; name: string; grams: number; searchQuery: string },
   apiKey = "DEMO_KEY",

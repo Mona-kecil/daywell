@@ -6,6 +6,7 @@ Daywell is a phone-first daily tracker for training, food, water and how you fee
 
 ### Added
 
+- Food search by name (backend): `food.search` returns up to 8 USDA foods with per-100 g macros.
 - **Cardio everywhere**: a cardio nudge from the coach for people who do cardio, plus cardio in the weekly review, the week story, the "Your day" timeline and the share card.
 - **Monthly recap** on Insights: training, cardio, water, weight and habits for this month or last, with a tap-through story.
 - **Readiness** on Today: a 0–100 estimate from last night's sleep, your recent sleep, how you feel, soreness and training load. It never says "Ready to push" while any one factor is weak.
